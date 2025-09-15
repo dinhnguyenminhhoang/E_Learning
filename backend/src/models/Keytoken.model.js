@@ -6,7 +6,6 @@ const crypto = require("crypto");
 const DOCUMENT_NAME = "Key";
 const COLLECTION_NAME = "Keys";
 
-// Subdocument cho refresh token tracking
 const refreshTokenSchema = new Schema(
   {
     token: {
@@ -32,18 +31,15 @@ const refreshTokenSchema = new Schema(
   }
 );
 
-// Main KeyToken Schema
 const keyTokenSchema = new Schema(
   {
-    // User reference
     user: {
       type: Schema.Types.ObjectId,
       required: [true, "User reference is required"],
       ref: "User",
-      index: true, // Primary index cho user lookups
+      index: true, 
     },
 
-    // JWT Keys (RSA key pair)
     keys: {
       publicKey: {
         type: String,
@@ -77,18 +73,15 @@ const keyTokenSchema = new Schema(
       },
     },
 
-    // Current refresh token
     refreshToken: {
       token: {
         type: String,
         required: [true, "Refresh token is required"],
         unique: true,
-        index: true, // Index cho token lookups
       },
       expiresAt: {
         type: Date,
         required: true,
-        index: true, // TTL index
       },
       issuedAt: {
         type: Date,
@@ -100,10 +93,8 @@ const keyTokenSchema = new Schema(
       },
     },
 
-    // Used refresh tokens (security tracking)
     refreshTokensUsed: [refreshTokenSchema],
 
-    // Device & Session Info
     session: {
       deviceId: {
         type: String,
@@ -133,7 +124,6 @@ const keyTokenSchema = new Schema(
       },
     },
 
-    // Security flags
     security: {
       isActive: {
         type: Boolean,
@@ -189,7 +179,6 @@ const keyTokenSchema = new Schema(
       ],
     },
 
-    // Usage statistics
     usage: {
       accessCount: {
         type: Number,
@@ -211,7 +200,6 @@ const keyTokenSchema = new Schema(
       },
     },
 
-    // Metadata
     metadata: {
       version: {
         type: String,
@@ -231,12 +219,10 @@ const keyTokenSchema = new Schema(
   {
     timestamps: true,
     collection: COLLECTION_NAME,
-    // Optimizations
     minimize: false,
     versionKey: false,
     toJSON: {
       transform: function (doc, ret) {
-        // Không trả về sensitive data
         delete ret.keys?.privateKey;
         delete ret.refreshToken?.token;
         delete ret.refreshTokensUsed;
@@ -253,8 +239,6 @@ const keyTokenSchema = new Schema(
     },
   }
 );
-
-// ===== INDEXES =====
 
 // Compound Indexes cho performance
 keyTokenSchema.index({ user: 1, "security.isActive": 1 }); // Active tokens per user
