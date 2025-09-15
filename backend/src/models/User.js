@@ -3,8 +3,6 @@
 const { model, Schema, Types } = require("mongoose");
 const bcrypt = require("bcrypt");
 const verificationSchema = require("./subModel/Verification.schema");
-const profileSchema = require("./subModel/Profile.schema");
-const addressSchema = require("./subModel/Address.schema");
 const DOCUMENT_NAME = "User";
 const COLLECTION_NAME = "Users";
 
@@ -43,10 +41,10 @@ const userSchema = new Schema(
       trim: true,
       validate: {
         validator: function (v) {
-          if (!v) return true; 
+          if (!v) return true;
           const vnPhoneRegex = /^(\+84|84|0)[3-9]\d{8}$/;
 
-          return vnPhoneRegex.test(v.replace(/[\s.-]/g, "")); 
+          return vnPhoneRegex.test(v.replace(/[\s.-]/g, ""));
         },
         message: "Số điện thoại không hợp lệ",
       },
@@ -66,50 +64,21 @@ const userSchema = new Schema(
       type: verificationSchema,
       default: () => ({}),
     },
-
     profile: {
-      type: profileSchema,
-      default: () => ({}),
-    },
-
-    addresses: [addressSchema],
-
-    portfolios: {
-      owned: [
-        {
-          type: Schema.Types.ObjectId,
-          ref: "Portfolio",
-          index: true,
+      avatar: {
+        type: String,
+        trim: true,
+        validate: {
+          validator: urlValidator,
+          message: "Avatar must be a valid URL",
         },
-      ],
-      favorites: [
-        {
-          type: Schema.Types.ObjectId,
-          ref: "Portfolio",
-        },
-      ],
-      wishlist: [
-        {
-          type: Schema.Types.ObjectId,
-          ref: "Portfolio",
-        },
-      ],
-      purchased: [
-        {
-          portfolioId: {
-            type: Schema.Types.ObjectId,
-            ref: "Portfolio",
-          },
-          purchasedAt: {
-            type: Date,
-            default: Date.now,
-          },
-          price: {
-            type: Number,
-            min: 0,
-          },
-        },
-      ],
+      },
+      bio: { type: String, trim: true, maxLength: 500 },
+      experience: {
+        type: String,
+        enum: ["beginner", "intermediate", "advanced", "expert"],
+        default: "beginner",
+      },
     },
     roles: [
       {
@@ -119,12 +88,6 @@ const userSchema = new Schema(
           message: "Invalid role",
         },
         default: "USER",
-      },
-    ],
-    permissions: [
-      {
-        type: String,
-        enum: ["manage_users"],
       },
     ],
     security: {
@@ -194,29 +157,10 @@ const userSchema = new Schema(
 );
 userSchema.index({ email: 1, status: 1 }); // Login queries
 userSchema.index({ status: 1, "verification.emailVerified": 1 }); // Active verified users
-userSchema.index({ "portfolios.owned": 1 }); // Portfolio ownership queries
 userSchema.index({ roles: 1, status: 1 }); // Admin/role queries
 userSchema.index({ createdAt: -1, status: 1 }); // Recent users
 userSchema.index({ "security.lastLoginAt": -1 }); // Recent login sorting
 userSchema.index({ deletedAt: 1 }, { sparse: true }); // Soft delete queries
-// Text Search Index
-userSchema.index(
-  {
-    name: "text",
-    email: "text",
-    "profile.bio": "text",
-    "profile.skills": "text",
-  },
-  {
-    weights: {
-      name: 10,
-      email: 5,
-      "profile.bio": 2,
-      "profile.skills": 3,
-    },
-    name: "user_text_search",
-  }
-);
 
 // Geospatial Index (nếu cần location-based features)
 userSchema.index({ "addresses.location": "2dsphere" });
@@ -237,11 +181,6 @@ userSchema.virtual("displayName").get(function () {
 // Account locked virtual
 userSchema.virtual("isLocked").get(function () {
   return !!(this.security?.lockUntil && this.security.lockUntil > Date.now());
-});
-
-// Portfolio counts
-userSchema.virtual("portfolioCount").get(function () {
-  return this.portfolios?.owned?.length || 0;
 });
 
 userSchema.virtual("favoriteCount").get(function () {
@@ -277,25 +216,6 @@ userSchema.methods.resetLoginAttempts = function () {
     $unset: { "security.lockUntil": 1, "security.loginAttempts": 1 },
   });
 };
-
-userSchema.methods.addToFavorites = function (portfolioId) {
-  if (!this.portfolios.favorites.includes(portfolioId)) {
-    this.portfolios.favorites.push(portfolioId);
-    return this.save();
-  }
-  return Promise.resolve(this);
-};
-
-userSchema.methods.removeFromFavorites = function (portfolioId) {
-  this.portfolios.favorites.pull(portfolioId);
-  return this.save();
-};
-
-userSchema.methods.updatePortfolioStats = function (stats) {
-  Object.assign(this.portfolioStats, stats);
-  return this.save();
-};
-
 // Static Methods
 userSchema.statics.findByEmail = function (email) {
   return this.findOne({
@@ -317,20 +237,6 @@ userSchema.statics.findByRole = function (role) {
     status: "active",
     deletedAt: null,
   });
-};
-
-userSchema.statics.getTopSellers = function (limit = 10) {
-  return this.find({
-    roles: "SELLER",
-    status: "active",
-    deletedAt: null,
-  })
-    .sort({
-      "portfolioStats.totalPortfolios": -1,
-      "portfolioStats.averageRating": -1,
-    })
-    .limit(limit)
-    .select("name email profile.avatar portfolioStats");
 };
 
 userSchema.statics.searchUsers = function (query, options = {}) {
