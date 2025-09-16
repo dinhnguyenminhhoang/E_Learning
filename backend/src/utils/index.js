@@ -42,8 +42,18 @@ const generateVerificationToken = async (userId) => {
     throw new Error("Failed to generate verification token");
   }
 };
+function urlValidator(value) {
+  try {
+    const parsed = new URL(value);
+    return ["http:", "https:"].includes(parsed.protocol);
+  } catch (_) {
+    return false;
+  }
+}
+
 module.exports = {
   isValidEmail,
   extractSessionData,
   generateVerificationToken,
+  urlValidator
 };

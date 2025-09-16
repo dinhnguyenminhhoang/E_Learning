@@ -9,7 +9,7 @@
   "scripts": {
     "test": "jest",
     "start": "NODE_ENV=production node server.js",
-    "dev": "NODE_ENV=dev nodemon server.js",
+    "dev": "nodemon server.js",
     "seed": "node seeds/index.js"
   },
   "keywords": [
