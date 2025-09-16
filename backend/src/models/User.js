@@ -3,6 +3,7 @@
 const { model, Schema, Types } = require("mongoose");
 const bcrypt = require("bcrypt");
 const verificationSchema = require("./subModel/Verification.schema");
+const { urlValidator } = require("../utils");
 const DOCUMENT_NAME = "User";
 const COLLECTION_NAME = "Users";
 
