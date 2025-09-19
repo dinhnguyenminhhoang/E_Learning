@@ -80,6 +80,23 @@ const userSchema = new Schema(
         enum: ["beginner", "intermediate", "advanced", "expert"],
         default: "beginner",
       },
+      learningPreferences: {
+        dailyGoal: {type: Number, default: 10},
+        studyReminder: {type: Boolean, default: true},
+        preferredStudyTime: {type: String},
+        difficultyLevel: {
+          type: String,
+          enum: ['beginner', 'intermediate', 'advanced'],
+          default: 'beginner'
+        }
+      }
+    },
+    statistics: {
+      totalWordsLearned: {type: Number, default: 0},
+      currentStreak: {type: Number, default: 0},
+      longestStreak : {type: Number, default: 0},
+      totalStudyTime: {type: Number, default: 0},
+      averageAccuracy: {type: Number, default: 0}
     },
     roles: [
       {
