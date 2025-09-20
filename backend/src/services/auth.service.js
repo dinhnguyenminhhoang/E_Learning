@@ -341,7 +341,6 @@ class AuthService {
       const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
 
       const redis = getRedisHelper();
-      await redis.connect();
       await redis.set(
         `password_reset:${resetToken}`,
         JSON.stringify({
@@ -385,7 +384,6 @@ class AuthService {
         throw new Error("Invalid token format");
       }
       const redis = getRedisHelper();
-      await redis.connect();
 
       const verificationData = await redis.get(
         `email_verification:${token}`,
@@ -494,7 +492,6 @@ class AuthService {
         );
       }
       const redis = getRedisHelper();
-      await redis.connect();
       const resetData = await redis.get(`password_reset:${token}`, true);
       if (!resetData) {
         throw new Error("Invalid or expired reset token");
