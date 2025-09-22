@@ -6,7 +6,6 @@ const swaggerUi = require("swagger-ui-express");
 // Import external documentation
 const authDocs = require("../docs/authDocs");
 // const userDocs = require('../docs/user.docs');
-// const portfolioDocs = require('../docs/portfolio.docs');
 
 /**
  * Updated Swagger Configuration
