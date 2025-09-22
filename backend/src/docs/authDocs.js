@@ -24,8 +24,6 @@ const authDocs = {
               email: "john@example.com",
               password: "SecurePassword123!",
               phoneNumber: "+84901234567",
-              bio: "Passionate developer",
-              skills: ["JavaScript", "React", "Node.js"],
             },
           },
         },
