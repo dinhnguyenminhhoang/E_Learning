@@ -4,19 +4,25 @@ import { tokenManager } from '@/configs/instance'
 import { AnimatePresence, motion } from 'framer-motion'
 import {
   Bell,
-  Heart,
   LogOut,
   Menu,
   Search,
   Settings,
-  ShoppingCart,
   Sparkles,
   User,
-  X
+  X,
+  GraduationCap,
+  BookOpen,
+  Headphones,
+  Mic,
+  Target,
+  Trophy,
 } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
+
+const BRAND = 'E_LEANING'
 
 export default function Header() {
   const [isScrolled, setIsScrolled] = useState(false)
@@ -27,10 +33,7 @@ export default function Header() {
   const router = useRouter()
 
   useEffect(() => {
-    const handleScroll = () => {
-      setIsScrolled(window.scrollY > 50)
-    }
-
+    const handleScroll = () => setIsScrolled(window.scrollY > 50)
     window.addEventListener('scroll', handleScroll)
     return () => window.removeEventListener('scroll', handleScroll)
   }, [])
@@ -41,16 +44,16 @@ export default function Header() {
 
   const navigation = [
     { name: 'Trang chủ', href: '/', active: true },
-    { name: 'Portfolio', href: '/portfolios' },
-    { name: 'Danh mục', href: '/categories' },
+    { name: 'Khóa học', href: '/courses' },
+    { name: 'Quiz', href: '/quiz' },
+    { name: 'Xếp lớp', href: '/placement' },
+    { name: 'Phát âm', href: '/practice/pronunciation' },
     { name: 'Về chúng tôi', href: '/about' },
-    { name: 'Liên hệ', href: '/contact' },
   ]
 
   const userMenuItems = [
     { name: 'Hồ sơ của tôi', href: '/profile', icon: User },
-    { name: 'Portfolio yêu thích', href: '/favorites', icon: Heart },
-    { name: 'Đơn hàng', href: '/orders', icon: ShoppingCart },
+    { name: 'Tiến độ học tập', href: '/progress', icon: Trophy },
     { name: 'Cài đặt', href: '/settings', icon: Settings },
     { name: 'Đăng xuất', href: '/logout', icon: LogOut },
   ]
@@ -61,13 +64,12 @@ export default function Header() {
       animate={{ y: 0 }}
       className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
         isScrolled
-          ? 'bg-slate-900/80 backdrop-blur-xl border-b border-violet-500/20 shadow-lg shadow-violet-500/10'
+          ? 'bg-slate-900/80 backdrop-blur-xl border-b border-teal-500/20 shadow-lg shadow-sky-500/10'
           : 'bg-transparent'
       }`}
     >
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16 lg:h-20">
-
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        <div className="flex h-16 items-center justify-between lg:h-20">
           {/* Logo */}
           <motion.div
             className="flex items-center space-x-3"
@@ -76,30 +78,30 @@ export default function Header() {
           >
             <Link href="/" className="flex items-center space-x-3">
               <div className="relative">
-                <div className="w-10 h-10 bg-gradient-to-r from-violet-600 via-purple-600 to-pink-600 rounded-xl flex items-center justify-center">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-r from-sky-600 via-teal-600 to-emerald-600">
                   <Sparkles className="h-6 w-6 text-white" />
                 </div>
-                <div className="absolute inset-0 bg-gradient-to-r from-violet-600 via-purple-600 to-pink-600 rounded-xl blur opacity-50 -z-10"></div>
+                <div className="absolute inset-0 -z-10 rounded-xl bg-gradient-to-r from-sky-600 via-teal-600 to-emerald-600 blur opacity-50" />
               </div>
               <div className="hidden sm:block">
-                <h1 className="text-xl font-bold bg-gradient-to-r from-violet-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
-                  Portfolio Market
+                <h1 className="bg-gradient-to-r from-sky-200 via-teal-200 to-emerald-200 bg-clip-text text-xl font-bold text-transparent">
+                  {BRAND}
                 </h1>
-                <p className="text-xs text-slate-400">Premium Templates</p>
+                <p className="text-xs text-teal-200/70">Học tiếng Anh thông minh</p>
               </div>
             </Link>
           </motion.div>
 
           {/* Desktop Navigation */}
-          <nav className="hidden lg:flex items-center space-x-1">
+          <nav className="hidden items-center space-x-1 lg:flex">
             {navigation.map((item) => (
               <Link
                 key={item.name}
                 href={item.href}
-                className={`px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200 ${
+                className={`rounded-xl px-4 py-2 text-sm font-medium transition-all duration-200 ${
                   item.active
-                    ? 'bg-violet-600/20 text-violet-300 border border-violet-500/30'
-                    : 'text-slate-300 hover:text-white hover:bg-slate-800/50'
+                    ? 'border border-teal-400/40 bg-sky-900/40 text-sky-200'
+                    : 'text-teal-100/85 hover:bg-slate-800/50 hover:text-teal-50'
                 }`}
               >
                 {item.name}
@@ -108,53 +110,57 @@ export default function Header() {
           </nav>
 
           {/* Search Bar */}
-          <div className="hidden md:flex items-center flex-1 max-w-md mx-8">
+          <div className="mx-8 hidden max-w-md flex-1 items-center md:flex">
             <div className="relative w-full">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <Search className="h-5 w-5 text-slate-400" />
+              <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                <Search className="h-5 w-5 text-teal-300/70" />
               </div>
               <input
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-10 pr-4 py-2.5 bg-slate-800/50 border border-slate-600/50 rounded-xl text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-violet-500/50 focus:border-violet-500/50 transition-all duration-200"
-                placeholder="Tìm kiếm portfolio..."
+                className="w-full rounded-xl border border-teal-500/30 bg-sky-950/40 py-2.5 pl-10 pr-4 text-teal-100 placeholder-teal-300/60 outline-none transition-all duration-200 focus:border-teal-400/60 focus:ring-2 focus:ring-teal-500/30"
+                placeholder="Tìm khóa học, bài quiz, kỹ năng..."
               />
               {searchQuery && (
                 <button
                   onClick={() => setSearchQuery('')}
-                  className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                  className="absolute inset-y-0 right-0 flex items-center pr-3"
                 >
-                  <X className="h-4 w-4 text-slate-400 hover:text-slate-300" />
+                  <X className="h-4 w-4 text-teal-300/70 hover:text-teal-200" />
                 </button>
               )}
             </div>
           </div>
 
           {/* Desktop Actions */}
-          <div className="hidden lg:flex items-center space-x-4">
+          <div className="hidden items-center space-x-4 lg:flex">
             {isAuthenticated ? (
               <>
+                {/* Quick links to core features */}
+                <Link
+                  href="/courses"
+                  className="hidden items-center gap-2 rounded-xl border border-teal-400/40 bg-sky-900/30 px-3 py-2 text-sm text-teal-100/90 hover:bg-sky-900/50 md:flex"
+                >
+                  <BookOpen className="h-4 w-4" />
+                  Khóa học
+                </Link>
+                <Link
+                  href="/practice/pronunciation"
+                  className="hidden items-center gap-2 rounded-xl border border-teal-400/40 bg-sky-900/30 px-3 py-2 text-sm text-teal-100/90 hover:bg-sky-900/50 md:flex"
+                >
+                  <Mic className="h-4 w-4" />
+                  Phát âm
+                </Link>
+
                 {/* Notifications */}
                 <motion.button
                   whileHover={{ scale: 1.1 }}
                   whileTap={{ scale: 0.9 }}
-                  className="relative p-2 text-slate-400 hover:text-white transition-colors"
+                  className="relative p-2 text-teal-200/80 transition-colors hover:text-white"
                 >
                   <Bell className="h-6 w-6" />
-                  <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
-                </motion.button>
-
-                {/* Cart */}
-                <motion.button
-                  whileHover={{ scale: 1.1 }}
-                  whileTap={{ scale: 0.9 }}
-                  className="relative p-2 text-slate-400 hover:text-white transition-colors"
-                >
-                  <ShoppingCart className="h-6 w-6" />
-                  <span className="absolute -top-1 -right-1 w-5 h-5 bg-violet-500 text-white text-xs rounded-full flex items-center justify-center">
-                    3
-                  </span>
+                  <span className="absolute right-1 top-1 h-2 w-2 rounded-full bg-sky-400" />
                 </motion.button>
 
                 {/* User Menu */}
@@ -162,32 +168,34 @@ export default function Header() {
                   <motion.button
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
-                    onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
-                    className="flex items-center space-x-3 p-2 rounded-xl bg-slate-800/50 border border-slate-600/50 hover:border-violet-500/50 transition-all duration-200"
+                    onClick={() => setIsUserMenuOpen((v) => !v)}
+                    className="flex items-center space-x-3 rounded-xl border border-teal-500/30 bg-sky-950/40 p-2 transition-all duration-200 hover:border-teal-400/60"
                   >
-                    <div className="w-8 h-8 bg-gradient-to-r from-violet-500 to-purple-500 rounded-full flex items-center justify-center">
+                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-r from-sky-600 to-emerald-600">
                       <User className="h-4 w-4 text-white" />
                     </div>
-                    <span className="text-sm text-slate-300 hidden xl:block">John Doe</span>
+                    <span className="hidden text-sm text-teal-100/90 xl:block">
+                      Người dùng
+                    </span>
                   </motion.button>
 
-                  {/* User Dropdown */}
+                  {/* Dropdown */}
                   <AnimatePresence>
                     {isUserMenuOpen && (
                       <motion.div
                         initial={{ opacity: 0, y: 10, scale: 0.95 }}
                         animate={{ opacity: 1, y: 0, scale: 1 }}
                         exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                        className="absolute right-0 mt-2 w-56 bg-slate-800/90 backdrop-blur-xl rounded-2xl border border-slate-600/50 shadow-xl shadow-violet-500/10 overflow-hidden"
+                        className="absolute right-0 mt-2 w-60 overflow-hidden rounded-2xl border border-teal-500/30 bg-slate-900/90 backdrop-blur-xl shadow-xl shadow-sky-500/10"
                       >
-                        <div className="p-4 border-b border-slate-600/50">
+                        <div className="border-b border-teal-500/20 p-4">
                           <div className="flex items-center space-x-3">
-                            <div className="w-12 h-12 bg-gradient-to-r from-violet-500 to-purple-500 rounded-full flex items-center justify-center">
-                              <User className="h-6 w-6 text-white" />
+                            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-r from-sky-600 to-emerald-600">
+                              <GraduationCap className="h-6 w-6 text-white" />
                             </div>
                             <div>
-                              <p className="text-sm font-medium text-white">John Doe</p>
-                              <p className="text-xs text-slate-400">john@example.com</p>
+                              <p className="text-sm font-medium text-white">Người dùng</p>
+                              <p className="text-xs text-teal-300/80">user@example.com</p>
                             </div>
                           </div>
                         </div>
@@ -196,7 +204,7 @@ export default function Header() {
                             <Link
                               key={item.name}
                               href={item.href}
-                              className="flex items-center space-x-3 px-4 py-3 text-sm text-slate-300 hover:text-white hover:bg-violet-600/20 transition-colors"
+                              className="flex items-center space-x-3 px-4 py-3 text-sm text-teal-100/90 transition-colors hover:bg-sky-900/50 hover:text-teal-50"
                             >
                               <item.icon className="h-4 w-4" />
                               <span>{item.name}</span>
@@ -212,13 +220,13 @@ export default function Header() {
               <div className="flex items-center space-x-3">
                 <Link
                   href="/signin"
-                  className="px-4 py-2 text-sm font-medium text-slate-300 hover:text-white transition-colors"
+                  className="px-4 py-2 text-sm font-medium text-teal-100/90 transition-colors hover:text-white"
                 >
                   Đăng nhập
                 </Link>
                 <Link
                   href="/signup"
-                  className="px-6 py-2.5 bg-gradient-to-r from-violet-600 via-purple-600 to-pink-600 text-white text-sm font-medium rounded-xl hover:shadow-lg hover:shadow-violet-500/25 transition-all duration-200"
+                  className="rounded-xl bg-gradient-to-r from-sky-600 via-teal-600 to-emerald-600 px-6 py-2.5 text-sm font-medium text-white transition-all duration-200 hover:shadow-lg hover:shadow-sky-500/25"
                 >
                   Đăng ký
                 </Link>
@@ -226,23 +234,21 @@ export default function Header() {
             )}
           </div>
 
-          {/* Mobile Menu Button */}
-          <div className="lg:hidden flex items-center space-x-3">
-            {/* Mobile Search */}
+          {/* Mobile Right */}
+          <div className="flex items-center space-x-3 lg:hidden">
             <motion.button
               whileHover={{ scale: 1.1 }}
               whileTap={{ scale: 0.9 }}
-              className="p-2 text-slate-400 hover:text-white transition-colors md:hidden"
+              className="p-2 text-teal-200/80 transition-colors hover:text-white md:hidden"
             >
               <Search className="h-6 w-6" />
             </motion.button>
 
-            {/* Mobile Menu Toggle */}
             <motion.button
               whileHover={{ scale: 1.1 }}
               whileTap={{ scale: 0.9 }}
-              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-              className="p-2 text-slate-400 hover:text-white transition-colors"
+              onClick={() => setIsMobileMenuOpen((v) => !v)}
+              className="p-2 text-teal-200/80 transition-colors hover:text-white"
             >
               {isMobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
             </motion.button>
@@ -257,20 +263,45 @@ export default function Header() {
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
-            className="lg:hidden bg-slate-900/95 backdrop-blur-xl border-t border-violet-500/20"
+            className="lg:hidden border-t border-teal-500/20 bg-slate-900/95 backdrop-blur-xl"
           >
-            <div className="px-4 py-6 space-y-4">
+            <div className="space-y-4 px-4 py-6">
+              {/* Mobile Quick CTA row */}
+              <div className="grid grid-cols-3 gap-2">
+                <Link
+                  href="/courses"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="flex items-center justify-center gap-2 rounded-xl border border-teal-400/40 bg-sky-900/40 px-3 py-2 text-sm text-teal-100/90"
+                >
+                  <BookOpen className="h-4 w-4" /> Khóa học
+                </Link>
+                <Link
+                  href="/placement"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="flex items-center justify-center gap-2 rounded-xl border border-teal-400/40 bg-sky-900/40 px-3 py-2 text-sm text-teal-100/90"
+                >
+                  <Target className="h-4 w-4" /> Xếp lớp
+                </Link>
+                <Link
+                  href="/practice/pronunciation"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="flex items-center justify-center gap-2 rounded-xl border border-teal-400/40 bg-sky-900/40 px-3 py-2 text-sm text-teal-100/90"
+                >
+                  <Mic className="h-4 w-4" /> Phát âm
+                </Link>
+              </div>
+
               {/* Mobile Search */}
               <div className="relative md:hidden">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Search className="h-5 w-5 text-slate-400" />
+                <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                  <Search className="h-5 w-5 text-teal-300/70" />
                 </div>
                 <input
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-10 pr-4 py-3 bg-slate-800/50 border border-slate-600/50 rounded-xl text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-violet-500/50 focus:border-violet-500/50"
-                  placeholder="Tìm kiếm portfolio..."
+                  className="w-full rounded-xl border border-teal-500/30 bg-sky-950/40 py-3 pl-10 pr-4 text-teal-100 placeholder-teal-300/60 outline-none focus:border-teal-400/60 focus:ring-2 focus:ring-teal-500/30"
+                  placeholder="Tìm khóa học, bài quiz, kỹ năng..."
                 />
               </div>
 
@@ -280,10 +311,10 @@ export default function Header() {
                   <Link
                     key={item.name}
                     href={item.href}
-                    className={`block px-4 py-3 rounded-xl text-base font-medium transition-all duration-200 ${
+                    className={`block rounded-xl px-4 py-3 text-base font-medium transition-all duration-200 ${
                       item.active
-                        ? 'bg-violet-600/20 text-violet-300 border border-violet-500/30'
-                        : 'text-slate-300 hover:text-white hover:bg-slate-800/50'
+                        ? 'border border-teal-400/40 bg-sky-900/40 text-sky-200'
+                        : 'text-teal-100/85 hover:bg-slate-800/50 hover:text-teal-50'
                     }`}
                     onClick={() => setIsMobileMenuOpen(false)}
                   >
@@ -294,12 +325,12 @@ export default function Header() {
 
               {/* Mobile Actions */}
               {isAuthenticated ? (
-                <div className="pt-4 border-t border-slate-600/50 space-y-2">
+                <div className="space-y-2 border-t border-teal-500/20 pt-4">
                   {userMenuItems.map((item) => (
                     <Link
                       key={item.name}
                       href={item.href}
-                      className="flex items-center space-x-3 px-4 py-3 text-slate-300 hover:text-white hover:bg-violet-600/20 rounded-xl transition-colors"
+                      className="flex items-center space-x-3 rounded-xl px-4 py-3 text-teal-100/90 transition-colors hover:bg-sky-900/50 hover:text-teal-50"
                       onClick={() => setIsMobileMenuOpen(false)}
                     >
                       <item.icon className="h-5 w-5" />
@@ -308,17 +339,17 @@ export default function Header() {
                   ))}
                 </div>
               ) : (
-                <div className="pt-4 border-t border-slate-600/50 space-y-3">
+                <div className="space-y-3 border-t border-teal-500/20 pt-4">
                   <Link
                     href="/signin"
-                    className="block w-full px-4 py-3 text-center text-slate-300 hover:text-white hover:bg-slate-800/50 rounded-xl transition-colors"
+                    className="block w-full rounded-xl px-4 py-3 text-center text-teal-100/90 transition-colors hover:bg-slate-800/50 hover:text-teal-50"
                     onClick={() => setIsMobileMenuOpen(false)}
                   >
                     Đăng nhập
                   </Link>
                   <Link
                     href="/signup"
-                    className="block w-full px-4 py-3 bg-gradient-to-r from-violet-600 via-purple-600 to-pink-600 text-white text-center font-medium rounded-xl hover:shadow-lg hover:shadow-violet-500/25 transition-all duration-200"
+                    className="block w-full rounded-xl bg-gradient-to-r from-sky-600 via-teal-600 to-emerald-600 px-4 py-3 text-center font-medium text-white transition-all duration-200 hover:shadow-lg hover:shadow-sky-500/25"
                     onClick={() => setIsMobileMenuOpen(false)}
                   >
                     Đăng ký ngay
