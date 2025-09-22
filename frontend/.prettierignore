@@ -1,0 +1,449 @@
+# Dependencies
+node_modules/
+bower_components/
+
+# Build outputs
+dist/
+build/
+out/
+.next/
+.nuxt/
+.output/
+.vercel/
+.netlify/
+
+# Environment files
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Logs
+*.log
+logs/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+
+# Runtime data
+pids/
+*.pid
+*.seed
+*.pid.lock
+
+# Coverage directory used by tools like istanbul
+coverage/
+*.lcov
+.nyc_output/
+
+# ESLint cache
+.eslintcache
+
+# Optional npm cache directory
+.npm
+
+# Optional REPL history
+.node_repl_history
+
+# Output of 'npm pack'
+*.tgz
+
+# Yarn Integrity file
+.yarn-integrity
+
+# parcel-bundler cache (https://parceljs.org/)
+.cache/
+.parcel-cache/
+
+# Next.js build output
+.next/
+
+# Nuxt.js build / generate output
+.nuxt/
+.output/
+
+# Storybook build outputs
+.out/
+.storybook-out/
+
+# Temporary folders
+tmp/
+temp/
+
+# Editor directories and files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Package manager files
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# Generated files
+*.generated.*
+*-generated.*
+
+# Prisma
+prisma/migrations/
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# Uploads
+uploads/
+public/uploads/
+
+# Documentation build
+docs/.vuepress/dist/
+
+# Serverless
+.serverless/
+
+# AWS
+.aws/
+
+# Docker
+Dockerfile*
+docker-compose*.yml
+
+# Kubernetes
+*.yaml
+*.yml
+
+# Terraform
+*.tfstate
+*.tfstate.*
+.terraform/
+
+# Auto-generated files
+auto-imports.d.ts
+components.d.ts
+
+# Backup files
+*.backup
+*.bak
+*.orig
+
+# Large media files
+*.mp4
+*.avi
+*.mov
+*.wmv
+*.flv
+*.webm
+*.mkv
+*.m4v
+*.3gp
+
+# Archives
+*.zip
+*.tar.gz
+*.rar
+*.7z
+
+# PDFs and documents
+*.pdf
+*.doc
+*.docx
+*.xls
+*.xlsx
+*.ppt
+*.pptx
+
+# Font files
+*.woff
+*.woff2
+*.eot
+*.ttf
+*.otf
+
+# SVG icons (if generated)
+public/icons/
+src/assets/icons/generated/
+
+# Translation files
+*.po
+*.pot
+*.mo
+
+# Test files that shouldn't be formatted
+**/__tests__/**/*.snap
+**/*.test.js.snap
+**/*.spec.js.snap
+
+# Config files that need special formatting
+.browserslistrc
+.nvmrc
+.yarnrc
+.yarnrc.yml
+
+# Changelog
+CHANGELOG.md
+CHANGELOG.txt
+
+# License files
+LICENSE*
+COPYING*
+
+# Security files
+.well-known/
+
+# Analytics and tracking
+.analytics/
+.tracking/
+
+# Generated API documentation
+api-docs/
+swagger-ui/
+
+# Generated schemas
+schema.prisma
+schema.graphql
+introspection.json
+
+# Monorepo specific
+lerna.json
+rush.json
+.rush/
+
+# Workspace files
+*.code-workspace
+
+# Temporary Git files
+*.patch
+*.diff
+
+# Local development
+.local/
+local/
+
+# Performance monitoring
+.clinic/
+.0x/
+
+# Debugging
+.vscode/launch.json
+.vscode/settings.json
+
+# Jupyter notebooks
+*.ipynb
+.ipynb_checkpoints/
+
+# Python (if mixed project)
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Ruby (if mixed project)
+*.gem
+*.rbc
+.bundle/
+vendor/bundle/
+lib/bundler/man/
+
+# PHP (if mixed project)
+composer.phar
+vendor/
+.env.example
+
+# Generated component libraries
+storybook-static/
+chromatic-build/
+
+# Mobile development
+android/
+ios/
+.expo/
+.expo-shared/
+
+# Game development
+Assets/
+Library/
+Logs/
+Packages/
+ProjectSettings/
+UserSettings/
+.vsconfig
+
+# Machine learning
+*.h5
+*.pkl
+*.model
+data/
+datasets/
+models/
+checkpoints/
+
+# Blockchain
+.secret
+.mnemonic
+contracts/artifacts/
+contracts/cache/
+
+# Generated sitemap
+sitemap.xml
+robots.txt
+
+# Email templates
+templates/compiled/
+
+# Generated favicons
+public/favicon/
+src/assets/favicons/
+
+# Auto-generated routes
+.routes/
+routes.generated.ts
+
+# Performance profiling
+.clinic/
+profile-*/
+*.cpuprofile
+*.heapprofile
+
+# Accessibility reports
+.axe/
+accessibility-report.html
+
+# Visual regression testing
+.reg/
+__screenshots__/
+__image_snapshots__/
+
+# End-to-end testing
+test-results/
+playwright-report/
+playwright/.cache/
+
+# Load testing
+.artillery/
+k6-results/
+
+# Security scanning
+.snyk
+.whitesource
+.dependency-check/
+
+# Generated service worker
+sw.js
+workbox-*.js
+precache-manifest.*.js
+
+# Build tools
+.turbo/
+.swc/
+.tsbuildinfo
+
+# Package bundler artifacts
+*.bundle.js
+*.chunk.js
+bundle-analyzer-report.html
+
+# Generated types from GraphQL
+generated/
+__generated__/
+graphql-types.ts
+
+# Auto-generated barrel exports
+index.ts
+barrel.ts
+
+# Generated configuration
+config.generated.json
+.env.generated
+
+# Temporary API mocks
+__mocks__/api/
+.msw/
+
+# Generated OpenAPI specs
+openapi.json
+api-spec.yaml
+
+# Auto-generated documentation
+.docusaurus/
+.vitepress/dist/
+typedoc-out/
+
+# Generated changelog
+CHANGELOG.generated.md
+
+# Localization build output
+locale/compiled/
+translations/build/
+
+# Generated seed data
+seeds/generated/
+fixtures/generated/
+
+# Build cache
+.build-cache/
+.webpack-cache/
+.rollup-cache/
+.parcel-cache/
+
+# Runtime configuration
+runtime.config.js
+runtime.config.json
+
+# Auto-generated migrations
+migrations/auto/
+db/migrate/auto/
+
+# Generated GraphQL schema
+schema.generated.graphql
+introspection-result.ts
+
+# Auto-generated Redux slices
+store/generated/
+slices/auto/
+
+# Generated API clients
+api/generated/
+clients/generated/
+
+# Auto-generated form schemas
+schemas/generated/
+validators/auto/
+
+# Generated component exports
+components/index.generated.ts
+hooks/index.generated.ts
+
+# Build metadata
+.build-meta/
+build-manifest.json
+version.json
+
+# Deployment artifacts
+deploy/
+.deploy/
+deployment-config.generated.yml
+
+# Generated error pages
+error-pages/generated/
+500.generated.html
+404.generated.html
