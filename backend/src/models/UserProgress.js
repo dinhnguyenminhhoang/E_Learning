@@ -1,72 +1,131 @@
 "use strict";
+
 const { model, Schema } = require("mongoose");
-const wordProgressSchema = require("./subModel/wordProgress.schema");
+
 const DOCUMENT_NAME = "UserProgress";
 const COLLECTION_NAME = "UserProgresses";
 
 const userProgressSchema = new Schema(
-    {
-        user: {
-            type: Schema.Types.ObjectId,
-            ref: "User",
-            required: true,
-            index: true,
-        },
-        level: {
-            type: String,
-            enum: ["beginner", "intermediate", "advanced"],
-            default: "beginner",
-        },
-        totalWordsLearned: {
-            type: Number,
-            default: 0,
-        },
-        wordsProgress: [wordProgressSchema],
-        dailyGoal: {
-            type: Number,
-            default: 10,
-            min: 1,
-            max: 100,
-        },
-        currentStreak: {
-            type: Number,
-            default: 0,
-        },
-        longestStreak: {
-            type: Number,
-            default: 0,
-        },
-        lastStudyDate: {
-            type: Date,
-            default: null,
-        },
-        totalPoints: {
-            type: Number,
-            default: 0,
-        },
-        weeklyStats: {
-            wordsLearned: { type: Number, default: 0 },
-            quizzesCompleted: { type: Number, default: 0 },
-            timeSpent: { type: Number, default: 0 }, // minutes
-            accuracy: { type: Number, default: 0 }, // percentage
-        },
-        preferences: {
-            studyReminder: { type: Boolean, default: true },
-            soundEnabled: { type: Boolean, default: true },
-            autoPlayAudio: { type: Boolean, default: true },
-            reviewMode: {
-                type: String,
-                enum: ["flashcard", "quiz", "mixed"],
-                default: "mixed",
-            },
-        },
+  {
+    user: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+      index: true,
     },
-    {
-        timestamps: true,
-        collection: COLLECTION_NAME,
-    }
+
+    learningPath: {
+      type: Schema.Types.ObjectId,
+      ref: "LearningPath",
+      required: true,
+      index: true,
+    },
+
+    levelOrder: {
+      type: Number, // thứ tự level trong lộ trình
+      required: true,
+      min: 1,
+      index: true,
+    },
+
+    lessonOrder: {
+      type: Number, // thứ tự bài học (hoặc quiz) trong level
+      required: true,
+      min: 1,
+      index: true,
+    },
+
+    status: {
+      type: String,
+      enum: ["not_started", "in_progress", "completed", "review"],
+      default: "not_started",
+    },
+
+    score: {
+      type: Number,
+      min: 0,
+      max: 100,
+      default: 0,
+    },
+
+    attempts: {
+      type: Number,
+      min: 0,
+      default: 0,
+    },
+
+    completedAt: {
+      type: Date,
+      default: null,
+    },
+
+    lastAccessedAt: {
+      type: Date,
+      default: Date.now,
+    },
+
+    timeSpent: {
+      type: Number,
+      default: 0, // tổng thời gian học (giây hoặc phút)
+    },
+
+    deletedAt: {
+      type: Date,
+      default: null,
+      index: true,
+    },
+    deletedBy: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
+      default: null,
+    },
+  },
+  {
+    timestamps: true,
+    collection: COLLECTION_NAME,
+    minimize: false,
+    versionKey: false,
+  }
 );
-// Compound indexes
-userProgressSchema.index({ user: 1 }, { unique: true });
-userProgressSchema.index({ "wordsProgress.nextReviewAt": 1 });
+
+// ===== INDEXES =====
+userProgressSchema.index(
+  { user: 1, learningPath: 1, levelOrder: 1, lessonOrder: 1 },
+  { unique: true }
+);
+
+// ===== VIRTUALS =====
+userProgressSchema.virtual("isCompleted").get(function () {
+  return this.status === "completed";
+});
+
+// ===== METHODS =====
+userProgressSchema.methods.markCompleted = function (score = 100) {
+  this.status = "completed";
+  this.score = score;
+  this.completedAt = new Date();
+  return this.save();
+};
+
+// ===== STATICS =====
+userProgressSchema.statics.findByUserAndPath = function (userId, pathId) {
+  return this.find({ user: userId, learningPath: pathId, deletedAt: null });
+};
+
+// ===== MIDDLEWARES =====
+// Soft delete
+userProgressSchema.pre(["deleteOne", "deleteMany"], function () {
+  this.updateOne({}, { deletedAt: new Date(), status: "not_started" });
+});
+
+// Query middleware để loại bỏ deleted records
+userProgressSchema.pre(
+  ["find", "findOne", "findOneAndUpdate", "count", "countDocuments"],
+  function () {
+    if (!this.getQuery().deletedAt) {
+      this.where({ deletedAt: null });
+    }
+  }
+);
+
 module.exports = model(DOCUMENT_NAME, userProgressSchema);
