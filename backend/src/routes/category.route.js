@@ -8,24 +8,29 @@ const router = express.Router();
 
 router.post(
   "/",
-  auth.adminOnly, // chỉ ADMIN mới tạo được category
+  auth.adminOnly,
   asynchandler(categoryController.createCategory)
 );
 
 router.put(
   "/:id",
-  auth.managerOrAdmin, // MANAGER hoặc ADMIN mới được update
+  auth.managerOrAdmin,
   asynchandler(categoryController.updateCategory)
 );
 
 router.get(
+  "/",
+  asynchandler(categoryController.listCategories),
+);
+
+router.get(
   "/:id",
-  asynchandler(categoryController.getCategoryById)
+  asynchandler(categoryController.getCategoryById),
 );
 
 router.delete(
   "/:id",
-  auth.adminOnly, // chỉ ADMIN mới được xóa
+  auth.adminOnly,
   asynchandler(categoryController.deleteCategory)
 );
 

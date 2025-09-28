@@ -6,6 +6,7 @@ const swaggerUi = require("swagger-ui-express");
 // Import external documentation
 const authDocs = require("../docs/authDocs");
 const categoryDocs = require("../docs/categoryDocs");
+const flashcardDocs = require("../docs/flashCardDocs");
 // const userDocs = require('../docs/user.docs');
 
 /**
@@ -239,8 +240,6 @@ const swaggerDefinition = {
     },
     // External documentation paths
     authPaths: authDocs,
-    categoryPaths: categoryDocs,
-    // userPaths: userDocs,
     // portfolioPaths: portfolioDocs
   },
   // Manual paths definition (using external docs)
@@ -263,6 +262,23 @@ const swaggerDefinition = {
       ...categoryDocs.getCategoryById,
       ...categoryDocs.updateCategory,
       ...categoryDocs.deleteCategory,
+    },
+
+    // FlashCard paths
+    "/v1/api/flashcard": {
+      ...flashcardDocs.createFlashcard,
+      ...flashcardDocs.listFlashcards,
+    },
+    "/v1/api/flashcard/{id}": {
+      ...flashcardDocs.getFlashcardById,
+      ...flashcardDocs.updateFlashcard,
+      ...flashcardDocs.deleteFlashcard,
+    },
+    "/v1/api/flashcard/deck/{deckId}": {
+      ...flashcardDocs.getFlashcardsByDeck,
+    },
+    "/v1/api/flashcard/difficulty/{difficulty}": {
+      ...flashcardDocs.getFlashcardsByDifficulty,
     },
   },
 
