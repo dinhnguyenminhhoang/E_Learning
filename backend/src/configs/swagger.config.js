@@ -5,6 +5,7 @@ const swaggerUi = require("swagger-ui-express");
 
 // Import external documentation
 const authDocs = require("../docs/authDocs");
+const wordDocs = require("../docs/wordDocs");
 // const userDocs = require('../docs/user.docs');
 
 /**
@@ -250,6 +251,14 @@ const swaggerDefinition = {
     "/v1/api/user/forgot-password": authDocs.forgotPassword,
     "/v1/api/user/verify-email": authDocs.verifyEmail,
     "/v1/api/user/reset-password": authDocs.resetPassword,
+
+    // Word endpoints
+    "/v1/api/word/create": wordDocs.components.wordPaths.create,
+    "/v1/api/word/category/{categoryId}": wordDocs.components.wordPaths.getWordsByCategory,
+    "/v1/api/word/delete/{wordId}": wordDocs.components.wordPaths.deleteWord,
+    "/v1/api/word/{wordId}": wordDocs.components.wordPaths.updateWord,
+    "/v1/api/word/import": wordDocs.components.wordPaths.importWords,
+    "/v1/api/word/export-sample": wordDocs.components.wordPaths.exportSampleWords,
   },
   tags: [
     {
