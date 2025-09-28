@@ -7,6 +7,7 @@ const swaggerUi = require("swagger-ui-express");
 const authDocs = require("../docs/authDocs");
 const wordDocs = require("../docs/wordDocs");
 const categoryDocs = require("../docs/categoryDocs");
+const flashcardDocs = require("../docs/flashCardDocs");
 // const userDocs = require('../docs/user.docs');
 
 /**
@@ -240,8 +241,6 @@ const swaggerDefinition = {
     },
     // External documentation paths
     authPaths: authDocs,
-    categoryPaths: categoryDocs,
-    // userPaths: userDocs,
     // portfolioPaths: portfolioDocs
   },
   // Manual paths definition (using external docs)
@@ -262,6 +261,23 @@ const swaggerDefinition = {
     "/v1/api/word/{wordId}": wordDocs.components.wordPaths.updateWord,
     "/v1/api/word/import": wordDocs.components.wordPaths.importWords,
     "/v1/api/word/export-sample": wordDocs.components.wordPaths.exportSampleWords,
+
+    // FlashCard paths
+    "/v1/api/flashcard": {
+      ...flashcardDocs.createFlashcard,
+      ...flashcardDocs.listFlashcards,
+    },
+    "/v1/api/flashcard/{id}": {
+      ...flashcardDocs.getFlashcardById,
+      ...flashcardDocs.updateFlashcard,
+      ...flashcardDocs.deleteFlashcard,
+    },
+    "/v1/api/flashcard/deck/{deckId}": {
+      ...flashcardDocs.getFlashcardsByDeck,
+    },
+    "/v1/api/flashcard/difficulty/{difficulty}": {
+      ...flashcardDocs.getFlashcardsByDifficulty,
+    },
   },
 
   tags: [
