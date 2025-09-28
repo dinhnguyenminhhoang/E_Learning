@@ -57,23 +57,7 @@ const categoryDocs = {
       summary: "Get all categories",
       tags: ["Category"],
       security: [],
-      parameters: [
-        {
-          name: "level",
-          in: "query",
-          schema: {
-            type: "string",
-            enum: ["beginner", "intermediate", "advanced"],
-          },
-          description: "Filter by category level",
-        },
-        {
-          name: "status",
-          in: "query",
-          schema: { type: "string", enum: ["active", "inactive", "archived"] },
-          description: "Filter by category status",
-        },
-      ],
+      parameters: [],
       responses: {
         200: {
           description: "List of categories",
