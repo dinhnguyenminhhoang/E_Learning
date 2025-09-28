@@ -132,6 +132,36 @@ categorySchema.methods.decrementWordCount = function (count = 1) {
   return this.save();
 };
 
+categorySchema.statics.searchCategories = function (query, options = {}) {
+  const {
+    limit = 20,
+    skip = 0,
+    status = "active",
+    level = null,
+    parentCategory = null,
+  } = options;
+
+  const searchQuery = {
+    $text: { $search: query },
+    status,
+    deletedAt: null,
+  };
+
+  if (level) {
+    searchQuery.level = level;
+  }
+
+  if (parentCategory) {
+    searchQuery.parentCategory = parentCategory;
+  }
+
+  return this.find(searchQuery, { score: { $meta: "textScore" } })
+    .sort({ score: { $meta: "textScore" } })
+    .limit(limit)
+    .skip(skip);
+};
+
+
 // ===== STATICS =====
 categorySchema.statics.findActiveCategories = function () {
   return this.find({ status: "active", deletedAt: null });
