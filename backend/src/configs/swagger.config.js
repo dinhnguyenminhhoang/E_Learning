@@ -6,6 +6,7 @@ const swaggerUi = require("swagger-ui-express");
 // Import external documentation
 const authDocs = require("../docs/authDocs");
 const wordDocs = require("../docs/wordDocs");
+const categoryDocs = require("../docs/categoryDocs");
 // const userDocs = require('../docs/user.docs');
 
 /**
@@ -239,11 +240,13 @@ const swaggerDefinition = {
     },
     // External documentation paths
     authPaths: authDocs,
+    categoryPaths: categoryDocs,
     // userPaths: userDocs,
     // portfolioPaths: portfolioDocs
   },
   // Manual paths definition (using external docs)
   paths: {
+    // Auth paths
     "/v1/api/user/signup": authDocs.signup,
     "/v1/api/user/signin": authDocs.signin,
     "/v1/api/user/refresh-token": authDocs.refreshToken,
@@ -260,6 +263,7 @@ const swaggerDefinition = {
     "/v1/api/word/import": wordDocs.components.wordPaths.importWords,
     "/v1/api/word/export-sample": wordDocs.components.wordPaths.exportSampleWords,
   },
+
   tags: [
     {
       name: "Authentication",
@@ -268,6 +272,10 @@ const swaggerDefinition = {
     {
       name: "Users",
       description: "User management operations",
+    },
+    {
+      name: "Category",
+      description: "Category management and search operations",
     },
     {
       name: "Portfolios",
