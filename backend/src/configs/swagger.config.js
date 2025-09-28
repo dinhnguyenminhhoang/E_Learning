@@ -5,6 +5,7 @@ const swaggerUi = require("swagger-ui-express");
 
 // Import external documentation
 const authDocs = require("../docs/authDocs");
+const categoryDocs = require("../docs/categoryDocs");
 // const userDocs = require('../docs/user.docs');
 
 /**
@@ -238,11 +239,13 @@ const swaggerDefinition = {
     },
     // External documentation paths
     authPaths: authDocs,
+    categoryPaths: categoryDocs,
     // userPaths: userDocs,
     // portfolioPaths: portfolioDocs
   },
   // Manual paths definition (using external docs)
   paths: {
+    // Auth paths
     "/v1/api/user/signup": authDocs.signup,
     "/v1/api/user/signin": authDocs.signin,
     "/v1/api/user/refresh-token": authDocs.refreshToken,
@@ -250,7 +253,19 @@ const swaggerDefinition = {
     "/v1/api/user/forgot-password": authDocs.forgotPassword,
     "/v1/api/user/verify-email": authDocs.verifyEmail,
     "/v1/api/user/reset-password": authDocs.resetPassword,
+
+    // Category paths
+    "/v1/api/category": {
+      ...categoryDocs.createCategory,
+      ...categoryDocs.listCategories,
+    },
+    "/v1/api/category/{id}": {
+      ...categoryDocs.getCategoryById,
+      ...categoryDocs.updateCategory,
+      ...categoryDocs.deleteCategory,
+    },
   },
+
   tags: [
     {
       name: "Authentication",
@@ -259,6 +274,10 @@ const swaggerDefinition = {
     {
       name: "Users",
       description: "User management operations",
+    },
+    {
+      name: "Category",
+      description: "Category management and search operations",
     },
     {
       name: "Portfolios",
