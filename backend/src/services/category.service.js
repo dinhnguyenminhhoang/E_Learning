@@ -1,31 +1,50 @@
 "use strict";
 
-const Category = require("../models/Category");
-class CategoryService {
-  async searchCategories(query, options) {
-    return await Category.searchCategories(query, options);
-  }
+const categoryRepository = require("../repositories/category.repo");
 
+class CategoryService {
   async createCategory(data) {
-    const category = new Category(data);
-    return await category.save();
+    return await categoryRepository.createCategory(data);
   }
 
   async updateCategory(id, data) {
-    return await Category.findByIdAndUpdate(id, data, { new: true });
+    const category = await categoryRepository.updateById(id, data);
+
+    if (!category) {
+      const err = new Error("Category not found");
+      err.status = 404;
+      throw err;
+    }
+    return category;
   }
 
   async getCategoryById(id) {
-    return await Category.findById(id);
+    const category = await categoryRepository.findById(id);
+    if (!category) {
+      const err = new Error("Category not found");
+      err.status = 404;
+      throw err;
+    }
+    return category;
+  }
+
+  async findAllCategories() {
+    const category = await categoryRepository.findAllCategories();
+    if (!category) {
+      const err = new Error("Category not found");
+      err.status = 404;
+      throw err;
+    }
+    return category;
   }
 
   async deleteCategory(id) {
-    const category = await Category.findById(id);
-    if (!category) return null;
-
-    category.deletedAt = new Date();
-    await category.save();
-
+    const deleted = await categoryRepository.softDelete(id);
+    if (!deleted) {
+      const err = new Error("Category not found");
+      err.status = 404;
+      throw err;
+    }
     return true;
   }
 }
