@@ -41,13 +41,13 @@ class FlashcardRepository {
     }
   }
 
-  async list({ limit = 20, skip = 0, deckId = null, difficulty = null }) {
+  async list() {
     try {
       const query = { status: "active", deletedAt: null };
-      if (deckId) query.cardDeck = deckId;
-      if (difficulty) query.difficulty = difficulty;
+      const flashcards = await this.model.find(query);
 
-      return this.model.find(query).skip(skip).limit(limit);
+      console.log("💡 Flashcards returned:", flashcards.length);
+      return flashcards;
     } catch (error) {
       console.error("❌ Error listing flashcards:", error);
       throw error;
@@ -55,7 +55,11 @@ class FlashcardRepository {
   }
 
   async findByDeck(deckId) {
-    return this.model.find({ cardDeck: deckId, status: "active", deletedAt: null });
+    return this.model.find({
+      cardDeck: deckId,
+      status: "active",
+      deletedAt: null,
+    });
   }
 
   async findByDifficulty(difficulty) {
@@ -65,7 +69,11 @@ class FlashcardRepository {
   async search(query, options = {}) {
     try {
       const { limit = 20, skip = 0 } = options;
-      const searchQuery = { $text: { $search: query }, status: "active", deletedAt: null };
+      const searchQuery = {
+        $text: { $search: query },
+        status: "active",
+        deletedAt: null,
+      };
 
       return this.model
         .find(searchQuery, { score: { $meta: "textScore" } })
@@ -83,7 +91,11 @@ class FlashcardRepository {
     try {
       const { populate = true, returnNew = true } = options;
 
-      let query = this.model.findByIdAndUpdate(id, data, { new: returnNew, runValidators: true });
+      let query = this.model.findOneAndUpdate(
+        { _id: id },
+        data,
+        { new: returnNew, runValidators: true }
+      );
 
       if (populate) query = query.populate(this.defaultPopulate);
 
