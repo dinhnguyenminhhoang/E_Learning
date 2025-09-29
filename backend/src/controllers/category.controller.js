@@ -19,7 +19,6 @@ class CategoryController {
 
   // GET /v1/api/category/search?q=keyword&limit=20&skip=0
   async listCategories(req, res, next) {
-    console.log("req.query:", req.query);
     try {
       const categories = await categoryService.findAllCategories(req.query);
       return res.json({
