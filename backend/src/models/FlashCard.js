@@ -5,6 +5,7 @@ require("./CardDeck");
 require("./User");
 
 const { model, Schema } = require("mongoose");
+const { STATUS } = require("../constans/STATUS.constans");
 
 const DOCUMENT_NAME = "Flashcard";
 const COLLECTION_NAME = "Flashcards";
@@ -59,8 +60,8 @@ const flashcardSchema = new Schema(
 
     status: {
       type: String,
-      enum: ["active", "inactive", "archived"],
-      default: "active",
+      enum: OBject.values(STATUS),
+      default: STATUS.ACTIVE,
       index: true,
     },
 

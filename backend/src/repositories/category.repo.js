@@ -2,7 +2,7 @@
 
 const Category = require("../models/Category");
 const { NotFoundError } = require("../core/error.response");
-
+const { STATUS } = require("../constans/status.constans");
 /**
  * Category Repository
  * Centralized data access layer cho Category operations
@@ -89,7 +89,7 @@ class CategoryRepository {
    */
   async findActive() {
     try {
-      return await this.model.find({ status: "active", deletedAt: null });
+      return await this.model.find({ status: STATUS.ACTIVE, deletedAt: null });
     } catch (error) {
       console.error("❌ Error finding active categories:", error);
       throw error;
@@ -105,7 +105,7 @@ class CategoryRepository {
     try {
       return await this.model.find({
         level,
-        status: "active",
+        status: STATUS.ACTIVE,
         deletedAt: null,
       });
     } catch (error) {
@@ -126,7 +126,7 @@ class CategoryRepository {
 
       const searchQuery = {
         $text: { $search: query },
-        status: "active",
+        status: STATUS.ACTIVE,
         deletedAt: null,
       };
 
@@ -232,7 +232,7 @@ class CategoryRepository {
         id,
         {
           deletedAt: new Date(),
-          status: "inactive",
+          status: STATUS.INACTIVE,
           deletedBy: userId,
         },
         { new: true }

@@ -1,6 +1,7 @@
 "use strict";
 
 const { model, Schema } = require("mongoose");
+const { STATUS } = require("../constans/STATUS.constans");
 
 const DOCUMENT_NAME = "Target";
 const COLLECTION_NAME = "Targets";
@@ -39,8 +40,8 @@ const targetSchema = new Schema(
 
     status: {
       type: String,
-      enum: ["active", "inactive", "archived"],
-      default: "active",
+      enum: Object.values(STATUS),
+      default: STATUS.ACTIVE,
       index: true,
     },
 

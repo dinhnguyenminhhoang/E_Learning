@@ -1,5 +1,7 @@
 "use strict";
 
+const { STATUS } = require("../../constans/status.constans");
+
 const flashcardDocs = {
   // POST /v1/api/flashcard
   createFlashcard: {
@@ -38,7 +40,7 @@ const flashcardDocs = {
                   backText: "A closure is a function ...",
                   cardDeck: "650f8c1f8f8f8f8f8f8f8f99",
                   difficulty: "medium",
-                  status: "active",
+                  status: STATUS.ACTIVE,
                   createdAt: "2024-08-16T10:30:00.000Z",
                 },
               },
@@ -72,14 +74,14 @@ const flashcardDocs = {
                     frontText: "What is a closure in JavaScript?",
                     backText: "A closure is a function ...",
                     difficulty: "medium",
-                    status: "active",
+                    status: STATUS.ACTIVE,
                   },
                   {
                     id: "650f8c1f8f8f8f8f8f8f8f8b",
                     frontText: "Explain CSS Flexbox",
                     backText: "Flexbox is a CSS layout mode ...",
                     difficulty: "easy",
-                    status: "active",
+                    status: STATUS.ACTIVE,
                   },
                 ],
               },
@@ -121,7 +123,7 @@ const flashcardDocs = {
                   backText: "A closure is a function ...",
                   cardDeck: "650f8c1f8f8f8f8f8f8f8f99",
                   difficulty: "medium",
-                  status: "active",
+                  status: STATUS.ACTIVE,
                   createdAt: "2024-08-16T10:30:00.000Z",
                 },
               },
@@ -158,7 +160,7 @@ const flashcardDocs = {
               backText: "Updated back text",
               difficulty: "hard",
               tags: ["updated", "study"],
-              status: "active",
+              status: STATUS.ACTIVE,
             },
           },
         },
@@ -176,7 +178,7 @@ const flashcardDocs = {
                   frontText: "Updated front text",
                   backText: "Updated back text",
                   difficulty: "hard",
-                  status: "active",
+                  status: STATUS.ACTIVE,
                   updatedAt: "2024-08-18T08:45:00.000Z",
                 },
               },
@@ -215,7 +217,7 @@ const flashcardDocs = {
                 message: "Flashcard deleted successfully",
                 metadata: {
                   id: "650f8c1f8f8f8f8f8f8f8f8a",
-                  status: "inactive",
+                  status: STATUS.INACTIVE,
                   deletedAt: "2024-08-19T12:00:00.000Z",
                 },
               },
