@@ -57,26 +57,7 @@ const flashcardDocs = {
       summary: "Get all flashcards",
       tags: ["Flashcard"],
       security: [],
-      parameters: [
-        {
-          name: "difficulty",
-          in: "query",
-          schema: { type: "string", enum: ["easy", "medium", "hard"] },
-          description: "Filter by difficulty",
-        },
-        {
-          name: "status",
-          in: "query",
-          schema: { type: "string", enum: ["active", "inactive", "archived"] },
-          description: "Filter by flashcard status",
-        },
-        {
-          name: "deckId",
-          in: "query",
-          schema: { type: "string" },
-          description: "Filter by deck ID",
-        },
-      ],
+      parameters: [],
       responses: {
         200: {
           description: "List of flashcards",

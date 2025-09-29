@@ -38,7 +38,7 @@ class FlashcardService {
   }
 
   async listFlashcards({ limit = 20, skip = 0, deckId }) {
-    return await flashcardRepository.list({ limit, skip, deckId });
+    return await flashcardRepository.list({});
   }
 
   async searchFlashcards(q, { limit = 20, skip = 0 }) {
