@@ -1,5 +1,9 @@
 "use strict";
 
+require("./Word");
+require("./CardDeck");
+require("./User");
+
 const { model, Schema } = require("mongoose");
 
 const DOCUMENT_NAME = "Flashcard";

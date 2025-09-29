@@ -274,12 +274,6 @@ const swaggerDefinition = {
       ...flashcardDocs.updateFlashcard,
       ...flashcardDocs.deleteFlashcard,
     },
-    "/v1/api/flashcard/deck/{deckId}": {
-      ...flashcardDocs.getFlashcardsByDeck,
-    },
-    "/v1/api/flashcard/difficulty/{difficulty}": {
-      ...flashcardDocs.getFlashcardsByDifficulty,
-    },
   },
 
   tags: [
