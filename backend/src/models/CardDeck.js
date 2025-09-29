@@ -2,6 +2,7 @@
 
 const { model, Schema } = require("mongoose");
 const { urlValidator } = require("../utils");
+const { STATUS } = require("../constans/STATUS.constans");
 
 const DOCUMENT_NAME = "CardDeck";
 const COLLECTION_NAME = "CardDecks";
@@ -54,8 +55,8 @@ const cardDeckSchema = new Schema(
 
     status: {
       type: String,
-      enum: ["active", "inactive", "archived"],
-      default: "active",
+      enum: Object.values(STATUS),
+      default: STATUS.ACTIVE,
       index: true,
     },
 
