@@ -2,6 +2,7 @@
 
 const { model, Schema } = require("mongoose");
 const { urlValidator } = require("../utils");
+const { STATUS } = require("../constans/STATUS.constans");
 
 const DOCUMENT_NAME = "Category";
 const COLLECTION_NAME = "Categories";
@@ -76,8 +77,8 @@ const categorySchema = new Schema(
 
     status: {
       type: String,
-      enum: ["active", "inactive", "archived"],
-      default: "active",
+      enum: Object.values(STATUS),
+      default: STATUS.ACTIVE,
       index: true,
     },
 

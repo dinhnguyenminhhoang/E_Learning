@@ -1,5 +1,7 @@
 "use strict";
 
+const { STATUS } = require("../../constans/status.constans");
+
 /**
  * Authentication API Documentation
  * Swagger definitions cho auth endpoints
@@ -43,7 +45,7 @@ const authDocs = {
                     id: "507f1f77bcf86cd799439011",
                     name: "John Doe",
                     email: "john@example.com",
-                    status: "pending",
+                    status: STATUS.PENDING,
                     verified: false,
                   },
                   emailVerificationRequired: true,
@@ -323,7 +325,7 @@ const authDocs = {
                     id: "507f1f77bcf86cd799439011",
                     email: "john@example.com",
                     verified: true,
-                    status: "active",
+                    status: STATUS.ACTIVE,
                   },
                   verifiedAt: "2024-08-16T10:30:00.000Z",
                 },

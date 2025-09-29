@@ -1,5 +1,7 @@
 "use strict";
 
+const { STATUS } = require("../../constans/status.constans");
+
 const categoryDocs = {
   // POST /v1/api/category
   createCategory: {
@@ -39,7 +41,7 @@ const categoryDocs = {
                   nameVi: "Lập trình",
                   slug: "programming",
                   level: "beginner",
-                  status: "active",
+                  status: STATUS.ACTIVE,
                 },
               },
             },
@@ -73,7 +75,7 @@ const categoryDocs = {
                     nameVi: "Lập trình",
                     slug: "programming",
                     level: "beginner",
-                    status: "active",
+                    status: STATUS.ACTIVE,
                     wordCount: 120,
                   },
                   {
@@ -82,7 +84,7 @@ const categoryDocs = {
                     nameVi: "Thiết kế",
                     slug: "design",
                     level: "intermediate",
-                    status: "active",
+                    status: STATUS.ACTIVE,
                   },
                 ],
               },
@@ -127,7 +129,7 @@ const categoryDocs = {
                   color: "#FF5733",
                   level: "beginner",
                   parentCategory: null,
-                  status: "active",
+                  status: STATUS.ACTIVE,
                   wordCount: 120,
                   createdAt: "2024-08-16T10:30:00.000Z",
                   updatedAt: "2024-08-17T09:15:00.000Z",
@@ -167,7 +169,7 @@ const categoryDocs = {
               slug: "programming-updated",
               description: "Updated description",
               color: "#00FF00",
-              status: "active",
+              status: STATUS.ACTIVE,
             },
           },
         },
@@ -186,7 +188,7 @@ const categoryDocs = {
                   nameVi: "Lập trình nâng cao",
                   slug: "programming-updated",
                   color: "#00FF00",
-                  status: "active",
+                  status: STATUS.INACTIVE,
                   updatedAt: "2024-08-18T08:45:00.000Z",
                 },
               },
@@ -225,7 +227,7 @@ const categoryDocs = {
                 message: "Category deleted successfully",
                 metadata: {
                   id: "60f8c1f8f8f8f8f8f8f8f8f8",
-                  status: "inactive",
+                  status: STATUS.INACTIVE,
                   deletedAt: "2024-08-19T12:00:00.000Z",
                 },
               },
