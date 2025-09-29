@@ -41,12 +41,7 @@ class FlashcardController {
 
   async list(req, res, next) {
     try {
-      const { limit, skip, deckId } = req.query;
-      const flashcards = await flashcardService.listFlashcards({
-        limit: Number(limit) || 20,
-        skip: Number(skip) || 0,
-        deckId,
-      });
+      const flashcards = await flashcardService.listFlashcards({});
       res.json({ message: "Flashcards list", metadata: flashcards });
     } catch (error) {
       next(error);
