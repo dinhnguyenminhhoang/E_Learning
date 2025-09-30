@@ -1,7 +1,7 @@
 "use strict";
 
 const { model, Schema } = require("mongoose");
-const { STATUS } = require("../constans/STATUS.constans");
+const { STATUS } = require("../constants/status.constans");
 
 const DOCUMENT_NAME = "LearningPath";
 const COLLECTION_NAME = "LearningPaths";

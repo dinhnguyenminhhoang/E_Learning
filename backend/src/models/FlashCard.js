@@ -4,8 +4,8 @@ require("./Word");
 require("./CardDeck");
 require("./User");
 
-const { model, Schema } = require("mongoose");
-const { STATUS } = require("../constans/STATUS.constans");
+const { model, Schema, models } = require("mongoose");
+const { STATUS } = require("../constants/status.constans");
 
 const DOCUMENT_NAME = "Flashcard";
 const COLLECTION_NAME = "Flashcards";
@@ -60,7 +60,7 @@ const flashcardSchema = new Schema(
 
     status: {
       type: String,
-      enum: OBject.values(STATUS),
+      enum: Object.values(STATUS),
       default: STATUS.ACTIVE,
       index: true,
     },
@@ -100,4 +100,4 @@ flashcardSchema.index({ cardDeck: 1, difficulty: 1 });
 flashcardSchema.index({ frontText: "text", backText: "text" });
 flashcardSchema.index({ tags: 1 });
 
-module.exports = model(DOCUMENT_NAME, flashcardSchema);
+module.exports = models[DOCUMENT_NAME] || model(DOCUMENT_NAME, flashcardSchema);
