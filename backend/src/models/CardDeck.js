@@ -2,7 +2,7 @@
 
 const { model, Schema } = require("mongoose");
 const { urlValidator } = require("../utils");
-const { STATUS } = require("../constans/STATUS.constans");
+const { STATUS } = require("../constants/status.constans");
 
 const DOCUMENT_NAME = "CardDeck";
 const COLLECTION_NAME = "CardDecks";

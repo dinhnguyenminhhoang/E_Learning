@@ -1,0 +1,34 @@
+import Joi from "joi";
+import constants from "../../constants/status.constans.js";
+
+const { STATUS } = constants;
+
+export const createCategorySchema = Joi.object({
+  name: Joi.string().trim().max(150).required(),
+  nameVi: Joi.string().trim().max(150).required(),
+  slug: Joi.string().trim().lowercase().required(),
+  description: Joi.string().trim().max(1000).optional(),
+  icon: Joi.string().uri().optional(),
+  color: Joi.string()
+    .pattern(/^#([0-9A-Fa-f]{3}){1,2}$/)
+    .optional(),
+
+  level: Joi.string()
+    .valid("beginner", "intermediate", "advanced")
+    .default("beginner"),
+
+  parentCategory: Joi.string()
+    .regex(/^[0-9a-fA-F]{24}$/) 
+    .allow(null),
+
+  wordCount: Joi.number().min(0).default(0),
+
+  status: Joi.string()
+    .valid(...Object.values(STATUS))
+    .default(STATUS.ACTIVE),
+
+  deletedAt: Joi.date().optional().allow(null),
+  deletedBy: Joi.string()
+    .regex(/^[0-9a-fA-F]{24}$/)
+    .allow(null),
+});

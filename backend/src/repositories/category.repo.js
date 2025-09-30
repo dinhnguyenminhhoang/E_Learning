@@ -2,7 +2,7 @@
 
 const Category = require("../models/Category");
 const { NotFoundError } = require("../core/error.response");
-const { STATUS } = require("../constans/status.constans");
+const { STATUS } = require("../constants/status.constans");
 /**
  * Category Repository
  * Centralized data access layer cho Category operations

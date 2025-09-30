@@ -1,6 +1,6 @@
 "use strict";
 
-const { STATUS } = require("../../constans/status.constans");
+const { STATUS } = require("../constants/status.constans");
 
 const flashcardDocs = {
   // POST /v1/api/flashcard
