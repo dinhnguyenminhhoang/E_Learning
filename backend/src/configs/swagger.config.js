@@ -241,11 +241,11 @@ const swaggerDefinition = {
     },
     // External documentation paths
     authPaths: authDocs,
+    // userPaths: userDocs,
     // portfolioPaths: portfolioDocs
   },
   // Manual paths definition (using external docs)
   paths: {
-    // Auth paths
     "/v1/api/user/signup": authDocs.signup,
     "/v1/api/user/signin": authDocs.signin,
     "/v1/api/user/refresh-token": authDocs.refreshToken,
@@ -256,24 +256,27 @@ const swaggerDefinition = {
 
     // Word endpoints
     "/v1/api/word/create": wordDocs.components.wordPaths.create,
-    "/v1/api/word/category/{categoryId}": wordDocs.components.wordPaths.getWordsByCategory,
+    "/v1/api/word/category/{categoryId}":
+      wordDocs.components.wordPaths.getWordsByCategory,
     "/v1/api/word/delete/{wordId}": wordDocs.components.wordPaths.deleteWord,
     "/v1/api/word/{wordId}": wordDocs.components.wordPaths.updateWord,
     "/v1/api/word/import": wordDocs.components.wordPaths.importWords,
-    "/v1/api/word/export-sample": wordDocs.components.wordPaths.exportSampleWords,
+    "/v1/api/word/export-sample":
+      wordDocs.components.wordPaths.exportSampleWords,
 
-    // FlashCard paths
-    "/v1/api/flashcard": {
-      ...flashcardDocs.createFlashcard,
-      ...flashcardDocs.listFlashcards,
-    },
-    "/v1/api/flashcard/{id}": {
-      ...flashcardDocs.getFlashcardById,
-      ...flashcardDocs.updateFlashcard,
-      ...flashcardDocs.deleteFlashcard,
-    },
+    "/v1/api/category/create": categoryDocs.createCategory,
+    "/v1/api/category": categoryDocs.listCategories,
+    "/v1/api/category/getById/{id}": categoryDocs.getCategoryById,
+    "/v1/api/category/{id}": categoryDocs.updateCategory,
+    "/v1/api/category/delete/{id}": categoryDocs.deleteCategory,
+
+    // // ---------------- FLASHCARD ----------------
+    "/v1/api/flashcard/create": flashcardDocs.createFlashcard,
+    "/v1/api/flashcard": flashcardDocs.listFlashcards,
+    "/v1/api/flashcard/getById/{id}": flashcardDocs.getFlashcardById,
+    "/v1/api/flashcard/{id}": flashcardDocs.updateFlashcard,
+    "/v1/api/flashcard/delete/{id}": flashcardDocs.deleteFlashcard,
   },
-
   tags: [
     {
       name: "Authentication",
@@ -286,6 +289,14 @@ const swaggerDefinition = {
     {
       name: "Category",
       description: "Category management and search operations",
+    },
+    {
+      name: "Flashcard",
+      description: "FlashCard management and search operations",
+    },
+    {
+      name: "Word",
+      description: "Word management and search operations",
     },
     {
       name: "Portfolios",
