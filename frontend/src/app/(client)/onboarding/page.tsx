@@ -144,7 +144,7 @@ export default function OnboardingPage() {
 
   const onSubmit = (data: OnboardingFormData) => {
     console.log("Onboarding completed:", data);
-    navigator.push("/");
+    navigator.push("/learn");
   };
 
   const canContinue =
