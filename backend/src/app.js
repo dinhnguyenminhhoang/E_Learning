@@ -28,6 +28,8 @@ app.use(
 );
 //db
 require("./dbs/init.mongodb");
+// Register all models (for population)
+require("./models");
 //limit
 const rateLimiter = getRateLimiter();
 // app.use(rateLimiter.middlewareWithLists());

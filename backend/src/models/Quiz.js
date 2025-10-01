@@ -1,68 +1,147 @@
 "use strict";
+
 const { model, Schema } = require("mongoose");
-const questionSchema = require("./subModel/question.schema");
+
 const DOCUMENT_NAME = "Quiz";
 const COLLECTION_NAME = "Quizzes";
-const quizSchema = new Schema(
-    {
-        title: {
-            type: String,
-            required: [true, "Quiz title is required"],
-            trim: true,
-        },
-        description: {
-            type: String,
-            trim: true,
-        },
-        category: {
-            type: Schema.Types.ObjectId,
-            ref: "Category",
-            index: true,
-        },
-        level: {
-            type: String,
-            enum: ["beginner", "intermediate", "advanced"],
-            required: true,
-            index: true,
-        },
-        type: {
-            type: String,
-            enum: ["practice", "test", "daily_challenge"],
-            default: "practice",
-        },
-        questions: [questionSchema],
-        totalQuestions: {
-            type: Number,
-            required: true,
-        },
-        totalPoints: {
-            type: Number,
-            required: true,
-        },
-        timeLimit: {
-            type: Number, // minutes
-            default: null,
-        },
-        passScore: {
-            type: Number,
-            default: 70, // percentage
-        },
-        isActive: {
-            type: Boolean,
-            default: true,
-            index: true,
-        },
-        tags: [{ type: String }],
-        createdBy: {
-            type: Schema.Types.ObjectId,
-            ref: "User",
-        },
-    },
-    {
-        timestamps: true,
-        collection: COLLECTION_NAME,
-    }
+
+const optionSchema = new Schema(
+  {
+    text: { type: String, required: true },
+    isCorrect: { type: Boolean, default: false },
+  },
+  { _id: false }
 );
-quizSchema.index({ level: 1, isActive: 1 });
-quizSchema.index({ category: 1, level: 1 });
+
+const questionSchema = new Schema(
+  {
+    sourceType: {
+      type: String,
+      enum: ["Word", "Flashcard", "CardDeck"],
+      required: true,
+    },
+    sourceId: {
+      type: Schema.Types.ObjectId,
+      required: true,
+    },
+
+    type: {
+      type: String,
+      enum: ["multiple_choice", "fill_blank", "matching", "true_false"],
+      required: true,
+    },
+
+    questionText: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+
+    options: {
+      type: [optionSchema],
+      default: [],
+    },
+
+    correctAnswer: {
+      type: String, // dành cho fill_blank hoặc true_false
+      default: null,
+    },
+
+    explanation: {
+      type: String,
+      trim: true,
+      default: null,
+    },
+
+    points: {
+      type: Number,
+      min: 0,
+      default: 1,
+    },
+
+    tags: {
+      type: [String],
+      default: [],
+    },
+
+    thumbnail: {
+      type: String,
+      trim: true,
+      default: null,
+    },
+
+    audio: {
+      type: String,
+      trim: true,
+      default: null,
+    },
+  },
+  { _id: true }
+);
+
+const quizSchema = new Schema(
+  {
+    title: {
+      type: String,
+      required: true,
+      trim: true,
+      index: true,
+    },
+
+    questions: {
+      type: [questionSchema],
+      default: [],
+    },
+
+    deletedAt: {
+      type: Date,
+      default: null,
+      index: true,
+    },
+    deletedBy: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
+      default: null,
+    },
+  },
+  {
+    timestamps: true,
+    collection: COLLECTION_NAME,
+    minimize: false,
+    versionKey: false,
+  }
+);
+
+// ===== VIRTUALS =====
+quizSchema.virtual("questionCount").get(function () {
+  return this.questions?.length || 0;
+});
+
+// ===== METHODS =====
+quizSchema.methods.addQuestion = function (question) {
+  this.questions.push(question);
+  return this.save();
+};
+
+// ===== STATICS =====
+quizSchema.statics.findActive = function () {
+  return this.find({ deletedAt: null });
+};
+
+// ===== MIDDLEWARES =====
+// Soft delete
+quizSchema.pre(["deleteOne", "deleteMany"], function () {
+  this.updateOne({}, { deletedAt: new Date() });
+});
+
+// Query middleware để loại bỏ deleted records
+quizSchema.pre(
+  ["find", "findOne", "findOneAndUpdate", "count", "countDocuments"],
+  function () {
+    if (!this.getQuery().deletedAt) {
+      this.where({ deletedAt: null });
+    }
+  }
+);
+
 module.exports = model(DOCUMENT_NAME, quizSchema);
