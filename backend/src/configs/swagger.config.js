@@ -5,6 +5,9 @@ const swaggerUi = require("swagger-ui-express");
 
 // Import external documentation
 const authDocs = require("../docs/authDocs");
+const wordDocs = require("../docs/wordDocs");
+const categoryDocs = require("../docs/categoryDocs");
+const flashcardDocs = require("../docs/flashCardDocs");
 // const userDocs = require('../docs/user.docs');
 
 /**
@@ -250,6 +253,29 @@ const swaggerDefinition = {
     "/v1/api/user/forgot-password": authDocs.forgotPassword,
     "/v1/api/user/verify-email": authDocs.verifyEmail,
     "/v1/api/user/reset-password": authDocs.resetPassword,
+
+    // Word endpoints
+    "/v1/api/word/create": wordDocs.components.wordPaths.create,
+    "/v1/api/word/category/{categoryId}":
+      wordDocs.components.wordPaths.getWordsByCategory,
+    "/v1/api/word/delete/{wordId}": wordDocs.components.wordPaths.deleteWord,
+    "/v1/api/word/{wordId}": wordDocs.components.wordPaths.updateWord,
+    "/v1/api/word/import": wordDocs.components.wordPaths.importWords,
+    "/v1/api/word/export-sample":
+      wordDocs.components.wordPaths.exportSampleWords,
+
+    "/v1/api/category/create": categoryDocs.createCategory,
+    "/v1/api/category": categoryDocs.listCategories,
+    "/v1/api/category/getById/{id}": categoryDocs.getCategoryById,
+    "/v1/api/category/{id}": categoryDocs.updateCategory,
+    "/v1/api/category/delete/{id}": categoryDocs.deleteCategory,
+
+    // // ---------------- FLASHCARD ----------------
+    "/v1/api/flashcard/create": flashcardDocs.createFlashcard,
+    "/v1/api/flashcard": flashcardDocs.listFlashcards,
+    "/v1/api/flashcard/getById/{id}": flashcardDocs.getFlashcardById,
+    "/v1/api/flashcard/{id}": flashcardDocs.updateFlashcard,
+    "/v1/api/flashcard/delete/{id}": flashcardDocs.deleteFlashcard,
   },
   tags: [
     {
@@ -259,6 +285,18 @@ const swaggerDefinition = {
     {
       name: "Users",
       description: "User management operations",
+    },
+    {
+      name: "Category",
+      description: "Category management and search operations",
+    },
+    {
+      name: "Flashcard",
+      description: "FlashCard management and search operations",
+    },
+    {
+      name: "Word",
+      description: "Word management and search operations",
     },
     {
       name: "Portfolios",
