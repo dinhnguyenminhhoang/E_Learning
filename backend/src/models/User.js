@@ -4,6 +4,7 @@ const { model, Schema, Types } = require("mongoose");
 const bcrypt = require("bcrypt");
 const verificationSchema = require("./subModel/Verification.schema");
 const { urlValidator } = require("../utils");
+const { STATUS } = require("../constants/status.constans");
 const DOCUMENT_NAME = "User";
 const COLLECTION_NAME = "Users";
 
@@ -55,10 +56,10 @@ const userSchema = new Schema(
     status: {
       type: String,
       enum: {
-        values: ["active", "inactive", "suspended", "pending"],
+        values: Object.values(STATUS),
         message: "Status must be active, inactive, suspended, or pending",
       },
-      default: "pending",
+      default: STATUS.PENDING,
       index: true,
     },
     verification: {
