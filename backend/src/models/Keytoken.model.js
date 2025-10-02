@@ -207,7 +207,7 @@ const keyTokenSchema = new Schema(
       },
       environment: {
         type: String,
-        enum: ["dev", "staging", "production"],
+        enum: ["development", "staging", "production"],
         default: process.env.NODE_ENV || "development",
       },
       notes: {
