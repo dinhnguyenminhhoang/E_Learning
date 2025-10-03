@@ -16,9 +16,7 @@ export const createFlashcardSchema = Joi.object({
     .regex(/^[0-9a-fA-F]{24}$/) // ObjectId
     .required(),
 
-  difficulty: Joi.string()
-    .valid("easy", "medium", "hard")
-    .default("easy"),
+  difficulty: Joi.string().valid("easy", "medium", "hard").default("easy"),
 
   tags: Joi.array().items(Joi.string().trim()),
 
@@ -28,8 +26,8 @@ export const createFlashcardSchema = Joi.object({
     .valid(...Object.values(STATUS))
     .default(STATUS.ACTIVE),
 
-  deletedAt: Joi.date().optional().allow(null),
-  deletedBy: Joi.string()
+  updatedAt: Joi.date().optional().allow(null),
+  updatedBy: Joi.string()
     .regex(/^[0-9a-fA-F]{24}$/) // ObjectId
     .allow(null),
 });
@@ -44,8 +42,8 @@ export const updateFlashcardSchema = createFlashcardSchema.fork(
     "tags",
     "isActive",
     "status",
-    "deletedAt",
-    "deletedBy",
+    "updatedAt",
+    "updatedBy",
   ],
   (schema) => schema.optional()
 );

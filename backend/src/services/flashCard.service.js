@@ -4,37 +4,38 @@ const flashcardRepository = require("../repositories/flashcard.repo");
 
 class FlashcardService {
   async createFlashcard(data) {
-    return await flashcardRepository.create(data);
+    const flashcard = await flashcardRepository.create(data);
+    return ResponseBuilder.success("Flashcard created successfully", {
+      flashcard,
+    });
   }
 
   async getFlashcardById(id) {
     const flashcard = await flashcardRepository.findById(id);
     if (!flashcard) {
-      const err = new Error("Flashcard not found");
-      err.status = 404;
-      throw err;
+      return ResponseBuilder.notFoundError("Flashcard not found");
     }
-    return flashcard;
+    return ResponseBuilder.success("Fetch flashcard successfully", {
+      flashcard,
+    });
   }
 
   async updateFlashcard(id, data) {
     const flashcard = await flashcardRepository.update(id, data);
     if (!flashcard) {
-      const err = new Error("Flashcard not found");
-      err.status = 404;
-      throw err;
+      return ResponseBuilder.notFoundError("Flashcard not found");
     }
-    return flashcard;
+    return ResponseBuilder.success("Flashcard updated successfully", {
+      flashcard,
+    });
   }
 
   async deleteFlashcard(id, userId) {
     const flashcard = await flashcardRepository.softDelete(id, userId);
-    if (!flashcard) {
-      const err = new Error("Flashcard not found");
-      err.status = 404;
-      throw err;
+    if (!flashcard) { 
+      return ResponseBuilder.notFoundError("Flashcard not found");
     }
-    return flashcard;
+    return ResponseBuilder.success("Flashcard deleted successfully");
   }
 
   async listFlashcards({ limit = 20, skip = 0, deckId }) {
@@ -43,11 +44,18 @@ class FlashcardService {
 
   async searchFlashcards(q, { limit = 20, skip = 0 }) {
     if (!q || typeof q !== "string" || q.trim().length === 0) {
-      const err = new Error("Query parameter 'q' is required and must be non-empty string");
-      err.status = 400;
-      throw err;
+      return ResponseBuilder.badRequestError(
+        "Query parameter 'q' is required and must be non-empty string"
+      );
     }
-    return await flashcardRepository.search(q, { limit, skip });
+    q = q.trim();
+    if (limit <= 0 || skip < 0) {
+      return ResponseBuilder.badRequestError("Invalid pagination parameters");
+    }
+    const flashcards = await flashcardRepository.search(q, { limit, skip });
+    return ResponseBuilder.success("Fetch flashcards successfully", {
+      flashcards,
+    });
   }
 }
 

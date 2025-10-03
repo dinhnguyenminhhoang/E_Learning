@@ -98,6 +98,7 @@ class AuthService {
         includePassword: true,
         includeDeleted: false,
       });
+      console.log(user);
 
       if (!user) {
         console.warn(`🚨 Login attempt with non-existent email: ${email}`);

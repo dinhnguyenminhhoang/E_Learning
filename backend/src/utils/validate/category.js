@@ -27,8 +27,8 @@ export const createCategorySchema = Joi.object({
     .valid(...Object.values(STATUS))
     .default(STATUS.ACTIVE),
 
-  deletedAt: Joi.date().optional().allow(null),
-  deletedBy: Joi.string()
+  updatedAt: Joi.date().optional().allow(null),
+  updatedBy: Joi.string()
     .regex(/^[0-9a-fA-F]{24}$/)
     .allow(null),
 });

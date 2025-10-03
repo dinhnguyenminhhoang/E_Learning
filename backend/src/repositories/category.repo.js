@@ -13,7 +13,7 @@ class CategoryRepository {
     this.model = Category;
     this.defaultPopulate = [
       { path: "parentCategory", select: "name nameVi slug" },
-      { path: "deletedBy", select: "name email" },
+      { path: "updatedBy", select: "name email" },
     ];
   }
 
@@ -89,7 +89,7 @@ class CategoryRepository {
    */
   async findActive() {
     try {
-      return await this.model.find({ status: STATUS.ACTIVE, deletedAt: null });
+      return await this.model.find({ status: STATUS.ACTIVE, updatedAt: null });
     } catch (error) {
       console.error("❌ Error finding active categories:", error);
       throw error;
@@ -106,7 +106,7 @@ class CategoryRepository {
       return await this.model.find({
         level,
         status: STATUS.ACTIVE,
-        deletedAt: null,
+        updatedAt: null,
       });
     } catch (error) {
       console.error("❌ Error finding categories by level:", error);
@@ -127,7 +127,7 @@ class CategoryRepository {
       const searchQuery = {
         $text: { $search: query },
         status: STATUS.ACTIVE,
-        deletedAt: null,
+        updatedAt: null,
       };
 
       if (level) searchQuery.level = level;
@@ -231,9 +231,9 @@ class CategoryRepository {
       const deletedCategory = await this.model.findByIdAndUpdate(
         id,
         {
-          deletedAt: new Date(),
+          updatedAt: new Date(),
           status: STATUS.INACTIVE,
-          deletedBy: userId,
+          updatedBy: userId,
         },
         { new: true }
       );

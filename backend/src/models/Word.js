@@ -1,6 +1,7 @@
 "use strict";
 const { model, Schema } = require("mongoose");
 const exampleSchema = require("./subModel/example.schema");
+const { STATUS } = require("../constants/status.constans");
 const DOCUMENT_NAME = "Word";
 const COLLECTION_NAME = "Words";
 
@@ -71,14 +72,14 @@ const wordSchema = new Schema(
       max: 5,
       default: 1,
     },
-    isActive: {
-      type: Boolean,
-      default: true,
-      index: true,
+    status: {
+      type: String,
+      enum: Object.values(STATUS),
+      default: STATUS.ACTIVE,
     },
     createdBy: {
-      type: Schema.Types.ObjectId,
-      ref: "User",
+      type: String,
+      required: true,
     },
   },
   {

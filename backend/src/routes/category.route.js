@@ -11,7 +11,7 @@ const router = Router();
 // Tạo category
 router.post(
   "/create",
-  auth.adminOnly,
+  // auth.adminOnly,
   validateCreateCategory,
   asynchandler(categoryController.createCategory)
 );
@@ -19,7 +19,7 @@ router.post(
 // Cập nhật category
 router.put(
   "/:id",
-  auth.managerOrAdmin,
+  // auth.managerOrAdmin,
   validateCreateCategory,
   asynchandler(categoryController.updateCategory)
 );
@@ -39,7 +39,7 @@ router.get(
 // Xóa category
 router.delete(
   "/delete/:id",
-  auth.adminOnly,
+  // auth.adminOnly,
   asynchandler(categoryController.deleteCategory)
 );
 

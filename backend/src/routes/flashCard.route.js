@@ -11,7 +11,7 @@ const router = Router();
 // Tạo flashcard
 router.post(
   "/create",
-  auth.adminOnly,
+  // auth.adminOnly,
   validateCreateFlashcard,
   asynchandler(flashcardController.create)
 );
@@ -31,7 +31,7 @@ router.get(
 // Cập nhật flashcard
 router.put(
   "/:id",
-  auth.adminOnly,
+  // auth.adminOnly,
   validateCreateFlashcard,
   asynchandler(flashcardController.update)
 );
@@ -39,7 +39,7 @@ router.put(
 // Xóa flashcard
 router.delete(
   "/delete/:id",
-  auth.adminOnly,
+  // auth.adminOnly,
   asynchandler(flashcardController.delete)
 );
 

@@ -2,6 +2,7 @@
 
 const Word = require("../models/Word");
 const { NotFoundError } = require("../core/error.response");
+const { STATUS } = require("../constants/status.constans");
 
 /**
  * Word Repository
@@ -155,7 +156,7 @@ class WordRepository {
       // Execute query
       let query_builder = this.model
         .find(searchQuery)
-        .where({ isActive: true })
+        .where({ status: { $ne: STATUS.DELETED } })
         .sort(sortObj)
         .skip(skip)
         .limit(pageSize);
@@ -300,8 +301,8 @@ class WordRepository {
       const deletedWord = await this.model.findByIdAndUpdate(
         id,
         {
-          isActive: false,
-          deletedAt: new Date(),
+          status: STATUS.DELETED,
+          updatedAt: new Date(),
         },
         { new: true }
       );
