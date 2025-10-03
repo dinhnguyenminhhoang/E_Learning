@@ -1,6 +1,7 @@
 "use strict";
 
 const { model, Schema } = require("mongoose");
+const { STATUS } = require("../constants/status.constans");
 
 const DOCUMENT_NAME = "AnswerMap";
 const COLLECTION_NAME = "AnswerMaps";
@@ -34,16 +35,20 @@ const answerMapSchema = new Schema(
       default: null,
     },
 
-    deletedAt: {
+    updatedAt: {
       type: Date,
       default: null,
       index: true,
     },
 
-    deletedBy: {
-      type: Schema.Types.ObjectId,
-      ref: "User",
+    updatedBy: {
+      type: String,
       default: null,
+    },
+    status: {
+      type: String,
+      enum: Object.values(STATUS),
+      default: STATUS.ACTIVE,
     },
   },
   {
@@ -67,22 +72,22 @@ answerMapSchema.statics.findByRawValue = function (questionKey, rawValue) {
   return this.findOne({
     questionKey,
     rawValue,
-    deletedAt: null,
+    updatedAt: null,
   });
 };
 
 // ===== MIDDLEWARES =====
 // Soft delete
 answerMapSchema.pre(["deleteOne", "deleteMany"], function () {
-  this.updateOne({}, { deletedAt: new Date() });
+  this.updateOne({}, { updatedAt: new Date() });
 });
 
 // Query middleware để loại bỏ deleted records
 answerMapSchema.pre(
   ["find", "findOne", "findOneAndUpdate", "count", "countDocuments"],
   function () {
-    if (!this.getQuery().deletedAt) {
-      this.where({ deletedAt: null });
+    if (!("status" in this.getQuery())) {
+      this.where({ status: { $ne: STATUS.DELETED } });
     }
   }
 );

@@ -60,15 +60,14 @@ const cardDeckSchema = new Schema(
       index: true,
     },
 
-    deletedAt: {
+    updatedAt: {
       type: Date,
       default: null,
       index: true,
     },
 
-    deletedBy: {
-      type: Schema.Types.ObjectId,
-      ref: "User",
+    updatedBy: {
+      type: String,
       default: null,
     },
   },
@@ -110,11 +109,11 @@ cardDeckSchema.methods.archive = function () {
 
 // ===== STATICS =====
 cardDeckSchema.statics.findActiveDecks = function () {
-  return this.find({ status: "active", deletedAt: null });
+  return this.find({ status: "active", updatedAt: null });
 };
 
 cardDeckSchema.statics.findByTarget = function (targetId) {
-  return this.find({ target: targetId, status: "active", deletedAt: null });
+  return this.find({ target: targetId, status: "active", updatedAt: null });
 };
 
 cardDeckSchema.statics.searchDecks = function (query, options = {}) {
@@ -123,7 +122,7 @@ cardDeckSchema.statics.searchDecks = function (query, options = {}) {
   const searchQuery = {
     $text: { $search: query },
     status: "active",
-    deletedAt: null,
+    updatedAt: null,
   };
 
   if (level) searchQuery.level = level;
@@ -138,15 +137,15 @@ cardDeckSchema.statics.searchDecks = function (query, options = {}) {
 
 // Soft delete
 cardDeckSchema.pre(["deleteOne", "deleteMany"], function () {
-  this.updateOne({}, { deletedAt: new Date(), status: "inactive" });
+  this.updateOne({}, { updatedAt: new Date(), status: "inactive" });
 });
 
 // Query middleware để loại bỏ deleted decks
 cardDeckSchema.pre(
   ["find", "findOne", "findOneAndUpdate", "count", "countDocuments"],
   function () {
-    if (!this.getQuery().deletedAt) {
-      this.where({ deletedAt: null });
+    if (!("status" in this.getQuery())) {
+      this.where({ status: { $ne: STATUS.DELETED } });
     }
   }
 );

@@ -1,5 +1,6 @@
 "use strict";
 
+const { STATUS } = require("../constants/status.constans");
 const User = require("../models/User");
 const { Types } = require("mongoose");
 
@@ -131,7 +132,7 @@ class UserRepository {
 
       const query = { _id: userId };
       if (!includeDeleted) {
-        query.deletedAt = null;
+        query.updatedAt = null;
       }
 
       let select = includeSensitive ? "" : this.defaultSelect;
@@ -176,7 +177,7 @@ class UserRepository {
       };
 
       if (!includeDeleted) {
-        query.deletedAt = null;
+        query.status = { $ne: STATUS.DELETED };
       }
 
       let select = this.defaultSelect;
@@ -187,7 +188,8 @@ class UserRepository {
       }
 
       const user = await this.model.findOne(query).select(select).lean();
-
+      console.log("🔍 Query:", query);
+      console.log("🔍 Found user:", user);
       return user;
     } catch (error) {
       console.error("❌ Error finding user by email:", error);
@@ -216,7 +218,7 @@ class UserRepository {
 
       // Default filters
       const finalQuery = {
-        deletedAt: null,
+        updatedAt: null,
         ...query,
       };
 
@@ -274,7 +276,7 @@ class UserRepository {
 
       const query = {
         $text: { $search: searchTerm },
-        deletedAt: null,
+        updatedAt: null,
       };
 
       if (status) {
@@ -326,7 +328,7 @@ class UserRepository {
         .find({
           roles: { $in: roleArray },
           status,
-          deletedAt: null,
+          updatedAt: null,
         })
         .select(this.defaultSelect)
         .sort({ [sortBy]: sortOrder })
@@ -357,7 +359,7 @@ class UserRepository {
           status: "active",
           "verification.emailVerified": true,
           "security.lastLoginAt": { $gte: lastLoginCutoff },
-          deletedAt: null,
+          updatedAt: null,
         })
         .select(this.defaultSelect)
         .sort({ "security.lastLoginAt": -1 })
@@ -708,14 +710,14 @@ class UserRepository {
    * @param {string} reason - Delete reason
    * @returns {Promise<Object>} Delete result
    */
-  async softDelete(userId, deletedBy = null, reason = null) {
+  async softDelete(userId, updatedBy = null, reason = null) {
     try {
       const user = await this.model.findByIdAndUpdate(
         userId,
         {
           $set: {
-            deletedAt: new Date(),
-            deletedBy,
+            updatedAt: new Date(),
+            updatedBy,
             status: "inactive",
           },
         },
@@ -729,7 +731,7 @@ class UserRepository {
         throw new Error("User not found");
       }
 
-      await this.logActivity(userId, "user_deleted", { deletedBy, reason });
+      await this.logActivity(userId, "user_deleted", { updatedBy, reason });
       console.log(`🗑️ Soft deleted user: ${userId}`);
 
       return user;
@@ -749,8 +751,8 @@ class UserRepository {
       const user = await this.model.findByIdAndUpdate(
         userId,
         {
-          $unset: { deletedAt: 1, deletedBy: 1 },
-          $set: { status: "active" },
+          $unset: { updatedAt: 1, updatedBy: 1 },
+          $set: { status: STATUS.ACTIVE },
         },
         {
           new: true,
@@ -803,7 +805,7 @@ class UserRepository {
   async getStatistics(filters = {}) {
     try {
       const matchStage = {
-        deletedAt: null,
+        updatedAt: null,
         ...filters,
       };
 
@@ -864,7 +866,7 @@ class UserRepository {
         {
           $match: {
             createdAt: { $gte: startDate },
-            deletedAt: null,
+            updatedAt: null,
           },
         },
         {
@@ -904,7 +906,7 @@ class UserRepository {
         .find({
           roles: "SELLER",
           status: "active",
-          deletedAt: null,
+          updatedAt: null,
         })
         .select("name email profile.avatar portfolioStats")
         .sort({
@@ -933,7 +935,7 @@ class UserRepository {
     try {
       const query = {
         email: email.toLowerCase(),
-        deletedAt: null,
+        updatedAt: null,
       };
 
       if (excludeUserId) {
@@ -956,7 +958,7 @@ class UserRepository {
   async count(query = {}) {
     try {
       const finalQuery = {
-        deletedAt: null,
+        updatedAt: null,
         ...query,
       };
       return await this.model.countDocuments(finalQuery);

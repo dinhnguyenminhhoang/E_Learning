@@ -1,15 +1,15 @@
 "use strict";
-
-const Flashcard = require("../models/Flashcard");
+const { STATUS } = require("../constants/status.constans");
 const { NotFoundError } = require("../core/error.response");
+const FlashCard = require("../models/FlashCard");
 
 class FlashcardRepository {
   constructor() {
-    this.model = Flashcard;
+    this.model = FlashCard;
     this.defaultPopulate = [
       { path: "word", select: "text" },
       { path: "cardDeck", select: "name" },
-      { path: "deletedBy", select: "name email" },
+      { path: "updatedBy", select: "name email" },
     ];
   }
 
@@ -43,7 +43,7 @@ class FlashcardRepository {
 
   async list() {
     try {
-      const query = { status: "active", deletedAt: null };
+      const query = { status: "active", updatedAt: null };
       const flashcards = await this.model.find(query);
 
       console.log("💡 Flashcards returned:", flashcards.length);
@@ -57,13 +57,13 @@ class FlashcardRepository {
   async findByDeck(deckId) {
     return this.model.find({
       cardDeck: deckId,
-      status: "active",
-      deletedAt: null,
+      status: STATUS.ACTIVE,
+      updatedAt: null,
     });
   }
 
   async findByDifficulty(difficulty) {
-    return this.model.find({ difficulty, status: "active", deletedAt: null });
+    return this.model.find({ difficulty, status: "active", updatedAt: null });
   }
 
   async search(query, options = {}) {
@@ -72,7 +72,7 @@ class FlashcardRepository {
       const searchQuery = {
         $text: { $search: query },
         status: "active",
-        deletedAt: null,
+        updatedAt: null,
       };
 
       return this.model
@@ -91,11 +91,10 @@ class FlashcardRepository {
     try {
       const { populate = true, returnNew = true } = options;
 
-      let query = this.model.findOneAndUpdate(
-        { _id: id },
-        data,
-        { new: returnNew, runValidators: true }
-      );
+      let query = this.model.findOneAndUpdate({ _id: id }, data, {
+        new: returnNew,
+        runValidators: true,
+      });
 
       if (populate) query = query.populate(this.defaultPopulate);
 
@@ -128,7 +127,7 @@ class FlashcardRepository {
     try {
       const deleted = await this.model.findByIdAndUpdate(
         id,
-        { deletedAt: new Date(), deletedBy: userId, status: "inactive" },
+        { updatedAt: new Date(), updatedBy: userId, status: "inactive" },
         { new: true }
       );
 
@@ -144,6 +143,27 @@ class FlashcardRepository {
   // ===== CUSTOM LOGIC =====
   isHard(flashcard) {
     return flashcard.difficulty === "hard";
+  }
+
+  async updateStatusFlashcards(flashcardIds, newStatus) {
+    const session = await this.model.startSession();
+    session.startTransaction();
+
+    try {
+      const result = await this.model.updateMany(
+        { _id: { $in: flashcardIds } },
+        { $set: { status: newStatus } },
+        { session }
+      );
+
+      await session.commitTransaction();
+      return result;
+    } catch (error) {
+      await session.abortTransaction();
+      throw error;
+    } finally {
+      session.endSession();
+    }
   }
 }
 

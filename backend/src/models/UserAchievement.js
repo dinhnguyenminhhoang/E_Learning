@@ -40,15 +40,14 @@ const userAchievementSchema = new Schema(
       index: true,
     },
 
-    deletedAt: {
+    updatedAt: {
       type: Date,
       default: null,
       index: true,
     },
 
-    deletedBy: {
-      type: Schema.Types.ObjectId,
-      ref: "User",
+    updatedBy: {
+      type: String,
       default: null,
     },
   },
@@ -71,21 +70,21 @@ userAchievementSchema.virtual("completionRate").get(function () {
 
 // ===== STATICS =====
 userAchievementSchema.statics.findByUser = function (userId) {
-  return this.find({ user: userId, deletedAt: null }).populate("achievement");
+  return this.find({ user: userId, updatedAt: null }).populate("achievement");
 };
 
 // ===== MIDDLEWARES =====
 // Soft delete
 userAchievementSchema.pre(["deleteOne", "deleteMany"], function () {
-  this.updateOne({}, { deletedAt: new Date() });
+  this.updateOne({}, { updatedAt: new Date() });
 });
 
 // Query middleware để loại bỏ record đã soft delete
 userAchievementSchema.pre(
   ["find", "findOne", "findOneAndUpdate", "count", "countDocuments"],
   function () {
-    if (!this.getQuery().deletedAt) {
-      this.where({ deletedAt: null });
+    if (!this.getQuery().updatedAt) {
+      this.where({ updatedAt: null });
     }
   }
 );
