@@ -228,7 +228,7 @@ const categoryDocs = {
                 metadata: {
                   id: "60f8c1f8f8f8f8f8f8f8f8f8",
                   status: STATUS.INACTIVE,
-                  deletedAt: "2024-08-19T12:00:00.000Z",
+                  updatedAt: "2024-08-19T12:00:00.000Z",
                 },
               },
             },

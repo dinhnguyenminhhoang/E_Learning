@@ -11,6 +11,7 @@ const {
   WORD_REQUIRED_HEADERS,
   dataSample,
 } = require("../constants/fileUpload");
+const { STATUS } = require("../constants/status.constans");
 
 class WordService {
   async createWord(req) {
@@ -34,7 +35,7 @@ class WordService {
 
     const existingWord = await WordRepository.findByWordText(word);
     if (existingWord) {
-      if (!existingWord.isActive) {
+      if (existingWord.status === STATUS.DELETED) {
         const updated = await WordRepository.updateById(existingWord._id, {
           ...req.body,
         });
@@ -88,7 +89,6 @@ class WordService {
     if (!existingCategory) {
       return ResponseBuilder.notFoundError("Category");
     }
-    console.log("query params:", req.query);
     const words = await WordRepository.search(
       { categories: [new mongoose.Types.ObjectId(categoryId)] },
       req.query
@@ -111,7 +111,7 @@ class WordService {
     if (word.word !== updateData.word) {
       const existingWord = await WordRepository.findByWordText(updateData.word);
       if (existingWord) {
-        if (!existingWord.isActive) {
+        if (existingWord.status === STATUS.DELETED) {
           //nếu tồn tại nhưng đã bị xóa mềm thì xóa hẳn và cho phép cập nhật
           await WordRepository.hardDelete(existingWord._id);
         } else {

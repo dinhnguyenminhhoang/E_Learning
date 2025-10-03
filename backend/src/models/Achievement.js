@@ -1,6 +1,7 @@
 "use strict";
 
 const { model, Schema } = require("mongoose");
+const { STATUS } = require("../constants/status.constans");
 
 const DOCUMENT_NAME = "Achievement";
 const COLLECTION_NAME = "Achievements";
@@ -64,22 +65,25 @@ const achievementSchema = new Schema(
       default: "common",
       index: true,
     },
-
+    status: {
+      type: String,
+      enum: Object.values(STATUS),
+      default: STATUS.ACTIVE,
+    },
     points: {
       type: Number,
       min: 0,
       default: 0,
     },
 
-    deletedAt: {
+    updatedAt: {
       type: Date,
       default: null,
       index: true,
     },
 
-    deletedBy: {
-      type: Schema.Types.ObjectId,
-      ref: "User",
+    updatedBy: {
+      type: String,
       default: null,
     },
   },
@@ -102,21 +106,21 @@ achievementSchema.virtual("displayName").get(function () {
 
 // ===== STATICS =====
 achievementSchema.statics.findByType = function (type) {
-  return this.find({ type, deletedAt: null });
+  return this.find({ type, updatedAt: null });
 };
 
 // ===== MIDDLEWARES =====
 // Soft delete
 achievementSchema.pre(["deleteOne", "deleteMany"], function () {
-  this.updateOne({}, { deletedAt: new Date() });
+  this.updateOne({}, { updatedAt: new Date() });
 });
 
 // Query middleware để tự động filter soft delete
 achievementSchema.pre(
   ["find", "findOne", "findOneAndUpdate", "count", "countDocuments"],
   function () {
-    if (!this.getQuery().deletedAt) {
-      this.where({ deletedAt: null });
+    if (!("status" in this.getQuery())) {
+      this.where({ status: { $ne: STATUS.DELETED } });
     }
   }
 );

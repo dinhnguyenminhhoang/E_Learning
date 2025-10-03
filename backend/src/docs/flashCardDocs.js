@@ -17,7 +17,8 @@ const flashcardDocs = {
             example: {
               word: "650f8c1f8f8f8f8f8f8f8f8f",
               frontText: "What is a closure in JavaScript?",
-              backText: "A closure is a function that has access to its outer scope even after the outer function has returned.",
+              backText:
+                "A closure is a function that has access to its outer scope even after the outer function has returned.",
               cardDeck: "650f8c1f8f8f8f8f8f8f8f99",
               difficulty: "medium",
               tags: ["javascript", "functions", "interview"],
@@ -218,7 +219,7 @@ const flashcardDocs = {
                 metadata: {
                   id: "650f8c1f8f8f8f8f8f8f8f8a",
                   status: STATUS.INACTIVE,
-                  deletedAt: "2024-08-19T12:00:00.000Z",
+                  updatedAt: "2024-08-19T12:00:00.000Z",
                 },
               },
             },

@@ -1,6 +1,7 @@
 "use strict";
 
 const { model, Schema, Types } = require("mongoose");
+const { STATUS } = require("../constants/status.constans");
 const DOCUMENT_NAME = "UserLearningPath";
 const COLLECTION_NAME = "UserLearningPaths";
 
@@ -55,7 +56,7 @@ const userLearningPathSchema = new Schema(
       default: 0,
       min: [0, "Average session time cannot be negative"],
     },
-    deletedAt: {
+    updatedAt: {
       type: Date,
       default: null,
       index: true,
@@ -73,11 +74,11 @@ const userLearningPathSchema = new Schema(
 userLearningPathSchema.index({ user: 1, learningPath: 1 });
 userLearningPathSchema.index({ status: 1 });
 userLearningPathSchema.index({ lastAccAt: -1 });
-userLearningPathSchema.index({ deletedAt: 1 }, { sparse: true });
+userLearningPathSchema.index({ updatedAt: 1 }, { sparse: true });
 
 // Methods
 userLearningPathSchema.statics.findByUser = function (userId) {
-  return this.find({ user: userId, deletedAt: null });
+  return this.find({ user: userId, updatedAt: null });
 };
 
 // Middleware
@@ -89,10 +90,13 @@ userLearningPathSchema.pre("save", function (next) {
   next();
 });
 
-userLearningPathSchema.pre(["find", "findOne", "findOneAndUpdate"], function () {
-  if (!this.getQuery().deletedAt) {
-    this.where({ deletedAt: null });
+userLearningPathSchema.pre(
+  ["find", "findOne", "findOneAndUpdate"],
+  function () {
+    if (!("status" in this.getQuery())) {
+      this.where({ status: { $ne: STATUS.DELETED } });
+    }
   }
-});
+);
 
 module.exports = model(DOCUMENT_NAME, userLearningPathSchema);

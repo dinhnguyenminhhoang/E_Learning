@@ -71,15 +71,14 @@ const learningPathSchema = new Schema(
       index: true,
     },
 
-    deletedAt: {
+    updatedAt: {
       type: Date,
       default: null,
       index: true,
     },
 
-    deletedBy: {
-      type: Schema.Types.ObjectId,
-      ref: "User",
+    updatedBy: {
+      type: String,
       default: null,
     },
   },
@@ -124,11 +123,11 @@ learningPathSchema.methods.removeLevel = function (order) {
 
 // ===== STATICS =====
 learningPathSchema.statics.findActivePaths = function () {
-  return this.find({ status: "active", deletedAt: null });
+  return this.find({ status: "active", updatedAt: null });
 };
 
 learningPathSchema.statics.findByTarget = function (targetId) {
-  return this.find({ target: targetId, status: "active", deletedAt: null });
+  return this.find({ target: targetId, status: "active", updatedAt: null });
 };
 
 learningPathSchema.statics.searchPaths = function (query, options = {}) {
@@ -137,7 +136,7 @@ learningPathSchema.statics.searchPaths = function (query, options = {}) {
   const searchQuery = {
     $text: { $search: query },
     status: "active",
-    deletedAt: null,
+    updatedAt: null,
   };
 
   return this.find(searchQuery, { score: { $meta: "textScore" } })
@@ -150,15 +149,15 @@ learningPathSchema.statics.searchPaths = function (query, options = {}) {
 
 // Soft delete
 learningPathSchema.pre(["deleteOne", "deleteMany"], function () {
-  this.updateOne({}, { deletedAt: new Date(), status: "inactive" });
+  this.updateOne({}, { updatedAt: new Date(), status: "inactive" });
 });
 
 // Query middleware để loại bỏ deleted paths
 learningPathSchema.pre(
   ["find", "findOne", "findOneAndUpdate", "count", "countDocuments"],
   function () {
-    if (!this.getQuery().deletedAt) {
-      this.where({ deletedAt: null });
+    if (!("status" in this.getQuery())) {
+      this.where({ status: { $ne: STATUS.DELETED } });
     }
   }
 );

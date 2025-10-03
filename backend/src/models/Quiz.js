@@ -1,6 +1,7 @@
 "use strict";
 
 const { model, Schema } = require("mongoose");
+const { STATUS } = require("../constants/status.constans");
 
 const DOCUMENT_NAME = "Quiz";
 const COLLECTION_NAME = "Quizzes";
@@ -92,15 +93,18 @@ const quizSchema = new Schema(
       type: [questionSchema],
       default: [],
     },
-
-    deletedAt: {
+    status: {
+      type: String,
+      enum: Object.values(STATUS),
+      default: STATUS.DRAFT,
+    },
+    updatedAt: {
       type: Date,
       default: null,
       index: true,
     },
-    deletedBy: {
-      type: Schema.Types.ObjectId,
-      ref: "User",
+    updatedBy: {
+      type: String,
       default: null,
     },
   },
@@ -125,21 +129,21 @@ quizSchema.methods.addQuestion = function (question) {
 
 // ===== STATICS =====
 quizSchema.statics.findActive = function () {
-  return this.find({ deletedAt: null });
+  return this.find({ updatedAt: null });
 };
 
 // ===== MIDDLEWARES =====
 // Soft delete
 quizSchema.pre(["deleteOne", "deleteMany"], function () {
-  this.updateOne({}, { deletedAt: new Date() });
+  this.updateOne({}, { updatedAt: new Date() });
 });
 
 // Query middleware để loại bỏ deleted records
 quizSchema.pre(
   ["find", "findOne", "findOneAndUpdate", "count", "countDocuments"],
   function () {
-    if (!this.getQuery().deletedAt) {
-      this.where({ deletedAt: null });
+    if (!("status" in this.getQuery())) {
+      this.where({ status: { $ne: STATUS.DELETED } });
     }
   }
 );
