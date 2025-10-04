@@ -22,10 +22,7 @@ class FlashcardService {
           flashcard: restored,
         });
       }
-      return ResponseBuilder.error(
-        RESPONSE_MESSAGES.ERROR.CONFLICT,
-        HTTP_STATUS.CONFLICT
-      );
+      return ResponseBuilder.duplicateError();
     }
     const newFlashCard = await flashcardRepository.create(data);
     return ResponseBuilder.success(RESPONSE_MESSAGES.SUCCESS.CREATED, {
@@ -36,10 +33,7 @@ class FlashcardService {
   async getFlashcardById(id) {
     const flashcard = await flashcardRepository.findById(id);
     if (!flashcard || flashcard.length === 0) {
-      return ResponseBuilder.error(
-        RESPONSE_MESSAGES.ERROR.NOT_FOUND,
-        HTTP_STATUS.NOT_FOUND
-      );
+      return ResponseBuilder.notFoundError();
     }
     return ResponseBuilder.success(RESPONSE_MESSAGES.SUCCESS.FETCHED, {
       flashcard: flashcard,
@@ -49,10 +43,7 @@ class FlashcardService {
   async updateFlashcard(id, data) {
     const flashcard = await flashcardRepository.update(id, data);
     if (!flashcard || flashcard.length === 0) {
-      return ResponseBuilder.error(
-        RESPONSE_MESSAGES.ERROR.NOT_FOUND,
-        HTTP_STATUS.NOT_FOUND
-      );
+      return ResponseBuilder.notFoundError();
     }
     return ResponseBuilder.success(RESPONSE_MESSAGES.SUCCESS.UPDATED, {
       flashcard,
@@ -62,10 +53,7 @@ class FlashcardService {
   async deleteFlashcard(id) {
     const flashcard = await flashcardRepository.softDelete(id);
     if (!flashcard || flashcard.length === 0) {
-      return ResponseBuilder.error(
-        RESPONSE_MESSAGES.ERROR.NOT_FOUND,
-        HTTP_STATUS.NOT_FOUND
-      );
+      return ResponseBuilder.notFoundError();
     }
     return ResponseBuilder.success(RESPONSE_MESSAGES.SUCCESS.DELETED);
   }
@@ -73,10 +61,7 @@ class FlashcardService {
   async listFlashcards({ limit = 20, skip = 0, deckId }) {
     const flashcards = await flashcardRepository.list();
     if (!flashcards || flashcards.length === 0) {
-      return ResponseBuilder.error(
-        RESPONSE_MESSAGES.ERROR.NOT_FOUND,
-        HTTP_STATUS.NOT_FOUND
-      );
+      return ResponseBuilder.notFoundError();
     }
     return ResponseBuilder.success(RESPONSE_MESSAGES.SUCCESS.FETCHED, {
       flashcards,
@@ -91,10 +76,7 @@ class FlashcardService {
     }
     q = q.trim();
     if (limit <= 0 || skip < 0) {
-      return ResponseBuilder.error(
-        RESPONSE_MESSAGES.ERROR.NOT_FOUND,
-        HTTP_STATUS.NOT_FOUND
-      );
+      return ResponseBuilder.notFoundError();
     }
     const flashcards = await flashcardRepository.search(q, { limit, skip });
     return ResponseBuilder.success(RESPONSE_MESSAGES.SUCCESS.FETCHED, {

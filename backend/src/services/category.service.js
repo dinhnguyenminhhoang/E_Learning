@@ -23,10 +23,7 @@ class CategoryService {
           category: restored,
         });
       }
-      return ResponseBuilder.error(
-        RESPONSE_MESSAGES.ERROR.CONFLICT,
-        HTTP_STATUS.CONFLICT
-      );
+      return ResponseBuilder.duplicateError();
     }
 
     const newCategory = await categoryRepository.createCategory(data);
@@ -40,10 +37,7 @@ class CategoryService {
       const existingCategory = await categoryRepository.findById(categoryId);
 
       if (!existingCategory) {
-        return ResponseBuilder.error(
-          RESPONSE_MESSAGES.ERROR.NOT_FOUND,
-          HTTP_STATUS.NOT_FOUND
-        );
+        return ResponseBuilder.notFoundError();
       }
 
       if (data.name && data.name !== existingCategory.name) {
@@ -74,36 +68,23 @@ class CategoryService {
   async getCategoryById(id) {
     const category = await categoryRepository.findById(id);
     if (!category || category.length === 0) {
-      return ResponseBuilder.error(
-        RESPONSE_MESSAGES.ERROR.NOT_FOUND,
-        HTTP_STATUS.NOT_FOUND
-      );
+      return ResponseBuilder.notFoundError();
     }
-    return ResponseBuilder.success(RESPONSE_MESSAGES.SUCCESS.FETCHED, {
-      category: category,
-    });
+    return ResponseBuilder.success(RESPONSE_MESSAGES.SUCCESS.FETCHED, category);
   }
 
   async findAllCategories() {
     const categories = await categoryRepository.findCategories();
     if (!categories || categories.length === 0) {
-      return ResponseBuilder.error(
-        RESPONSE_MESSAGES.ERROR.NOT_FOUND,
-        HTTP_STATUS.NOT_FOUND
-      );
+      return ResponseBuilder.notFoundError();
     }
-    return ResponseBuilder.success(RESPONSE_MESSAGES.SUCCESS.FETCHED, {
-      categories,
-    });
+    return ResponseBuilder.success(RESPONSE_MESSAGES.SUCCESS.FETCHED, categories);
   }
 
   async deleteCategory(id) {
     const existingCardDeck = await categoryRepository.findById(id);
     if (!existingCardDeck) {
-      return ResponseBuilder.error(
-        RESPONSE_MESSAGES.ERROR.NOT_FOUND,
-        HTTP_STATUS.NOT_FOUND
-      );
+      return ResponseBuilder.notFoundError();
     }
     await categoryRepository.softDelete(id);
     return ResponseBuilder.success(RESPONSE_MESSAGES.SUCCESS.DELETED);

@@ -39,16 +39,16 @@ class ResponseBuilder {
     );
   }
 
-  static duplicateWordError(word) {
+  static duplicateError() {
     return this.error(
-      `${RESPONSE_MESSAGES.ERROR.DUPLICATE_WORD}: "${word}"`,
+      RESPONSE_MESSAGES.ERROR.DUPLICATE,
       HTTP_STATUS.CONFLICT
     );
   }
 
-  static notFoundError(resource = "Word") {
+  static notFoundError() {
     return this.error(
-      `${resource} ${RESPONSE_MESSAGES.ERROR.WORD_NOT_FOUND}`,
+      RESPONSE_MESSAGES.ERROR.NOT_FOUND,
       HTTP_STATUS.NOT_FOUND
     );
   }
