@@ -83,6 +83,7 @@ class WordService {
       201
     );
   }
+  
   async getWordsByCategory(req) {
     const { categoryId } = req.params;
     const existingCategory = await CategoryRepository.findById(categoryId, {});

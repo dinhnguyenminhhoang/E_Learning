@@ -2,7 +2,6 @@
 
 import { STATUS } from "../constants/status.constans";
 import CardDeck from "../models/CardDeck";
-
 const { default: mongoose } = require("mongoose");
 
 export const getCardDeckById = async (cardDeckId) => {

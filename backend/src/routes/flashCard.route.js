@@ -2,7 +2,7 @@
 
 const { Router } = require("express");
 const { asynchandler } = require("../helpers/asyncHandler");
-const { validateCreateFlashcard } = require("../middlewares/flashCard");
+const { validateCreateFlashcard, validateUpdateFlashcard } = require("../middlewares/flashCard");
 const auth = require("../middlewares/auth");
 const flashcardController = require("../controllers/flashCard.controller");
 
@@ -32,7 +32,7 @@ router.get(
 router.put(
   "/:id",
   // auth.adminOnly,
-  validateCreateFlashcard,
+  validateUpdateFlashcard,
   asynchandler(flashcardController.update)
 );
 
