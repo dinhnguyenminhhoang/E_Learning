@@ -140,14 +140,14 @@ cardDeckSchema.pre(["deleteOne", "deleteMany"], function () {
   this.updateOne({}, { updatedAt: new Date(), status: "inactive" });
 });
 
-// Query middleware để loại bỏ deleted decks
-cardDeckSchema.pre(
-  ["find", "findOne", "findOneAndUpdate", "count", "countDocuments"],
-  function () {
-    if (!("status" in this.getQuery())) {
-      this.where({ status: { $ne: STATUS.DELETED } });
-    }
-  }
-);
+// // Query middleware để loại bỏ deleted decks
+// cardDeckSchema.pre(
+//   ["find", "findOne", "findOneAndUpdate", "count", "countDocuments"],
+//   function () {
+//     if (!("status" in this.getQuery())) {
+//       this.where({ status: { $ne: STATUS.DELETED } });
+//     }
+//   }
+// );
 
 module.exports = model(DOCUMENT_NAME, cardDeckSchema);
