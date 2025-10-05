@@ -22,6 +22,7 @@ class AuthMiddleware {
   authenticate = async (req, res, next) => {
     try {
       const token = this.extractToken(req);
+      console.log("Authorization:", req.headers.authorization);
 
       if (!token) {
         return this.unauthorizedResponse(res, "Access token required");
@@ -37,6 +38,7 @@ class AuthMiddleware {
       if (!decoded || !decoded.keyId) {
         return this.unauthorizedResponse(res, "Invalid token format");
       }
+
 
       // Get public key từ keyToken
       const keyToken = await keyTokenRepository.findById(decoded.keyId, {
@@ -61,12 +63,11 @@ class AuthMiddleware {
       const user = await userRepository.findById(payload.userId, {
         includeSensitive: false,
       });
-
       if (!user) {
         return this.unauthorizedResponse(res, "User not found");
       }
 
-      console.log("user: ", user);
+
 
       // Check user status
       if (user.status !== "active") {
