@@ -4,7 +4,6 @@ const RESPONSE_MESSAGES = require("../constants/responseMessage");
 const categoryRepository = require("../repositories/category.repo");
 const ResponseBuilder = require("../types/response/baseResponse");
 const { STATUS } = require("../constants/status.constans");
-const HTTP_STATUS = require("../constants/httpStatus");
 
 class CategoryService {
   async createCategory(data) {

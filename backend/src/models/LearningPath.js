@@ -6,6 +6,10 @@ const { STATUS } = require("../constants/status.constans");
 const DOCUMENT_NAME = "LearningPath";
 const COLLECTION_NAME = "LearningPaths";
 
+/**
+ * 🔹 Level Schema: Đại diện cho từng cấp trong lộ trình học
+ * Mỗi level có thể chứa nhiều "Lesson" (ref → Category hoặc Quiz)
+ */
 const levelSchema = new Schema(
   {
     order: {
@@ -20,6 +24,21 @@ const levelSchema = new Schema(
       trim: true,
       maxLength: 150,
     },
+    description: {
+      type: String,
+      trim: true,
+      maxLength: 500,
+    },
+
+    // Liên kết tới bài học (Category con hoặc Lesson)
+    lessons: [
+      {
+        type: Schema.Types.ObjectId,
+        ref: "Category",
+      },
+    ],
+
+    // Quiz kiểm tra ở cuối level
     quizzes: [
       {
         type: Schema.Types.ObjectId,
@@ -30,6 +49,9 @@ const levelSchema = new Schema(
   { _id: false }
 );
 
+/**
+ * 🔹 LearningPath Schema: Đại diện 1 lộ trình học (ví dụ: “Travel English”)
+ */
 const learningPathSchema = new Schema(
   {
     target: {
@@ -51,12 +73,23 @@ const learningPathSchema = new Schema(
       trim: true,
       maxLength: 2000,
     },
+    
+    level: {
+      type: String,
+      enum: ["beginner", "intermediate", "advanced"],
+      default: "beginner",
+      index: true,
+    },
+
+    thumbnail: {
+      type: String,
+      default: null,
+    },
 
     levels: {
       type: [levelSchema],
       validate: {
         validator: function (arr) {
-          // order phải là duy nhất trong levels
           const orders = arr.map((l) => l.order);
           return new Set(orders).size === orders.length;
         },
@@ -70,17 +103,6 @@ const learningPathSchema = new Schema(
       default: STATUS.ACTIVE,
       index: true,
     },
-
-    updatedAt: {
-      type: Date,
-      default: null,
-      index: true,
-    },
-
-    updatedBy: {
-      type: String,
-      default: null,
-    },
   },
   {
     timestamps: true,
@@ -88,78 +110,17 @@ const learningPathSchema = new Schema(
     minimize: false,
     versionKey: false,
     toJSON: {
-      transform: function (doc, ret) {
-        return ret;
-      },
+      transform: (doc, ret) => ret,
     },
     toObject: {
-      transform: function (doc, ret) {
-        return ret;
-      },
+      transform: (doc, ret) => ret,
     },
   }
 );
 
-// ===== INDEXES =====
 learningPathSchema.index({ title: "text", description: "text" });
 learningPathSchema.index({ target: 1, status: 1 });
+learningPathSchema.index({ level: 1, status: 1 });
 learningPathSchema.index({ createdAt: -1, status: 1 });
-
-// ===== VIRTUALS =====
-learningPathSchema.virtual("levelCount").get(function () {
-  return this.levels?.length || 0;
-});
-
-// ===== METHODS =====
-learningPathSchema.methods.addLevel = function (level) {
-  this.levels.push(level);
-  return this.save();
-};
-
-learningPathSchema.methods.removeLevel = function (order) {
-  this.levels = this.levels.filter((lvl) => lvl.order !== order);
-  return this.save();
-};
-
-// ===== STATICS =====
-learningPathSchema.statics.findActivePaths = function () {
-  return this.find({ status: "active", updatedAt: null });
-};
-
-learningPathSchema.statics.findByTarget = function (targetId) {
-  return this.find({ target: targetId, status: "active", updatedAt: null });
-};
-
-learningPathSchema.statics.searchPaths = function (query, options = {}) {
-  const { limit = 20, skip = 0 } = options;
-
-  const searchQuery = {
-    $text: { $search: query },
-    status: "active",
-    updatedAt: null,
-  };
-
-  return this.find(searchQuery, { score: { $meta: "textScore" } })
-    .sort({ score: { $meta: "textScore" } })
-    .limit(limit)
-    .skip(skip);
-};
-
-// ===== MIDDLEWARES =====
-
-// Soft delete
-learningPathSchema.pre(["deleteOne", "deleteMany"], function () {
-  this.updateOne({}, { updatedAt: new Date(), status: "inactive" });
-});
-
-// Query middleware để loại bỏ deleted paths
-learningPathSchema.pre(
-  ["find", "findOne", "findOneAndUpdate", "count", "countDocuments"],
-  function () {
-    if (!("status" in this.getQuery())) {
-      this.where({ status: { $ne: STATUS.DELETED } });
-    }
-  }
-);
 
 module.exports = model(DOCUMENT_NAME, learningPathSchema);

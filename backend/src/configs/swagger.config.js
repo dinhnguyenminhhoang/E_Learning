@@ -8,6 +8,7 @@ const authDocs = require("../docs/authDocs");
 const wordDocs = require("../docs/wordDocs");
 const categoryDocs = require("../docs/categoryDocs");
 const flashcardDocs = require("../docs/flashCardDocs");
+const onboardingDocs = require("../docs/onboardingDocs");
 // const userDocs = require('../docs/user.docs');
 
 /**
@@ -276,6 +277,10 @@ const swaggerDefinition = {
     "/v1/api/flashcard/getById/{id}": flashcardDocs.getFlashcardById,
     "/v1/api/flashcard/{id}": flashcardDocs.updateFlashcard,
     "/v1/api/flashcard/delete/{id}": flashcardDocs.deleteFlashcard,
+
+    // // ---------------- ONBOARDING ----------------
+    "/v1/api/onboarding": onboardingDocs.getOnboardingQuestions,
+
   },
   tags: [
     {
@@ -297,6 +302,10 @@ const swaggerDefinition = {
     {
       name: "Word",
       description: "Word management and search operations",
+    },
+    {
+      name: "OnboardingQuestion",
+      description: "Onboarding management and search operations",
     },
     {
       name: "Portfolios",
