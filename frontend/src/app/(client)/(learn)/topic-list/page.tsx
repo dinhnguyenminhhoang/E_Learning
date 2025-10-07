@@ -1,12 +1,13 @@
 "use client";
 
 import SubTopicCard from "@/components/topic/SubTopicCard/SubTopicCard";
+import { TopicDetailModal } from "@/components/topic/TopicDetailModal/TopicDetailModal";
 import TopicHeader from "@/components/topic/TopicHeader/TopicHeader";
 import TopicSidebar from "@/components/topic/TopicSidebar/TopicSidebar";
-import { Topic } from "@/types/learning";
+import { TopicList } from "@/types/learning";
 import { useEffect, useRef, useState } from "react";
 
-const TOPICS_DATA: Topic[] = [
+const TOPICS_DATA: TopicList[] = [
   {
     id: 1,
     name: "Daily Communication",
@@ -246,15 +247,14 @@ export default function TopicsPage() {
   const [activeTopicId, setActiveTopicId] = useState(1);
   const topicRefs = useRef<{ [key: number]: HTMLDivElement | null }>({});
   const containerRef = useRef<HTMLDivElement>(null);
-
+  const [isOpen, setIsOpen] = useState(true);
   useEffect(() => {
     const handleScroll = () => {
       if (!containerRef.current) return;
 
       const scrollPosition = containerRef.current.scrollTop;
-      const offset = 100; // Offset for sticky header
+      const offset = 100;
 
-      // Find which topic is currently in view
       for (const topic of TOPICS_DATA) {
         const element = topicRefs.current[topic.id];
         if (element) {
@@ -335,6 +335,7 @@ export default function TopicsPage() {
           </div>
         </div>
       </div>
+      <TopicDetailModal open={isOpen} onOpenChange={setIsOpen} />
     </div>
   );
 }
