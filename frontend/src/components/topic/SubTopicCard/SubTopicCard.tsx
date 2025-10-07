@@ -1,8 +1,9 @@
 import { Progress } from "@/components/ui/progress";
+import { SubTopic } from "@/types/learning";
 import { ChevronRight } from "lucide-react";
 import React from "react";
 
-function SubTopicCard({ subTopic }: { subTopic: any }) {
+function SubTopicCard({ subTopic }: { subTopic: SubTopic }) {
   const progressPercent =
     subTopic.total > 0 ? (subTopic.progress / subTopic.total) * 100 : 0;
 

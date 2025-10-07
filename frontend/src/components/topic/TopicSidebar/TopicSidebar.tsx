@@ -1,14 +1,13 @@
 import { cn } from "@/lib/utils";
-import { Topic } from "@/types/learning";
+import { TopicList } from "@/types/learning";
 import { BookOpen } from "lucide-react";
-import React from "react";
 
 function TopicSidebar({
   topics,
   activeTopicId,
   onTopicClick,
 }: {
-  topics: Topic[];
+  topics: TopicList[];
   activeTopicId: number;
   onTopicClick: (id: number) => void;
 }) {
