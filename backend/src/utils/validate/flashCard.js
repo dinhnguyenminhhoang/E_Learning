@@ -12,7 +12,7 @@ const createFlashcardSchema = Joi.object({
     .required(),
   difficulty: Joi.string().valid("easy", "medium", "hard").default("easy"),
   tags: Joi.array().items(Joi.string().trim()),
-  isActive: Joi.boolean().default(true),
+  status: Joi.boolean().default(true),
   status: Joi.string()
     .valid(...Object.values(STATUS))
     .default(STATUS.ACTIVE),
@@ -30,7 +30,7 @@ const updateFlashcardSchema = createFlashcardSchema.fork(
     "cardDeck",
     "difficulty",
     "tags",
-    "isActive",
+    "status",
     "status",
     "updatedAt",
     "updatedBy",

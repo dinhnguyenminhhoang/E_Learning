@@ -1,6 +1,7 @@
 "use strict";
 
 const mongoose = require("mongoose");
+const {STATUS} = require("../constants/status.constans")
 const { Schema, model } = mongoose;
 
 const DOCUMENT_NAME = "OnboardingQuestion";
@@ -32,7 +33,12 @@ const questionSchema = new Schema(
     },
     options: [optionSchema],
     order: { type: Number },
-    isActive: { type: Boolean, default: true, index: true },
+    status: {
+      type: String,
+      enum: Object.values(STATUS),
+      default: STATUS.ACTIVE,
+      index: true,
+    },
   },
   {
     timestamps: { createdAt: "createdAt", updatedAt: "updatedAt" },
@@ -40,7 +46,8 @@ const questionSchema = new Schema(
   }
 );
 
-questionSchema.index({ order: 1, isActive: 1 }); // compound index
+questionSchema.index({ order: 1, status: 1 }); // compound index
 questionSchema.index({ title: "text", description: "text" }); // full-text search
 
-module.exports = mongoose.models[DOCUMENT_NAME] || model(DOCUMENT_NAME, questionSchema);
+module.exports =
+  mongoose.models[DOCUMENT_NAME] || model(DOCUMENT_NAME, questionSchema);

@@ -1,6 +1,7 @@
 "use strict";
 
 require("dotenv").config();
+const {STATUS} = require("../../constants/status.constans")
 const mongoose = require("mongoose");
 
 const OnboardingQuestion = require("../OnboardingQuestion");
@@ -51,7 +52,7 @@ const onboardingQuestions = [
       },
     ],
     order: 1,
-    isActive: true,
+    status: true,
   },
 
   // 2️⃣ TIME_COMMITMENT
@@ -87,7 +88,12 @@ const onboardingQuestions = [
       },
     ],
     order: 2,
-    isActive: true,
+    status: {
+      type: String,
+      enum: Object.values(STATUS),
+      default: STATUS.ACTIVE,
+      index: true,
+    },
   },
 
   // 3️⃣ LEARNING_STYLE
@@ -123,7 +129,12 @@ const onboardingQuestions = [
       },
     ],
     order: 3,
-    isActive: true,
+    status: {
+      type: String,
+      enum: Object.values(STATUS),
+      default: STATUS.ACTIVE,
+      index: true,
+    },
   },
 
   // 4️⃣ LEVEL
@@ -165,7 +176,12 @@ const onboardingQuestions = [
       },
     ],
     order: 4,
-    isActive: true,
+    status: {
+      type: String,
+      enum: Object.values(STATUS),
+      default: STATUS.ACTIVE,
+      index: true,
+    },
   },
 ];
 
@@ -189,7 +205,9 @@ const onboardingQuestions = [
 
     // Thêm dữ liệu mới
     await OnboardingQuestion.insertMany(onboardingQuestions);
-    console.log(`✅ Seeded ${onboardingQuestions.length} onboarding questions successfully.`);
+    console.log(
+      `✅ Seeded ${onboardingQuestions.length} onboarding questions successfully.`
+    );
 
     process.exit(0);
   } catch (err) {

@@ -130,7 +130,7 @@ class FlashcardRepository {
       const flashcard = await this.model.findById(id);
       if (!flashcard) throw new NotFoundError("Flashcard not found");
 
-      flashcard.isActive = !flashcard.isActive;
+      flashcard.status = !flashcard.status;
       await flashcard.save();
       return flashcard;
     } catch (error) {
