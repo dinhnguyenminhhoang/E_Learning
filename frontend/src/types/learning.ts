@@ -23,7 +23,7 @@ export interface WordLevel {
   count: number;
   label: string;
 }
-interface SubTopic {
+export interface SubTopic {
   id: string;
   name: string;
   progress: number;
@@ -31,10 +31,30 @@ interface SubTopic {
   icon: string;
 }
 
-interface Topic {
+export interface TopicList {
   id: number;
   name: string;
   totalTopics: number;
   progressPercent: number;
   subTopics: SubTopic[];
+}
+export interface Word {
+  id: string;
+  word: string;
+  status: "not-learned" | "learning" | "mastered";
+}
+
+export interface GameType {
+  id: string;
+  name: string;
+  enabled: boolean;
+}
+
+export interface TopicDetailData {
+  id: string;
+  name: string;
+  icon: string;
+  progress: number;
+  total: number;
+  words: Word[];
 }
