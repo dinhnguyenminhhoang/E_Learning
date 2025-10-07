@@ -58,3 +58,19 @@ export interface TopicDetailData {
   total: number;
   words: Word[];
 }
+export type LessonWord = {
+  id: string;
+  word: string;
+  ipa: string;
+  meaning: string;
+  example?: string;
+  image?: string;
+};
+export type LessonWord = {
+  id: string;
+  word: string;
+  ipa: string;
+  meaning: string;
+  example?: string;
+  image?: string;
+};
