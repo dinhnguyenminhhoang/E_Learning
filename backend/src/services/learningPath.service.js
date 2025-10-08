@@ -4,6 +4,7 @@ const TargetRepository = require("../repositories/target.repo");
 const ResponseBuilder = require("../types/response/baseResponse");
 const { toObjectId } = require("../helpers/idHelper");
 const { STATUS } = require("../constants/status.constans");
+const RESPONSE_MESSAGES = require("../constants/responseMessage");
 
 class LearningPathService {
   _findLevel(learningPath, titleLevel) {
@@ -20,6 +21,11 @@ class LearningPathService {
     return categoryParent.selectedDecks.find(
       (l) => l.lessonId.toString() === categoryChildId
     );
+  }
+
+  static async getPathsByTargets(targetIds) {
+    const paths = LearningPathRepo.findByTargetIds(targetIds);
+    return ResponseBuilder.success(RESPONSE_MESSAGES.SUCCESS.FETCHED, paths);
   }
 
   async createNewPath(req) {
@@ -194,7 +200,7 @@ class LearningPathService {
     if (!existingPath) {
       return ResponseBuilder.notFoundError("Learning Path");
     }
-    
+
     const isDuplicate = existingPath.levels?.some(
       (lvl) => lvl.title.toLowerCase().trim() === title.toLowerCase().trim()
     );

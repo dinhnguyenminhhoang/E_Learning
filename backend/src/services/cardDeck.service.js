@@ -10,7 +10,7 @@ const getCardDeck = async (req) => {
   const { cardDeckId } = req.params;
   const cardDeck = await CardDeckRepo.getCardDeckById(cardDeckId);
   if (!cardDeck) {
-    return ResponseBuilder.notFoundError("Card deck not found");
+    return ResponseBuilder.notFoundError();
   }
   return ResponseBuilder.success("Fetch card deck successfully", { cardDeck });
 };
@@ -30,10 +30,7 @@ const createCardDeck = async (req) => {
         cardDeck: restored,
       });
     }
-    return ResponseBuilder.duplicateWordError(
-      data.title,
-      "Card deck title already exists"
-    );
+    return ResponseBuilder.duplicateError();
   }
 
   const newCardDeck = await CardDeckRepo.createCardDeck(data);
@@ -48,7 +45,7 @@ const updateCardDeck = async (req) => {
 
   const existingCardDeck = await CardDeckRepo.getCardDeckById(cardDeckId);
   if (!existingCardDeck) {
-    return ResponseBuilder.notFoundError("Card deck not found");
+    return ResponseBuilder.notFoundError();
   }
 
   if (data.title && data.title !== existingCardDeck.title) {
@@ -70,7 +67,7 @@ const updateCardDeck = async (req) => {
 
   const updatedCardDeck = await CardDeckRepo.updateCardDeck(cardDeckId, data);
   if (!updatedCardDeck) {
-    return ResponseBuilder.notFoundError("Card deck not found");
+    return ResponseBuilder.notFoundError();
   }
 
   return ResponseBuilder.success("Update card deck successfully", {
@@ -83,7 +80,7 @@ const deleteCardDeck = async (req) => {
 
   const existingCardDeck = await CardDeckRepo.getCardDeckById(cardDeckId);
   if (!existingCardDeck) {
-    return ResponseBuilder.notFoundError("Card deck not found");
+    return ResponseBuilder.notFoundError();
   }
 
   const flashcards = await FlashcardRepo.findByDeck(cardDeckId);

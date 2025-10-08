@@ -13,7 +13,7 @@ const targetSchema = new Schema(
       required: [true, "Target key is required"],
       unique: true,
       trim: true,
-      lowercase: true,
+      uppercase: true,
       maxLength: 100,
       index: true,
     },
@@ -35,6 +35,14 @@ const targetSchema = new Schema(
       {
         type: String,
         trim: true,
+        lowercase: true,
+      },
+    ],
+
+    learningPaths: [
+      {
+        type: Schema.Types.ObjectId,
+        ref: "LearningPath",
       },
     ],
 
@@ -44,17 +52,6 @@ const targetSchema = new Schema(
       default: STATUS.ACTIVE,
       index: true,
     },
-
-    updatedAt: {
-      type: Date,
-      default: null,
-      index: true,
-    },
-
-    updatedBy: {
-      type: String,
-      default: null,
-    },
   },
   {
     timestamps: true,
@@ -63,18 +60,19 @@ const targetSchema = new Schema(
     versionKey: false,
     toJSON: {
       transform: function (doc, ret) {
+        delete ret.__v;
         return ret;
       },
     },
     toObject: {
       transform: function (doc, ret) {
+        delete ret.__v;
         return ret;
       },
     },
   }
 );
 
-// ===== INDEXES =====
 targetSchema.index({ key: 1 });
 targetSchema.index({ name: "text", description: "text", tags: "text" });
 targetSchema.index({ createdAt: -1, status: 1 });

@@ -67,31 +67,13 @@ class CategoryRepository {
    * @param {Object} options - Tùy chọn populate/lean
    * @returns {Promise<Array>} Categories
    */
-  async findAllCategories(options = {}) {
+  async findCategories(populate = false) {
     try {
-      const { populate = true, lean = false } = options;
-
-      let query = this.model.find({});
-
+      let query = this.model.find({ status: STATUS.ACTIVE });
       if (populate) query = query.populate(this.defaultPopulate);
-      if (lean) query = query.lean();
-
-      return await query.exec();
+      return await query.lean();
     } catch (error) {
-      console.error("❌ Error fetching all categories:", error);
-      throw error;
-    }
-  }
-
-  /**
-   * Lấy tất cả active categories
-   * @returns {Promise<Array>} Categories
-   */
-  async findActive() {
-    try {
-      return await this.model.find({ status: STATUS.ACTIVE, updatedAt: null });
-    } catch (error) {
-      console.error("❌ Error finding active categories:", error);
+      console.error("❌ Error fetching active categories:", error);
       throw error;
     }
   }
@@ -113,6 +95,31 @@ class CategoryRepository {
   //     throw error;
   //   }
   // }
+
+  /**
+   * @param {string} name - Category name
+   * @returns {Promise<Object|null>} Category document
+   */
+  async getCategoryByName(name) {
+    try {
+      return await this.model.findOne({ name });
+    } catch (error) {
+      console.error("❌ Error finding category by name:", error);
+      throw error;
+    }
+  }
+
+  /**
+   * Tìm category theo name hoặc slug
+   * @param {string} name - Tên category
+   * @param {string} slug - Slug category
+   * @returns {Promise<Category|null>}
+   */
+  async findByNameOrSlug(name, slug) {
+    return Category.findOne({
+      $or: [{ name }, { slug }],
+    }).lean();
+  }
 
   /**
    * Search categories theo text index
@@ -222,17 +229,15 @@ class CategoryRepository {
   /**
    * Soft delete category
    * @param {string} id - Category ID
-   * @param {string} userId - User who deleted
    * @returns {Promise<Object>} Deleted category
    */
-  async softDelete(id, userId) {
+  async softDelete(id) {
     try {
       const deletedCategory = await this.model.findByIdAndUpdate(
         id,
         {
           updatedAt: new Date(),
           status: STATUS.INACTIVE,
-          updatedBy: userId,
         },
         { new: true }
       );
@@ -241,22 +246,16 @@ class CategoryRepository {
         throw new NotFoundError("Category not found");
       }
 
+      await this.model.updateMany(
+        { parentCategory: id },
+        { status: STATUS.INACTIVE, updatedAt: new Date() }
+      );
+
       return deletedCategory;
     } catch (error) {
       console.error("❌ Error soft deleting category:", error);
       throw error;
     }
-  }
-
-  // ===== UTILITY METHODS =====
-
-  /**
-   * Check if category is root
-   * @param {Object} category - Category document
-   * @returns {boolean}
-   */
-  isRoot(category) {
-    return category.parentCategory === null;
   }
 }
 
