@@ -36,6 +36,12 @@ const LearningPathController = {
     const response = await LearningPathService.addNewLevelToPath(req);
     res.status(response.code).json(response);
   },
+
+  async getByTarget(req, res) {
+    const { targetIds } = req.body;
+    const paths = await LearningPathService.getPathsByTargets(targetIds);
+    res.status(paths.status).json(paths);
+  },
 };
 
 module.exports = LearningPathController;
