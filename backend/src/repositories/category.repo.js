@@ -101,18 +101,18 @@ class CategoryRepository {
    * @param {string} level - beginner|intermediate|advanced
    * @returns {Promise<Array>} Categories
    */
-  async findByLevel(level) {
-    try {
-      return await this.model.find({
-        level,
-        status: STATUS.ACTIVE,
-        updatedAt: null,
-      });
-    } catch (error) {
-      console.error("❌ Error finding categories by level:", error);
-      throw error;
-    }
-  }
+  // async findByLevel(level) {
+  //   try {
+  //     return await this.model.find({
+  //       level,
+  //       status: STATUS.ACTIVE,
+  //       updatedAt: null,
+  //     });
+  //   } catch (error) {
+  //     console.error("❌ Error finding categories by level:", error);
+  //     throw error;
+  //   }
+  // }
 
   /**
    * Search categories theo text index
@@ -122,7 +122,7 @@ class CategoryRepository {
    */
   async search(query, options = {}) {
     try {
-      const { limit = 20, skip = 0, level = null } = options;
+      const { limit = 20, skip = 0 } = options;
 
       const searchQuery = {
         $text: { $search: query },
@@ -130,7 +130,6 @@ class CategoryRepository {
         updatedAt: null,
       };
 
-      if (level) searchQuery.level = level;
 
       return await this.model
         .find(searchQuery, { score: { $meta: "textScore" } })
