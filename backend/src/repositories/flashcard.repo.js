@@ -41,9 +41,22 @@ class FlashcardRepository {
     }
   }
 
+  /**
+   * @param {string} word
+   * @returns {Promise<Object|null>}
+   */
+  async getFlashCardByFrontBack(frontText) {
+    try {
+      return await this.model.findOne({ frontText });
+    } catch (error) {
+      console.error("❌ Error finding category by name:", error);
+      throw error;
+    }
+  }
+
   async list() {
     try {
-      const query = { status: "active", updatedAt: null };
+      const query = { status: "active" };
       const flashcards = await this.model.find(query);
 
       console.log("💡 Flashcards returned:", flashcards.length);
@@ -91,10 +104,14 @@ class FlashcardRepository {
     try {
       const { populate = true, returnNew = true } = options;
 
-      let query = this.model.findOneAndUpdate({ _id: id }, data, {
-        new: returnNew,
-        runValidators: true,
-      });
+      let query = this.model.findOneAndUpdate(
+        { _id: id },
+        { $set: data },
+        {
+          new: returnNew,
+          runValidators: true,
+        }
+      );
 
       if (populate) query = query.populate(this.defaultPopulate);
 
@@ -113,7 +130,7 @@ class FlashcardRepository {
       const flashcard = await this.model.findById(id);
       if (!flashcard) throw new NotFoundError("Flashcard not found");
 
-      flashcard.isActive = !flashcard.isActive;
+      flashcard.status = !flashcard.status;
       await flashcard.save();
       return flashcard;
     } catch (error) {
@@ -123,11 +140,11 @@ class FlashcardRepository {
   }
 
   // ===== DELETE =====
-  async softDelete(id, userId) {
+  async softDelete(id) {
     try {
       const deleted = await this.model.findByIdAndUpdate(
         id,
-        { updatedAt: new Date(), updatedBy: userId, status: "inactive" },
+        { updatedAt: new Date(), status: "inactive" },
         { new: true }
       );
 

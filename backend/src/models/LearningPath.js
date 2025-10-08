@@ -6,6 +6,10 @@ const { STATUS } = require("../constants/status.constans");
 const DOCUMENT_NAME = "LearningPath";
 const COLLECTION_NAME = "LearningPaths";
 
+/**
+ * 🔹 Level Schema: Đại diện cho từng cấp trong lộ trình học
+ * Mỗi level có thể chứa nhiều "Lesson" (ref → Category hoặc Quiz)
+ */
 const levelSchema = new Schema(
   {
     order: {
@@ -66,6 +70,9 @@ const levelSchema = new Schema(
   { _id: false }
 );
 
+/**
+ * 🔹 LearningPath Schema: Đại diện 1 lộ trình học (ví dụ: “Travel English”)
+ */
 const learningPathSchema = new Schema(
   {
     target: {
@@ -74,6 +81,8 @@ const learningPathSchema = new Schema(
       required: true,
       index: true,
     },
+
+    key: { type: String, unique: true, index: true, required: true },
 
     title: {
       type: String,
@@ -88,11 +97,22 @@ const learningPathSchema = new Schema(
       maxLength: 2000,
     },
 
+    level: {
+      type: String,
+      enum: ["beginner", "intermediate", "advanced"],
+      default: "beginner",
+      index: true,
+    },
+
+    thumbnail: {
+      type: String,
+      default: null,
+    },
+
     levels: {
       type: [levelSchema],
       validate: {
         validator: function (arr) {
-          // order phải là duy nhất trong levels
           const orders = arr.map((l) => l.order);
           return new Set(orders).size === orders.length;
         },
@@ -106,17 +126,6 @@ const learningPathSchema = new Schema(
       default: STATUS.ACTIVE,
       index: true,
     },
-
-    updatedAt: {
-      type: Date,
-      default: null,
-      index: true,
-    },
-
-    updatedBy: {
-      type: String,
-      default: null,
-    },
   },
   {
     timestamps: true,
@@ -124,21 +133,17 @@ const learningPathSchema = new Schema(
     minimize: false,
     versionKey: false,
     toJSON: {
-      transform: function (doc, ret) {
-        return ret;
-      },
+      transform: (doc, ret) => ret,
     },
     toObject: {
-      transform: function (doc, ret) {
-        return ret;
-      },
+      transform: (doc, ret) => ret,
     },
   }
 );
 
-// ===== INDEXES =====
 learningPathSchema.index({ title: "text", description: "text" });
 learningPathSchema.index({ target: 1, status: 1 });
+learningPathSchema.index({ level: 1, status: 1 });
 learningPathSchema.index({ createdAt: -1, status: 1 });
 
 // ===== VIRTUALS =====
