@@ -25,7 +25,9 @@ const createCardDeckSchema = Joi.object({
     .valid("beginner", "intermediate", "advanced")
     .default("beginner"),
 
-  categories: Joi.array().items(Joi.string().regex(/^[0-9a-fA-F]{24}$/)),
+  categoryId: Joi.string()
+    .regex(/^[0-9a-fA-F]{24}$/)
+    .required(),
 
   thumbnail: Joi.string().uri().optional(),
 

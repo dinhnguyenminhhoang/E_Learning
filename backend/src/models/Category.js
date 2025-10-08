@@ -55,12 +55,12 @@ const categorySchema = new Schema(
       match: /^#([0-9A-Fa-f]{3}){1,2}$/, // validate mã màu hex
     },
 
-    level: {
-      type: String,
-      enum: ["beginner", "intermediate", "advanced"],
-      default: "beginner",
-      index: true,
-    },
+    // level: {
+    //   type: String,
+    //   enum: ["beginner", "intermediate", "advanced"],
+    //   default: "beginner",
+    //   index: true,
+    // },
 
     parentCategory: {
       type: Schema.Types.ObjectId,
@@ -68,20 +68,26 @@ const categorySchema = new Schema(
       default: null,
       index: true,
     },
-
+    childCategories: [
+      { type: Schema.Types.ObjectId, ref: "Category", default: null },
+    ],
     wordCount: {
       type: Number,
       default: 0,
       min: 0,
     },
-
+    decks: [
+      {
+        type: Schema.Types.ObjectId,
+        ref: "CardDeck",
+      },
+    ],
     status: {
       type: String,
       enum: Object.values(STATUS),
       default: STATUS.ACTIVE,
       index: true,
     },
-
     updatedAt: {
       type: Date,
       default: null,

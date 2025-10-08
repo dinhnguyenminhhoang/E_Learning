@@ -118,13 +118,13 @@ targetSchema.pre(["deleteOne", "deleteMany"], function () {
 });
 
 // Query middleware để loại bỏ deleted targets
-targetSchema.pre(
-  ["find", "findOne", "findOneAndUpdate", "count", "countDocuments"],
-  function () {
-    if (!("status" in this.getQuery())) {
-      this.where({ status: { $ne: STATUS.DELETED } });
-    }
-  }
-);
+// targetSchema.pre(
+//   ["find", "findOne", "findOneAndUpdate", "count", "countDocuments"],
+//   function () {
+//     if (!("status" in this.getQuery())) {
+//       this.where({ status: { $ne: STATUS.DELETED } });
+//     }
+//   }
+// );
 
 module.exports = model(DOCUMENT_NAME, targetSchema);

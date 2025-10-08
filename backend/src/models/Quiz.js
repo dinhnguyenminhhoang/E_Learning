@@ -88,7 +88,18 @@ const quizSchema = new Schema(
       trim: true,
       index: true,
     },
-
+    attachedTo: {
+      kind: {
+        type: String,
+        enum: ["Lesson", "Module", "LearningPath"],
+        required: true,
+      },
+      item: {
+        type: Schema.Types.ObjectId,
+        required: true,
+        refPath: "attachedTo.kind", // dynamic reference
+      },
+    },
     questions: {
       type: [questionSchema],
       default: [],
@@ -113,38 +124,6 @@ const quizSchema = new Schema(
     collection: COLLECTION_NAME,
     minimize: false,
     versionKey: false,
-  }
-);
-
-// ===== VIRTUALS =====
-quizSchema.virtual("questionCount").get(function () {
-  return this.questions?.length || 0;
-});
-
-// ===== METHODS =====
-quizSchema.methods.addQuestion = function (question) {
-  this.questions.push(question);
-  return this.save();
-};
-
-// ===== STATICS =====
-quizSchema.statics.findActive = function () {
-  return this.find({ updatedAt: null });
-};
-
-// ===== MIDDLEWARES =====
-// Soft delete
-quizSchema.pre(["deleteOne", "deleteMany"], function () {
-  this.updateOne({}, { updatedAt: new Date() });
-});
-
-// Query middleware để loại bỏ deleted records
-quizSchema.pre(
-  ["find", "findOne", "findOneAndUpdate", "count", "countDocuments"],
-  function () {
-    if (!("status" in this.getQuery())) {
-      this.where({ status: { $ne: STATUS.DELETED } });
-    }
   }
 );
 

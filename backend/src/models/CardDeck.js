@@ -37,12 +37,13 @@ const cardDeckSchema = new Schema(
       index: true,
     },
 
-    categories: [
-      {
-        type: Schema.Types.ObjectId,
-        ref: "Category",
-      },
-    ],
+    categoryId: {
+      // Ref Category con (lesson)
+      type: Schema.Types.ObjectId,
+      ref: "Category",
+      required: true, // Bắt buộc thuộc 1 lesson
+      index: true,
+    },
 
     thumbnail: {
       type: String,

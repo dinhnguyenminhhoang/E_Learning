@@ -21,6 +21,15 @@ class ResponseBuilder {
       timestamp: new Date().toISOString(),
     };
   }
+  static badRequest(message, data = null, code = HTTP_STATUS.BAD_REQUEST) {
+    return {
+      status: "bad request",
+      message,
+      data,
+      code,
+      timestamp: new Date().toISOString(),
+    };
+  }
   static successWithPagination(
     message,
     data = [],
