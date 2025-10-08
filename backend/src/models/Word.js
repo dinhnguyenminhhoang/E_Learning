@@ -87,6 +87,7 @@ const wordSchema = new Schema(
     collection: COLLECTION_NAME,
   }
 );
+
 wordSchema.index({
   word: "text",
   "definitions.meaning": "text",

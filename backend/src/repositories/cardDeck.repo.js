@@ -1,26 +1,26 @@
 "use strict";
 
-import { STATUS } from "../constants/status.constans";
-import CardDeck from "../models/CardDeck";
-const { default: mongoose } = require("mongoose");
+const mongoose = require("mongoose");
+const CardDeck = require("../models/CardDeck");
+const { STATUS } = require("../constants/status.constans");
 
-export const getCardDeckById = async (cardDeckId) => {
+const getCardDeckById = async (cardDeckId) => {
   return await CardDeck.findById(new mongoose.Types.ObjectId(cardDeckId))
-    .select("title description level thumbnail status target categories") // target để populate
+    .select("title description level thumbnail status target categories")
     .populate("categories", "name")
     .populate("target", "name tags")
     .exec();
 };
 
-export const getCardDeckByName = async (name) => {
-  return await CardDeck.findOne({ name });
+const getCardDeckByTitle = async (title) => {
+  return await CardDeck.findOne({ title });
 };
 
-export const createCardDeck = async (data) => {
+const createCardDeck = async (data) => {
   return await CardDeck.create(data);
 };
 
-export const updateCardDeck = async (cardDeckId, data) => {
+const updateCardDeck = async (cardDeckId, data) => {
   return await CardDeck.findByIdAndUpdate(
     new mongoose.Types.ObjectId(cardDeckId),
     data,
@@ -28,19 +28,64 @@ export const updateCardDeck = async (cardDeckId, data) => {
   );
 };
 
-export const deleteCardDeck = async (cardDeckId) => {
+const deleteCardDeck = async (cardDeckId) => {
   return await CardDeck.findByIdAndUpdate(
     new mongoose.Types.ObjectId(cardDeckId),
     { status: STATUS.DELETED }
   );
 };
 
-export const hardDeleteCardDeck = async (cardDeckId) => {
+const hardDeleteCardDeck = async (cardDeckId) => {
   return await CardDeck.findByIdAndDelete(
     new mongoose.Types.ObjectId(cardDeckId)
   );
 };
 
-export const getAllCardDeck = async (query = {}) => {
-  
+const getAllCardDeck = async (query = {}) => {
+  const { pageNum = 1, pageSize = 10, target, level, category, search } = query;
+
+  const filter = { status: { $ne: STATUS.DELETED } };
+
+  if (target) filter.target = target;
+  if (level) filter.level = level;
+  if (category) filter.categories = category;
+
+  if (search && search.trim() !== "") {
+    filter.$text = { $search: search.trim() };
+  }
+
+  const total = await CardDeck.countDocuments(filter);
+  const decks = await CardDeck.find(filter)
+    .populate("target", "name")
+    .populate("categories", "name")
+    .sort(search ? { score: { $meta: "textScore" } } : { createdAt: -1 })
+    .skip((pageNum - 1) * pageSize)
+    .limit(pageSize)
+    .lean();
+
+  return {
+    total,
+    pageNum: Number(pageNum),
+    pageSize: Number(pageSize),
+    decks,
+  };
+};
+
+const findByCategory = async (categoryId) => {
+  return await CardDeck.find({ categories: categoryId, status: STATUS.ACTIVE })
+    .select("title description level thumbnail status target categories")
+    .populate("categories", "name")
+    .populate("target", "name tags")
+    .exec();
+};
+
+module.exports = {
+  getCardDeckById,
+  getCardDeckByTitle,
+  createCardDeck,
+  updateCardDeck,
+  deleteCardDeck,
+  hardDeleteCardDeck,
+  getAllCardDeck,
+  findByCategory,
 };

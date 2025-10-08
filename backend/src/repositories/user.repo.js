@@ -132,7 +132,7 @@ class UserRepository {
 
       const query = { _id: userId };
       if (!includeDeleted) {
-        query.updatedAt = null;
+        query.status = { $ne: STATUS.DELETED };
       }
 
       let select = includeSensitive ? "" : this.defaultSelect;

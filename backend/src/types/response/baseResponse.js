@@ -11,6 +11,26 @@ class ResponseBuilder {
       timestamp: new Date().toISOString(),
     };
   }
+  static successWithPagination(
+    message,
+    data = [],
+    pagination = {},
+    code = HTTP_STATUS.OK
+  ) {
+    return {
+      status: "success",
+      message,
+      data,
+      pagination: {
+        total: pagination.total ?? 0,
+        pageNum: pagination.pageNum ?? 1,
+        pageSize: pagination.pageSize ?? 10,
+        total: pagination.total ?? 0,
+      },
+      code,
+      timestamp: new Date().toISOString(),
+    };
+  }
 
   static error(
     message,

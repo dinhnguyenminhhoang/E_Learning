@@ -10,6 +10,7 @@ const categoryDocs = require("../docs/categoryDocs");
 const flashcardDocs = require("../docs/flashCardDocs");
 const onboardingDocs = require("../docs/onboardingDocs");
 const userOnboardingAnswerDocs = require("../docs/userOnboardingAnswerDocs");
+const cardDeckDocs = require("../docs/cardDeck");
 // const userDocs = require('../docs/user.docs');
 
 /**
@@ -285,6 +286,21 @@ const swaggerDefinition = {
     // // ---------------- ONBOARDINGANSWER ----------------
     "/v1/api/userOnboardingAnswer": userOnboardingAnswerDocs.save,
 
+    // ---------------- CARD DECK ----------------
+    "/v1/api/card-deck": {
+      ...cardDeckDocs.createCardDeck, // POST
+      ...cardDeckDocs.getListCardDecks, // GET
+    },
+
+    "/v1/api/card-deck/{cardDeckId}": {
+      ...cardDeckDocs.getCardDeck, // GET
+      ...cardDeckDocs.updateCardDeck, // PUT
+      ...cardDeckDocs.deleteCardDeck, // DELETE
+    },
+
+    "/v1/api/card-deck/category/{categoryId}": {
+      ...cardDeckDocs.getCardDeckByCategory, // GET
+    },
   },
   tags: [
     {
