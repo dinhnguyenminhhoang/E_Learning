@@ -101,6 +101,9 @@ class LearningPathRepository {
       { "levels.categories.$": 1 }
     );
   }
+  static async findByTargetIds(targetIds) {
+    return LearningPath.find({ target: { $in: targetIds } }).lean();
+  }
 }
 
 module.exports = new LearningPathRepository();
