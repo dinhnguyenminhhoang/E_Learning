@@ -1,5 +1,7 @@
 "use strict";
 const UserOnboardingAnswerRepo = require("../repositories/userOnboardingAnswer.repo");
+const ResponseBuilder = require("../types/response/baseResponse");
+const RESPONSE_MESSAGES = require("../constants/responseMessage");
 
 class UserOnboardingAnswerService {
   async saveAnswers(UserId, answers) {
@@ -7,13 +9,23 @@ class UserOnboardingAnswerService {
     const docs = answers.map((a) => ({
       user: UserId,
       questionKey: a.questionKey,
-      answer: a.selected,
+      answerKeys: a.answerKeys,
     }));
-    return UserOnboardingAnswerRepo.insertMany(docs);
+    const userAnswer = await UserOnboardingAnswerRepo.insertMany(docs);
+    return ResponseBuilder.success(
+      RESPONSE_MESSAGES.SUCCESS.OK,
+      userAnswer
+    );
   }
 
   async getAnswers(UserId) {
-    return UserOnboardingAnswerRepo.getByUser(UserId);
+    const getAnswers = UserOnboardingAnswerRepo.getByUser(UserId);
+    if (!getAnswers || getAnswers.length === 0)
+      return ResponseBuilder.notFoundError();
+    return ResponseBuilder.success(
+      RESPONSE_MESSAGES.SUCCESS.FETCHED,
+      getAnswers
+    );
   }
 }
 

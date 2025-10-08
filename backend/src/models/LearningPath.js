@@ -61,6 +61,8 @@ const learningPathSchema = new Schema(
       index: true,
     },
 
+    key: { type: String, unique: true, index: true, required: true },
+
     title: {
       type: String,
       required: [true, "Learning path title is required"],
@@ -73,7 +75,7 @@ const learningPathSchema = new Schema(
       trim: true,
       maxLength: 2000,
     },
-    
+
     level: {
       type: String,
       enum: ["beginner", "intermediate", "advanced"],

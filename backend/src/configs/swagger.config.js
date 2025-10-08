@@ -9,6 +9,7 @@ const wordDocs = require("../docs/wordDocs");
 const categoryDocs = require("../docs/categoryDocs");
 const flashcardDocs = require("../docs/flashCardDocs");
 const onboardingDocs = require("../docs/onboardingDocs");
+const userOnboardingAnswerDocs = require("../docs/userOnboardingAnswerDocs");
 // const userDocs = require('../docs/user.docs');
 
 /**
@@ -281,6 +282,9 @@ const swaggerDefinition = {
     // // ---------------- ONBOARDING ----------------
     "/v1/api/onboarding": onboardingDocs.getOnboardingQuestions,
 
+    // // ---------------- ONBOARDINGANSWER ----------------
+    "/v1/api/userOnboardingAnswer": userOnboardingAnswerDocs.save,
+
   },
   tags: [
     {
@@ -305,6 +309,10 @@ const swaggerDefinition = {
     },
     {
       name: "OnboardingQuestion",
+      description: "Onboarding management and search operations",
+    },
+    {
+      name: "OnboardingAnswers",
       description: "Onboarding management and search operations",
     },
     {

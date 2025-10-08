@@ -20,6 +20,7 @@ class CategoryService {
         );
         return ResponseBuilder.success(RESPONSE_MESSAGES.SUCCESS.CREATED, {
           category: restored,
+
         });
       }
       return ResponseBuilder.duplicateError();

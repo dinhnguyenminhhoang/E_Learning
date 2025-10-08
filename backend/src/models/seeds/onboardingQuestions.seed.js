@@ -52,7 +52,7 @@ const onboardingQuestions = [
       },
     ],
     order: 1,
-    status: true,
+    status: STATUS.ACTIVE,
   },
 
   // 2️⃣ TIME_COMMITMENT
@@ -88,12 +88,7 @@ const onboardingQuestions = [
       },
     ],
     order: 2,
-    status: {
-      type: String,
-      enum: Object.values(STATUS),
-      default: STATUS.ACTIVE,
-      index: true,
-    },
+    status: STATUS.ACTIVE,
   },
 
   // 3️⃣ LEARNING_STYLE
@@ -129,12 +124,7 @@ const onboardingQuestions = [
       },
     ],
     order: 3,
-    status: {
-      type: String,
-      enum: Object.values(STATUS),
-      default: STATUS.ACTIVE,
-      index: true,
-    },
+    status: STATUS.ACTIVE,
   },
 
   // 4️⃣ LEVEL
@@ -176,12 +166,7 @@ const onboardingQuestions = [
       },
     ],
     order: 4,
-    status: {
-      type: String,
-      enum: Object.values(STATUS),
-      default: STATUS.ACTIVE,
-      index: true,
-    },
+    status: STATUS.ACTIVE,
   },
 ];
 

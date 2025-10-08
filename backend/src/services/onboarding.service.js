@@ -21,6 +21,10 @@ async getOnboardingQuestions() {
         })),
     }));
 
+    if(!q || q.length === 0){
+        return ResponseBuilder.notFoundError();
+    }
+
     return ResponseBuilder.success(RESPONSE_MESSAGES.SUCCESS.FETCHED, q);
   }
 }
