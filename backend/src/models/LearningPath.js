@@ -20,12 +20,48 @@ const levelSchema = new Schema(
       trim: true,
       maxLength: 150,
     },
-    quizzes: [
+    categories: [
       {
-        type: Schema.Types.ObjectId,
-        ref: "Quiz",
+        categoryId: {
+          // Ref Category (cha hoặc con)
+          type: Schema.Types.ObjectId,
+          ref: "Category",
+          required: true,
+        },
+        selectedDecks: [
+          {
+            lessonId: {
+              // Ref childCategory (lesson con) nếu cha
+              type: Schema.Types.ObjectId,
+              ref: "Category",
+            },
+            title: {
+              type: String,
+              trim: true,
+              maxLength: 150,
+            },
+            selectedDeck: {
+              // 1 deck duy nhất cho lesson này trong path
+              type: Schema.Types.ObjectId,
+              ref: "CardDeck",
+              required: true,
+            },
+            // Optional: Lý do chọn (e.g., 'beginner')
+            selectedLevel: {
+              type: String,
+              enum: ["beginner", "intermediate", "advanced"],
+            },
+            exercise: {
+              type: Schema.Types.ObjectId,
+              ref: "Quiz",
+              required: false,
+            },
+          },
+        ],
       },
     ],
+
+    finalQuiz: { type: Schema.Types.ObjectId, ref: "Quiz" },
   },
   { _id: false }
 );
@@ -153,13 +189,13 @@ learningPathSchema.pre(["deleteOne", "deleteMany"], function () {
 });
 
 // Query middleware để loại bỏ deleted paths
-learningPathSchema.pre(
-  ["find", "findOne", "findOneAndUpdate", "count", "countDocuments"],
-  function () {
-    if (!("status" in this.getQuery())) {
-      this.where({ status: { $ne: STATUS.DELETED } });
-    }
-  }
-);
+// learningPathSchema.pre(
+//   ["find", "findOne", "findOneAndUpdate", "count", "countDocuments"],
+//   function () {
+//     if (!("status" in this.getQuery())) {
+//       this.where({ status: { $ne: STATUS.DELETED } });
+//     }
+//   }
+// );
 
 module.exports = model(DOCUMENT_NAME, learningPathSchema);

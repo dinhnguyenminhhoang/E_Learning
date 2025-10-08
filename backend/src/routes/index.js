@@ -7,4 +7,5 @@ router.use(`/v1/api/word`, require("./word.route"));
 router.use(`/v1/api/category`, require("./category.route"));
 router.use(`/v1/api/flashcard`, require("./flashCard.route"));
 router.use(`/v1/api/card-deck`, require("./cardDeck.route"));
+router.use(`/v1/api/learning-path`, require("./learningPath.route"));
 module.exports = router;

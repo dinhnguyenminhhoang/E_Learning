@@ -9,6 +9,7 @@ const wordDocs = require("../docs/wordDocs");
 const categoryDocs = require("../docs/categoryDocs");
 const flashcardDocs = require("../docs/flashCardDocs");
 const cardDeckDocs = require("../docs/cardDeck");
+const learningPathDocs = require("../docs/learningPathDocs");
 // const userDocs = require('../docs/user.docs');
 
 /**
@@ -279,7 +280,6 @@ const swaggerDefinition = {
     "/v1/api/flashcard/delete/{id}": flashcardDocs.deleteFlashcard,
 
     // ---------------- CARD DECK ----------------
-    // ---------------- CARD DECK ----------------
     "/v1/api/card-deck": {
       ...cardDeckDocs.createCardDeck, // POST
       ...cardDeckDocs.getListCardDecks, // GET
@@ -294,6 +294,16 @@ const swaggerDefinition = {
     "/v1/api/card-deck/category/{categoryId}": {
       ...cardDeckDocs.getCardDeckByCategory, // GET
     },
+
+    // ---------------- LEARNING PATH ----------------
+    "/v1/api/learning-path": {
+      ...learningPathDocs.createNewPath,
+      ...learningPathDocs.getAllPath,
+    },
+    "/v1/api/learning-path/{learningPathId}/assign":
+      learningPathDocs.assignLessonToPath,
+    "/v1/api/learning-path/hierarchy": learningPathDocs.getHierarchy,
+    "/v1/api/learning-path/level/{learningPathId}": learningPathDocs.createNewLevel,
   },
   tags: [
     {

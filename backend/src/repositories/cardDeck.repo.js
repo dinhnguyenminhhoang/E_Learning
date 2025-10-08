@@ -6,8 +6,8 @@ const { STATUS } = require("../constants/status.constans");
 
 const getCardDeckById = async (cardDeckId) => {
   return await CardDeck.findById(new mongoose.Types.ObjectId(cardDeckId))
-    .select("title description level thumbnail status target categories")
-    .populate("categories", "name")
+    .select("title description level thumbnail status target categoryId")
+    .populate("categoryId", "name")
     .populate("target", "name tags")
     .exec();
 };
@@ -48,7 +48,7 @@ const getAllCardDeck = async (query = {}) => {
 
   if (target) filter.target = target;
   if (level) filter.level = level;
-  if (category) filter.categories = category;
+  if (category) filter.categoryId = category;
 
   if (search && search.trim() !== "") {
     filter.$text = { $search: search.trim() };
@@ -57,7 +57,7 @@ const getAllCardDeck = async (query = {}) => {
   const total = await CardDeck.countDocuments(filter);
   const decks = await CardDeck.find(filter)
     .populate("target", "name")
-    .populate("categories", "name")
+    .populate("categoryId", "name")
     .sort(search ? { score: { $meta: "textScore" } } : { createdAt: -1 })
     .skip((pageNum - 1) * pageSize)
     .limit(pageSize)
@@ -72,9 +72,9 @@ const getAllCardDeck = async (query = {}) => {
 };
 
 const findByCategory = async (categoryId) => {
-  return await CardDeck.find({ categories: categoryId, status: STATUS.ACTIVE })
-    .select("title description level thumbnail status target categories")
-    .populate("categories", "name")
+  return await CardDeck.find({ categoryId: categoryId, status: STATUS.ACTIVE })
+    .select("title description level thumbnail status target categoryId")
+    .populate("categoryId", "name")
     .populate("target", "name tags")
     .exec();
 };
