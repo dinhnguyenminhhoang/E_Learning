@@ -2,7 +2,7 @@
 
 const { Router } = require("express");
 const { asynchandler } = require("../helpers/asyncHandler");
-const { validateCreateFlashcard } = require("../middlewares/flashCard");
+const { validateCreateFlashcard, validateUpdateFlashcard } = require("../middlewares/flashCard");
 const auth = require("../middlewares/auth");
 const flashcardController = require("../controllers/flashCard.controller");
 
@@ -11,7 +11,7 @@ const router = Router();
 // Tạo flashcard
 router.post(
   "/create",
-  auth.adminOnly,
+  // auth.authenticate,
   validateCreateFlashcard,
   asynchandler(flashcardController.create)
 );
@@ -31,15 +31,15 @@ router.get(
 // Cập nhật flashcard
 router.put(
   "/:id",
-  auth.adminOnly,
-  validateCreateFlashcard,
+  // auth.authenticate,
+  validateUpdateFlashcard,
   asynchandler(flashcardController.update)
 );
 
 // Xóa flashcard
 router.delete(
   "/delete/:id",
-  auth.adminOnly,
+  // auth.authenticate,
   asynchandler(flashcardController.delete)
 );
 

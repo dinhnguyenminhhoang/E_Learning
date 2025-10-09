@@ -1,6 +1,7 @@
 "use strict";
 
 const { model, Schema } = require("mongoose");
+const { QUIZ_STATUS } = require("../constants/status.constans");
 
 const DOCUMENT_NAME = "QuizAttempt";
 const COLLECTION_NAME = "QuizAttempts";
@@ -75,8 +76,8 @@ const quizAttemptSchema = new Schema(
 
     status: {
       type: String,
-      enum: ["completed", "abandoned", "in_progress"],
-      default: "in_progress",
+      enum: Object.values(QUIZ_STATUS),
+      default: QUIZ_STATUS.INPROGRESS,
       index: true,
     },
 
@@ -90,15 +91,14 @@ const quizAttemptSchema = new Schema(
       default: null,
     },
 
-    deletedAt: {
+    updatedAt: {
       type: Date,
       default: null,
       index: true,
     },
 
-    deletedBy: {
-      type: Schema.Types.ObjectId,
-      ref: "User",
+    updatedBy: {
+      type: String,
       default: null,
     },
   },
@@ -119,7 +119,10 @@ quizAttemptSchema.virtual("isCompleted").get(function () {
 });
 
 // ===== METHODS =====
-quizAttemptSchema.methods.finishAttempt = function (finalScore, finalPercentage) {
+quizAttemptSchema.methods.finishAttempt = function (
+  finalScore,
+  finalPercentage
+) {
   this.score = finalScore;
   this.percentage = finalPercentage;
   this.status = "completed";
@@ -129,21 +132,21 @@ quizAttemptSchema.methods.finishAttempt = function (finalScore, finalPercentage)
 
 // ===== STATICS =====
 quizAttemptSchema.statics.findByUser = function (userId) {
-  return this.find({ user: userId, deletedAt: null });
+  return this.find({ user: userId, updatedAt: null });
 };
 
 // ===== MIDDLEWARES =====
 // Soft delete
 quizAttemptSchema.pre(["deleteOne", "deleteMany"], function () {
-  this.updateOne({}, { deletedAt: new Date() });
+  this.updateOne({}, { updatedAt: new Date() });
 });
 
 // Query middleware để loại bỏ deleted records
 quizAttemptSchema.pre(
   ["find", "findOne", "findOneAndUpdate", "count", "countDocuments"],
   function () {
-    if (!this.getQuery().deletedAt) {
-      this.where({ deletedAt: null });
+    if (!("status" in this.getQuery())) {
+      this.where({ status: { $ne: STATUS.DELETED } });
     }
   }
 );
