@@ -1,40 +1,28 @@
-import Joi from "joi";
-import constants from "../../constants/status.constans.js";
+const Joi = require("joi");
+const { STATUS } = require("../../constants/status.constans");
 
-const { STATUS } = constants;
-
-export const createFlashcardSchema = Joi.object({
+const createFlashcardSchema = Joi.object({
   word: Joi.string()
-    .regex(/^[0-9a-fA-F]{24}$/) // ObjectId
+    .regex(/^[0-9a-fA-F]{24}$/)
     .required(),
-
   frontText: Joi.string().trim().required(),
-
   backText: Joi.string().trim().required(),
-
   cardDeck: Joi.string()
-    .regex(/^[0-9a-fA-F]{24}$/) // ObjectId
+    .regex(/^[0-9a-fA-F]{24}$/)
     .required(),
-
-  difficulty: Joi.string()
-    .valid("easy", "medium", "hard")
-    .default("easy"),
-
+  difficulty: Joi.string().valid("easy", "medium", "hard").default("easy"),
   tags: Joi.array().items(Joi.string().trim()),
-
-  isActive: Joi.boolean().default(true),
-
+  status: Joi.boolean().default(true),
   status: Joi.string()
     .valid(...Object.values(STATUS))
     .default(STATUS.ACTIVE),
-
-  deletedAt: Joi.date().optional().allow(null),
-  deletedBy: Joi.string()
-    .regex(/^[0-9a-fA-F]{24}$/) // ObjectId
+  updatedAt: Joi.date().optional().allow(null),
+  updatedBy: Joi.string()
+    .regex(/^[0-9a-fA-F]{24}$/)
     .allow(null),
 });
 
-export const updateFlashcardSchema = createFlashcardSchema.fork(
+const updateFlashcardSchema = createFlashcardSchema.fork(
   [
     "word",
     "frontText",
@@ -42,10 +30,12 @@ export const updateFlashcardSchema = createFlashcardSchema.fork(
     "cardDeck",
     "difficulty",
     "tags",
-    "isActive",
     "status",
-    "deletedAt",
-    "deletedBy",
+    "status",
+    "updatedAt",
+    "updatedBy",
   ],
   (schema) => schema.optional()
 );
+
+module.exports = { createFlashcardSchema, updateFlashcardSchema };

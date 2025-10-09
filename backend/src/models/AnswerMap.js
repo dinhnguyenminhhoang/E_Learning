@@ -1,6 +1,7 @@
 "use strict";
 
 const { model, Schema } = require("mongoose");
+const { STATUS } = require("../constants/status.constans"); 
 
 const DOCUMENT_NAME = "AnswerMap";
 const COLLECTION_NAME = "AnswerMaps";
@@ -10,7 +11,8 @@ const answerMapSchema = new Schema(
     questionKey: {
       type: String,
       required: true,
-      enum: ["goals", "time_commitment", "learning_style"],
+      enum: ["GOALS", "LEVEL", "TIME_COMMITMENT", "LEARNING_STYLE"], 
+      uppercase: true,
       index: true,
     },
 
@@ -18,6 +20,7 @@ const answerMapSchema = new Schema(
       type: String,
       required: true,
       trim: true,
+      uppercase: true,
       index: true,
     },
 
@@ -28,63 +31,42 @@ const answerMapSchema = new Schema(
       index: true,
     },
 
+    learningPath: {
+      type: Schema.Types.ObjectId,
+      ref: "LearningPath",
+      default: null,
+      index: true,
+    },
+
     normalizedValue: {
       type: String,
       trim: true,
       default: null,
     },
 
-    deletedAt: {
-      type: Date,
-      default: null,
-      index: true,
+    mapType: {
+      type: String,
+      enum: ["target", "learning_path", "normalized"],
+      default: "normalized",
     },
 
-    deletedBy: {
-      type: Schema.Types.ObjectId,
-      ref: "User",
-      default: null,
+    status: {
+      type: String,
+      enum: Object.values(STATUS),
+      default: STATUS.ACTIVE,
     },
   },
   {
-    timestamps: true,
+    timestamps: true, 
     collection: COLLECTION_NAME,
     minimize: false,
     versionKey: false,
   }
 );
 
-// ===== INDEXES =====
 answerMapSchema.index({ questionKey: 1, rawValue: 1 }, { unique: true });
-
-// ===== VIRTUALS =====
-answerMapSchema.virtual("isMapped").get(function () {
-  return !!(this.target || this.normalizedValue);
-});
-
-// ===== STATICS =====
-answerMapSchema.statics.findByRawValue = function (questionKey, rawValue) {
-  return this.findOne({
-    questionKey,
-    rawValue,
-    deletedAt: null,
-  });
-};
-
-// ===== MIDDLEWARES =====
-// Soft delete
-answerMapSchema.pre(["deleteOne", "deleteMany"], function () {
-  this.updateOne({}, { deletedAt: new Date() });
-});
-
-// Query middleware để loại bỏ deleted records
-answerMapSchema.pre(
-  ["find", "findOne", "findOneAndUpdate", "count", "countDocuments"],
-  function () {
-    if (!this.getQuery().deletedAt) {
-      this.where({ deletedAt: null });
-    }
-  }
-);
+answerMapSchema.index({ mapType: 1, status: 1 });
+answerMapSchema.index({ target: 1 });
+answerMapSchema.index({ learningPath: 1 });
 
 module.exports = model(DOCUMENT_NAME, answerMapSchema);

@@ -13,7 +13,7 @@ const targetSchema = new Schema(
       required: [true, "Target key is required"],
       unique: true,
       trim: true,
-      lowercase: true,
+      uppercase: true,
       maxLength: 100,
       index: true,
     },
@@ -35,6 +35,14 @@ const targetSchema = new Schema(
       {
         type: String,
         trim: true,
+        lowercase: true,
+      },
+    ],
+
+    learningPaths: [
+      {
+        type: Schema.Types.ObjectId,
+        ref: "LearningPath",
       },
     ],
 
@@ -44,18 +52,6 @@ const targetSchema = new Schema(
       default: STATUS.ACTIVE,
       index: true,
     },
-
-    deletedAt: {
-      type: Date,
-      default: null,
-      index: true,
-    },
-
-    deletedBy: {
-      type: Schema.Types.ObjectId,
-      ref: "User",
-      default: null,
-    },
   },
   {
     timestamps: true,
@@ -64,18 +60,19 @@ const targetSchema = new Schema(
     versionKey: false,
     toJSON: {
       transform: function (doc, ret) {
+        delete ret.__v;
         return ret;
       },
     },
     toObject: {
       transform: function (doc, ret) {
+        delete ret.__v;
         return ret;
       },
     },
   }
 );
 
-// ===== INDEXES =====
 targetSchema.index({ key: 1 });
 targetSchema.index({ name: "text", description: "text", tags: "text" });
 targetSchema.index({ createdAt: -1, status: 1 });
@@ -93,7 +90,7 @@ targetSchema.methods.archive = function () {
 
 // ===== STATICS =====
 targetSchema.statics.findActiveTargets = function () {
-  return this.find({ status: "active", deletedAt: null });
+  return this.find({ status: "active", updatedAt: null });
 };
 
 targetSchema.statics.searchTargets = function (query, options = {}) {
@@ -102,7 +99,7 @@ targetSchema.statics.searchTargets = function (query, options = {}) {
   const searchQuery = {
     $text: { $search: query },
     status: "active",
-    deletedAt: null,
+    updatedAt: null,
   };
 
   return this.find(searchQuery, { score: { $meta: "textScore" } })
@@ -115,17 +112,17 @@ targetSchema.statics.searchTargets = function (query, options = {}) {
 
 // Soft delete
 targetSchema.pre(["deleteOne", "deleteMany"], function () {
-  this.updateOne({}, { deletedAt: new Date(), status: "inactive" });
+  this.updateOne({}, { updatedAt: new Date(), status: "inactive" });
 });
 
 // Query middleware để loại bỏ deleted targets
-targetSchema.pre(
-  ["find", "findOne", "findOneAndUpdate", "count", "countDocuments"],
-  function () {
-    if (!this.getQuery().deletedAt) {
-      this.where({ deletedAt: null });
-    }
-  }
-);
+// targetSchema.pre(
+//   ["find", "findOne", "findOneAndUpdate", "count", "countDocuments"],
+//   function () {
+//     if (!("status" in this.getQuery())) {
+//       this.where({ status: { $ne: STATUS.DELETED } });
+//     }
+//   }
+// );
 
 module.exports = model(DOCUMENT_NAME, targetSchema);

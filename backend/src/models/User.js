@@ -5,6 +5,7 @@ const bcrypt = require("bcrypt");
 const verificationSchema = require("./subModel/Verification.schema");
 const { urlValidator } = require("../utils");
 const { STATUS } = require("../constants/status.constans");
+const { StatusCodes } = require("../utils/httpStatusCode");
 const DOCUMENT_NAME = "User";
 const COLLECTION_NAME = "Users";
 
@@ -82,22 +83,22 @@ const userSchema = new Schema(
         default: "beginner",
       },
       learningPreferences: {
-        dailyGoal: {type: Number, default: 10},
-        studyReminder: {type: Boolean, default: true},
-        preferredStudyTime: {type: String},
+        dailyGoal: { type: Number, default: 10 },
+        studyReminder: { type: Boolean, default: true },
+        preferredStudyTime: { type: String },
         difficultyLevel: {
           type: String,
-          enum: ['beginner', 'intermediate', 'advanced'],
-          default: 'beginner'
-        }
-      }
+          enum: ["beginner", "intermediate", "advanced"],
+          default: "beginner",
+        },
+      },
     },
     statistics: {
-      totalWordsLearned: {type: Number, default: 0},
-      currentStreak: {type: Number, default: 0},
-      longestStreak : {type: Number, default: 0},
-      totalStudyTime: {type: Number, default: 0},
-      averageAccuracy: {type: Number, default: 0}
+      totalWordsLearned: { type: Number, default: 0 },
+      currentStreak: { type: Number, default: 0 },
+      longestStreak: { type: Number, default: 0 },
+      totalStudyTime: { type: Number, default: 0 },
+      averageAccuracy: { type: Number, default: 0 },
     },
     roles: [
       {
@@ -140,14 +141,13 @@ const userSchema = new Schema(
         },
       ],
     },
-    deletedAt: {
+    updatedAt: {
       type: Date,
       default: null,
       index: true,
     },
-    deletedBy: {
-      type: Schema.Types.ObjectId,
-      ref: "User",
+    updatedBy: {
+      type: String,
       default: null,
     },
   },
@@ -179,7 +179,7 @@ userSchema.index({ status: 1, "verification.emailVerified": 1 }); // Active veri
 userSchema.index({ roles: 1, status: 1 }); // Admin/role queries
 userSchema.index({ createdAt: -1, status: 1 }); // Recent users
 userSchema.index({ "security.lastLoginAt": -1 }); // Recent login sorting
-userSchema.index({ deletedAt: 1 }, { sparse: true }); // Soft delete queries
+userSchema.index({ updatedAt: 1 }, { sparse: true }); // Soft delete queries
 
 // Geospatial Index (nếu cần location-based features)
 userSchema.index({ "addresses.location": "2dsphere" });
@@ -239,14 +239,14 @@ userSchema.methods.resetLoginAttempts = function () {
 userSchema.statics.findByEmail = function (email) {
   return this.findOne({
     email: email.toLowerCase(),
-    deletedAt: null,
+    updatedAt: null,
   });
 };
 
 userSchema.statics.findActiveUsers = function () {
   return this.find({
     status: "active",
-    deletedAt: null,
+    updatedAt: null,
   });
 };
 
@@ -254,7 +254,7 @@ userSchema.statics.findByRole = function (role) {
   return this.find({
     roles: role,
     status: "active",
-    deletedAt: null,
+    updatedAt: null,
   });
 };
 
@@ -264,7 +264,7 @@ userSchema.statics.searchUsers = function (query, options = {}) {
   const searchQuery = {
     $text: { $search: query },
     status,
-    deletedAt: null,
+    updatedAt: null,
   };
 
   if (roles) {
@@ -316,8 +316,8 @@ userSchema.pre(["deleteOne", "deleteMany"], function () {
   this.updateOne(
     {},
     {
-      deletedAt: new Date(),
-      status: "inactive",
+      updatedAt: new Date(),
+      status: StatusCodes.DELETED,
     }
   );
 });
@@ -326,8 +326,8 @@ userSchema.pre(["deleteOne", "deleteMany"], function () {
 userSchema.pre(
   ["find", "findOne", "findOneAndUpdate", "count", "countDocuments"],
   function () {
-    if (!this.getQuery().deletedAt) {
-      this.where({ deletedAt: null });
+    if (!("status" in this.getQuery())) {
+      this.where({ status: { $ne: STATUS.DELETED } });
     }
   }
 );

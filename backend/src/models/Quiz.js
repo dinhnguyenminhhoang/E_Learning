@@ -1,6 +1,7 @@
 "use strict";
 
 const { model, Schema } = require("mongoose");
+const { STATUS } = require("../constants/status.constans");
 
 const DOCUMENT_NAME = "Quiz";
 const COLLECTION_NAME = "Quizzes";
@@ -87,20 +88,34 @@ const quizSchema = new Schema(
       trim: true,
       index: true,
     },
-
+    attachedTo: {
+      kind: {
+        type: String,
+        enum: ["Lesson", "Module", "LearningPath"],
+        required: true,
+      },
+      item: {
+        type: Schema.Types.ObjectId,
+        required: true,
+        refPath: "attachedTo.kind", // dynamic reference
+      },
+    },
     questions: {
       type: [questionSchema],
       default: [],
     },
-
-    deletedAt: {
+    status: {
+      type: String,
+      enum: Object.values(STATUS),
+      default: STATUS.DRAFT,
+    },
+    updatedAt: {
       type: Date,
       default: null,
       index: true,
     },
-    deletedBy: {
-      type: Schema.Types.ObjectId,
-      ref: "User",
+    updatedBy: {
+      type: String,
       default: null,
     },
   },
@@ -109,38 +124,6 @@ const quizSchema = new Schema(
     collection: COLLECTION_NAME,
     minimize: false,
     versionKey: false,
-  }
-);
-
-// ===== VIRTUALS =====
-quizSchema.virtual("questionCount").get(function () {
-  return this.questions?.length || 0;
-});
-
-// ===== METHODS =====
-quizSchema.methods.addQuestion = function (question) {
-  this.questions.push(question);
-  return this.save();
-};
-
-// ===== STATICS =====
-quizSchema.statics.findActive = function () {
-  return this.find({ deletedAt: null });
-};
-
-// ===== MIDDLEWARES =====
-// Soft delete
-quizSchema.pre(["deleteOne", "deleteMany"], function () {
-  this.updateOne({}, { deletedAt: new Date() });
-});
-
-// Query middleware để loại bỏ deleted records
-quizSchema.pre(
-  ["find", "findOne", "findOneAndUpdate", "count", "countDocuments"],
-  function () {
-    if (!this.getQuery().deletedAt) {
-      this.where({ deletedAt: null });
-    }
   }
 );
 

@@ -11,6 +11,7 @@ const {
   WORD_REQUIRED_HEADERS,
   dataSample,
 } = require("../constants/fileUpload");
+const { STATUS } = require("../constants/status.constans");
 
 class WordService {
   async createWord(req) {
@@ -34,7 +35,7 @@ class WordService {
 
     const existingWord = await WordRepository.findByWordText(word);
     if (existingWord) {
-      if (!existingWord.isActive) {
+      if (existingWord.status === STATUS.DELETED) {
         const updated = await WordRepository.updateById(existingWord._id, {
           ...req.body,
         });
@@ -44,7 +45,7 @@ class WordService {
           200
         );
       }
-      return ResponseBuilder.duplicateWordError(word);
+      return ResponseBuilder.duplicateError();
     }
 
     const finalPronunciation = pronunciation;
@@ -82,13 +83,13 @@ class WordService {
       201
     );
   }
+  
   async getWordsByCategory(req) {
     const { categoryId } = req.params;
     const existingCategory = await CategoryRepository.findById(categoryId, {});
     if (!existingCategory) {
-      return ResponseBuilder.notFoundError("Category");
+      return ResponseBuilder.notFoundError();
     }
-    console.log("query params:", req.query);
     const words = await WordRepository.search(
       { categories: [new mongoose.Types.ObjectId(categoryId)] },
       req.query
@@ -106,16 +107,16 @@ class WordService {
     const updateData = req.body;
     const word = await WordRepository.findById(wordId);
     if (!word) {
-      return ResponseBuilder.notFoundError("Word");
+      return ResponseBuilder.notFoundError();
     }
     if (word.word !== updateData.word) {
       const existingWord = await WordRepository.findByWordText(updateData.word);
       if (existingWord) {
-        if (!existingWord.isActive) {
+        if (existingWord.status === STATUS.DELETED) {
           //nếu tồn tại nhưng đã bị xóa mềm thì xóa hẳn và cho phép cập nhật
           await WordRepository.hardDelete(existingWord._id);
         } else {
-          return ResponseBuilder.duplicateWordError(updateData.word);
+          return ResponseBuilder.duplicateError();
         }
       }
     }

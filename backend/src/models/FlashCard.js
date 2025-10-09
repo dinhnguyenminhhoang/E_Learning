@@ -52,12 +52,6 @@ const flashcardSchema = new Schema(
       },
     ],
 
-    isActive: {
-      type: Boolean,
-      default: true,
-      index: true,
-    },
-
     status: {
       type: String,
       enum: Object.values(STATUS),
@@ -65,15 +59,14 @@ const flashcardSchema = new Schema(
       index: true,
     },
 
-    deletedAt: {
+    updatedAt: {
       type: Date,
       default: null,
       index: true,
     },
 
-    deletedBy: {
-      type: Schema.Types.ObjectId,
-      ref: "User",
+    updatedBy: {
+      type: String,
       default: null,
     },
   },
