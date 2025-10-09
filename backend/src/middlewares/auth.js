@@ -1,9 +1,9 @@
 "use strict";
 
-const jwt = require('jsonwebtoken');
-const userRepository = require('../repositories/user.repo');
-const keyTokenRepository = require('../repositories/keyToken.repo');
-const { getRedisHelper } = require('../helpers/redisHelper');
+const jwt = require("jsonwebtoken");
+const userRepository = require("../repositories/user.repo");
+const keyTokenRepository = require("../repositories/keyToken.repo");
+const { getRedisHelper } = require("../helpers/redisHelper");
 
 /**
  * Authentication Middleware
@@ -22,61 +22,69 @@ class AuthMiddleware {
   authenticate = async (req, res, next) => {
     try {
       const token = this.extractToken(req);
+      console.log("Extracted Token:", token);
+      console.log("Authorization:", req.headers.authorization);
 
       if (!token) {
-        return this.unauthorizedResponse(res, 'Access token required');
+        return this.unauthorizedResponse(res, "Access token required");
       }
 
       // Check blacklist
       if (await this.isTokenBlacklisted(token)) {
-        return this.unauthorizedResponse(res, 'Token has been revoked');
+        return this.unauthorizedResponse(res, "Token has been revoked");
       }
 
       // Decode token để lấy keyId
       const decoded = jwt.decode(token);
       if (!decoded || !decoded.keyId) {
-        return this.unauthorizedResponse(res, 'Invalid token format');
+        return this.unauthorizedResponse(res, "Invalid token format");
       }
+
 
       // Get public key từ keyToken
       const keyToken = await keyTokenRepository.findById(decoded.keyId, {
-        includePrivateKey: false
+        includePrivateKey: false,
       });
 
       if (!keyToken || !keyToken.security?.isActive) {
-        return this.unauthorizedResponse(res, 'Token key not found or inactive');
+        return this.unauthorizedResponse(
+          res,
+          "Token key not found or inactive"
+        );
       }
 
       // Verify JWT với public key
       const payload = jwt.verify(token, keyToken.keys.publicKey, {
-        algorithms: ['RS256'],
-        issuer: process.env.JWT_ISSUER || 'portfolio-marketplace',
-        audience: process.env.JWT_AUDIENCE || 'portfolio-api'
+        algorithms: ["RS256"],
+        issuer: process.env.JWT_ISSUER || "portfolio-marketplace",
+        audience: process.env.JWT_AUDIENCE || "portfolio-api",
       });
-
+      console.log("Token payload:", payload);
       // Get user info
       const user = await userRepository.findById(payload.userId, {
-        includeSensitive: false
+        includeSensitive: false,
       });
-
+      console.log("Authenticated user:", user);
       if (!user) {
-        return this.unauthorizedResponse(res, 'User not found');
+        return this.unauthorizedResponse(res, "User not found");
       }
 
+
+
       // Check user status
-      if (user.status !== 'active') {
-        return this.unauthorizedResponse(res, 'Account is not active');
+      if (user.status !== "active") {
+        return this.unauthorizedResponse(res, "Account is not active");
       }
 
       // Check if user is locked
-      if (user.security?.lockUntil && user.security.lockUntil > Date.now()) {
-        return this.unauthorizedResponse(res, 'Account is temporarily locked');
+      if (user.security?.lockUntil && user.security.lockUsntil > Date.now()) {
+        return this.unauthorizedResponse(res, "Account is temporarily locked");
       }
 
       // Update token usage
       await keyTokenRepository.updateUsage(keyToken._id, {
         ipAddress: req.ip,
-        userAgent: req.headers['user-agent']
+        userAgent: req.headers["user-agent"],
       });
 
       // Attach user và token info to request
@@ -84,29 +92,29 @@ class AuthMiddleware {
       req.token = {
         payload,
         keyId: keyToken._id,
-        accessToken: token
+        accessToken: token,
       };
 
       // Log successful authentication (dev only)
-      if (process.env.NODE_ENV === 'dev') {
+      if (process.env.NODE_ENV === "dev") {
         console.log(`🔐 Authenticated user: ${user.email} (${user._id})`);
       }
 
       next();
     } catch (error) {
-      console.error('❌ Authentication error:', error);
+      console.error("❌ Authentication error:", error);
 
-      if (error.name === 'JsonWebTokenError') {
-        return this.unauthorizedResponse(res, 'Invalid token');
+      if (error.name === "JsonWebTokenError") {
+        return this.unauthorizedResponse(res, "Invalid token");
       }
-      if (error.name === 'TokenExpiredError') {
-        return this.unauthorizedResponse(res, 'Token expired');
+      if (error.name === "TokenExpiredError") {
+        return this.unauthorizedResponse(res, "Token expired");
       }
-      if (error.name === 'NotBeforeError') {
-        return this.unauthorizedResponse(res, 'Token not active');
+      if (error.name === "NotBeforeError") {
+        return this.unauthorizedResponse(res, "Token not active");
       }
 
-      return this.unauthorizedResponse(res, 'Authentication failed');
+      return this.unauthorizedResponse(res, "Authentication failed");
     }
   };
 
@@ -151,19 +159,21 @@ class AuthMiddleware {
           requireEmailVerification = false,
           requireTwoFactor = false,
           allowSelfAccess = false,
-          resourceIdParam = null
+          resourceIdParam = null,
         } = options;
 
         // Check if user is authenticated
         if (!req.user) {
-          return this.forbiddenResponse(res, 'Authentication required');
+          return this.forbiddenResponse(res, "Authentication required");
         }
 
         const userRoles = req.user.roles || [];
-        const rolesArray = Array.isArray(allowedRoles) ? allowedRoles : [allowedRoles];
+        const rolesArray = Array.isArray(allowedRoles)
+          ? allowedRoles
+          : [allowedRoles];
 
         // Check role permissions
-        const hasRole = rolesArray.some(role => userRoles.includes(role));
+        const hasRole = rolesArray.some((role) => userRoles.includes(role));
 
         // Check self access (user accessing their own resources)
         let hasSelfAccess = false;
@@ -173,28 +183,33 @@ class AuthMiddleware {
         }
 
         if (!hasRole && !hasSelfAccess) {
-          return this.forbiddenResponse(res, 'Insufficient permissions');
+          return this.forbiddenResponse(res, "Insufficient permissions");
         }
 
         // Check email verification
         if (requireEmailVerification && !req.user.verification?.emailVerified) {
-          return this.forbiddenResponse(res, 'Email verification required');
+          return this.forbiddenResponse(res, "Email verification required");
         }
 
         // Check two-factor authentication
         if (requireTwoFactor && !req.user.verification?.twoFactorEnabled) {
-          return this.forbiddenResponse(res, 'Two-factor authentication required');
+          return this.forbiddenResponse(
+            res,
+            "Two-factor authentication required"
+          );
         }
 
         // Log authorization (dev only)
-        if (process.env.NODE_ENV === 'dev') {
-          console.log(`🛡️ Authorized user: ${req.user.email} for roles: ${rolesArray.join(', ')}`);
+        if (process.env.NODE_ENV === "dev") {
+          console.log(
+            `🛡️ Authorized user: ${req.user.email} for roles: ${rolesArray.join(", ")}`
+          );
         }
 
         next();
       } catch (error) {
-        console.error('❌ Authorization error:', error);
-        return this.forbiddenResponse(res, 'Authorization failed');
+        console.error("❌ Authorization error:", error);
+        return this.forbiddenResponse(res, "Authorization failed");
       }
     };
   };
@@ -202,32 +217,32 @@ class AuthMiddleware {
   /**
    * Admin-only middleware
    */
-  adminOnly = this.authorize(['ADMIN'], {
-    requireEmailVerification: true
+  adminOnly = this.authorize(["ADMIN"], {
+    requireEmailVerification: true,
   });
 
   /**
    * Manager or Admin middleware
    */
-  managerOrAdmin = this.authorize(['MANAGER', 'ADMIN'], {
-    requireEmailVerification: true
+  managerOrAdmin = this.authorize(["MANAGER", "ADMIN"], {
+    requireEmailVerification: true,
   });
 
   /**
    * Seller authorization
    */
-  sellerAuth = this.authorize(['SELLER', 'ADMIN'], {
+  sellerAuth = this.authorize(["SELLER", "ADMIN"], {
     requireEmailVerification: true,
     allowSelfAccess: true,
-    resourceIdParam: 'userId'
+    resourceIdParam: "userId",
   });
 
   /**
    * Owner or Admin access (for user resources)
    */
-  ownerOrAdmin = this.authorize(['ADMIN'], {
+  ownerOrAdmin = this.authorize(["ADMIN"], {
     allowSelfAccess: true,
-    resourceIdParam: 'userId'
+    resourceIdParam: "userId",
   });
 
   /**
@@ -235,11 +250,11 @@ class AuthMiddleware {
    */
   verifiedOnly = async (req, res, next) => {
     if (!req.user) {
-      return this.unauthorizedResponse(res, 'Authentication required');
+      return this.unauthorizedResponse(res, "Authentication required");
     }
 
     if (!req.user.verification?.emailVerified) {
-      return this.forbiddenResponse(res, 'Email verification required');
+      return this.forbiddenResponse(res, "Email verification required");
     }
 
     next();
@@ -253,7 +268,7 @@ class AuthMiddleware {
     const {
       windowMs = 60000, // 1 minute
       maxRequests = 100,
-      skipSuccessfulRequests = false
+      skipSuccessfulRequests = false,
     } = options;
 
     return async (req, res, next) => {
@@ -265,13 +280,13 @@ class AuthMiddleware {
         const cacheKey = `user_rate_limit:${req.user._id}:${Math.floor(Date.now() / windowMs)}`;
 
         await this.redis.connect();
-        const currentCount = await this.redis.get(cacheKey) || 0;
+        const currentCount = (await this.redis.get(cacheKey)) || 0;
 
         if (parseInt(currentCount) >= maxRequests) {
           return res.status(429).json({
-            error: 'Rate limit exceeded',
+            error: "Rate limit exceeded",
             message: `Too many requests. Limit: ${maxRequests} per ${windowMs / 1000} seconds`,
-            retryAfter: Math.ceil(windowMs / 1000)
+            retryAfter: Math.ceil(windowMs / 1000),
           });
         }
 
@@ -281,7 +296,7 @@ class AuthMiddleware {
 
         next();
       } catch (error) {
-        console.error('❌ User rate limit error:', error);
+        console.error("❌ User rate limit error:", error);
         next(); // Continue on error
       }
     };
@@ -296,11 +311,11 @@ class AuthMiddleware {
 
     return async (req, res, next) => {
       try {
-        const apiKey = req.headers['x-api-key'] || req.query.apiKey;
+        const apiKey = req.headers["x-api-key"] || req.query.apiKey;
 
         if (!apiKey) {
           if (required) {
-            return this.unauthorizedResponse(res, 'API key required');
+            return this.unauthorizedResponse(res, "API key required");
           }
           return next();
         }
@@ -310,11 +325,11 @@ class AuthMiddleware {
         const keyData = await this.getApiKeyData(apiKey);
 
         if (!isValid || !keyData) {
-          return this.unauthorizedResponse(res, 'Invalid API key');
+          return this.unauthorizedResponse(res, "Invalid API key");
         }
 
         if (adminOnly && !keyData.isAdmin) {
-          return this.forbiddenResponse(res, 'Admin API key required');
+          return this.forbiddenResponse(res, "Admin API key required");
         }
 
         // Attach API key info
@@ -322,8 +337,8 @@ class AuthMiddleware {
 
         next();
       } catch (error) {
-        console.error('❌ API key authentication error:', error);
-        return this.unauthorizedResponse(res, 'API key authentication failed');
+        console.error("❌ API key authentication error:", error);
+        return this.unauthorizedResponse(res, "API key authentication failed");
       }
     };
   };
@@ -335,31 +350,31 @@ class AuthMiddleware {
   deviceAuth = async (req, res, next) => {
     try {
       if (!req.user || !req.token) {
-        return this.unauthorizedResponse(res, 'Authentication required');
+        return this.unauthorizedResponse(res, "Authentication required");
       }
 
-      const deviceId = req.headers['x-device-id'];
+      const deviceId = req.headers["x-device-id"];
       if (!deviceId) {
-        return this.unauthorizedResponse(res, 'Device ID required');
+        return this.unauthorizedResponse(res, "Device ID required");
       }
 
       // Check if token belongs to this device
       const keyToken = await keyTokenRepository.findById(req.token.keyId);
 
       if (!keyToken || keyToken.session?.deviceId !== deviceId) {
-        return this.unauthorizedResponse(res, 'Invalid device');
+        return this.unauthorizedResponse(res, "Invalid device");
       }
 
       req.device = {
         id: deviceId,
         type: keyToken.session?.deviceType,
-        lastUsed: keyToken.session?.lastUsedAt
+        lastUsed: keyToken.session?.lastUsedAt,
       };
 
       next();
     } catch (error) {
-      console.error('❌ Device authentication error:', error);
-      return this.unauthorizedResponse(res, 'Device authentication failed');
+      console.error("❌ Device authentication error:", error);
+      return this.unauthorizedResponse(res, "Device authentication failed");
     }
   };
 
@@ -380,7 +395,7 @@ class AuthMiddleware {
       const sessionData = await this.redis.get(sessionKey, true);
 
       if (!sessionData) {
-        return this.unauthorizedResponse(res, 'Session expired');
+        return this.unauthorizedResponse(res, "Session expired");
       }
 
       // Update session last activity
@@ -390,7 +405,7 @@ class AuthMiddleware {
       req.session = sessionData;
       next();
     } catch (error) {
-      console.error('❌ Session validation error:', error);
+      console.error("❌ Session validation error:", error);
       next(); // Continue on error
     }
   };
@@ -401,16 +416,16 @@ class AuthMiddleware {
   securityHeaders = (req, res, next) => {
     // Set security headers
     res.set({
-      'X-Content-Type-Options': 'nosniff',
-      'X-Frame-Options': 'DENY',
-      'X-XSS-Protection': '1; mode=block',
-      'Strict-Transport-Security': 'max-age=31536000; includeSubDomains',
-      'Referrer-Policy': 'strict-origin-when-cross-origin',
-      'Permissions-Policy': 'geolocation=(), microphone=(), camera=()'
+      "X-Content-Type-Options": "nosniff",
+      "X-Frame-Options": "DENY",
+      "X-XSS-Protection": "1; mode=block",
+      "Strict-Transport-Security": "max-age=31536000; includeSubDomains",
+      "Referrer-Policy": "strict-origin-when-cross-origin",
+      "Permissions-Policy": "geolocation=(), microphone=(), camera=()",
     });
 
     // Remove server info
-    res.removeHeader('X-Powered-By');
+    res.removeHeader("X-Powered-By");
 
     next();
   };
@@ -420,26 +435,32 @@ class AuthMiddleware {
    */
   corsAuth = (options = {}) => {
     const {
-      allowedOrigins = ['http://localhost:3000'],
-      allowCredentials = true
+      allowedOrigins = ["http://localhost:3000"],
+      allowCredentials = true,
     } = options;
 
     return (req, res, next) => {
       const origin = req.headers.origin;
 
       // Check if origin is allowed
-      if (allowedOrigins.includes('*') || allowedOrigins.includes(origin)) {
-        res.header('Access-Control-Allow-Origin', origin);
+      if (allowedOrigins.includes("*") || allowedOrigins.includes(origin)) {
+        res.header("Access-Control-Allow-Origin", origin);
       }
 
       if (allowCredentials) {
-        res.header('Access-Control-Allow-Credentials', 'true');
+        res.header("Access-Control-Allow-Credentials", "true");
       }
 
-      res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS,PATCH');
-      res.header('Access-Control-Allow-Headers', 'Origin,X-Requested-With,Content-Type,Accept,Authorization,X-Device-ID,X-API-Key');
+      res.header(
+        "Access-Control-Allow-Methods",
+        "GET,PUT,POST,DELETE,OPTIONS,PATCH"
+      );
+      res.header(
+        "Access-Control-Allow-Headers",
+        "Origin,X-Requested-With,Content-Type,Accept,Authorization,X-Device-ID,X-API-Key"
+      );
 
-      if (req.method === 'OPTIONS') {
+      if (req.method === "OPTIONS") {
         return res.sendStatus(200);
       }
 
@@ -457,7 +478,7 @@ class AuthMiddleware {
   extractToken(req) {
     // Authorization header: "Bearer <token>"
     const authHeader = req.headers.authorization;
-    if (authHeader && authHeader.startsWith('Bearer ')) {
+    if (authHeader && authHeader.startsWith("Bearer ")) {
       return authHeader.substring(7);
     }
 
@@ -497,7 +518,7 @@ class AuthMiddleware {
 
       return false;
     } catch (error) {
-      console.error('❌ Error checking token blacklist:', error);
+      console.error("❌ Error checking token blacklist:", error);
       return false; // Fail open
     }
   }
@@ -510,12 +531,12 @@ class AuthMiddleware {
   async blacklistToken(token, expirySeconds = 3600) {
     try {
       await this.redis.connect();
-      await this.redis.set(`blacklist:${token}`, '1', { ttl: expirySeconds });
+      await this.redis.set(`blacklist:${token}`, "1", { ttl: expirySeconds });
       this.tokenBlacklist.add(token);
 
       console.log(`🚫 Token blacklisted for ${expirySeconds} seconds`);
     } catch (error) {
-      console.error('❌ Error blacklisting token:', error);
+      console.error("❌ Error blacklisting token:", error);
     }
   }
 
@@ -530,10 +551,10 @@ class AuthMiddleware {
       // Could check database, Redis, or external service
 
       // Simple validation for demo
-      const validKeys = process.env.VALID_API_KEYS?.split(',') || [];
+      const validKeys = process.env.VALID_API_KEYS?.split(",") || [];
       return validKeys.includes(apiKey);
     } catch (error) {
-      console.error('❌ Error validating API key:', error);
+      console.error("❌ Error validating API key:", error);
       return false;
     }
   }
@@ -548,12 +569,12 @@ class AuthMiddleware {
       // Return API key metadata
       return {
         key: apiKey,
-        isAdmin: apiKey.startsWith('admin_'),
-        permissions: ['read', 'write'],
-        rateLimit: 1000
+        isAdmin: apiKey.startsWith("admin_"),
+        permissions: ["read", "write"],
+        rateLimit: 1000,
       };
     } catch (error) {
-      console.error('❌ Error getting API key data:', error);
+      console.error("❌ Error getting API key data:", error);
       return null;
     }
   }
@@ -561,24 +582,24 @@ class AuthMiddleware {
   /**
    * Unauthorized response
    */
-  unauthorizedResponse(res, message = 'Unauthorized') {
+  unauthorizedResponse(res, message = "Unauthorized") {
     return res.status(401).json({
-      error: 'Unauthorized',
+      error: "Unauthorized",
       message,
-      code: 'AUTH_REQUIRED',
-      timestamp: new Date().toISOString()
+      code: "AUTH_REQUIRED",
+      timestamp: new Date().toISOString(),
     });
   }
 
   /**
    * Forbidden response
    */
-  forbiddenResponse(res, message = 'Forbidden') {
+  forbiddenResponse(res, message = "Forbidden") {
     return res.status(403).json({
-      error: 'Forbidden',
+      error: "Forbidden",
       message,
-      code: 'INSUFFICIENT_PERMISSIONS',
-      timestamp: new Date().toISOString()
+      code: "INSUFFICIENT_PERMISSIONS",
+      timestamp: new Date().toISOString(),
     });
   }
 }

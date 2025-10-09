@@ -56,15 +56,14 @@ const userNotificationSchema = new Schema(
       default: false,
     },
 
-    deletedAt: {
+    updatedAt: {
       type: Date,
       default: null,
       index: true,
     },
 
-    deletedBy: {
-      type: Schema.Types.ObjectId,
-      ref: "User",
+    updatedBy: {
+      type: String,
       default: null,
     },
   },
@@ -83,7 +82,7 @@ userNotificationSchema.index({ sentAt: 1 });
 
 // ===== STATICS =====
 userNotificationSchema.statics.findUnreadByUser = function (userId) {
-  return this.find({ user: userId, isRead: false, deletedAt: null }).sort({
+  return this.find({ user: userId, isRead: false, updatedAt: null }).sort({
     createdAt: -1,
   });
 };
@@ -91,15 +90,15 @@ userNotificationSchema.statics.findUnreadByUser = function (userId) {
 // ===== MIDDLEWARES =====
 // Soft delete
 userNotificationSchema.pre(["deleteOne", "deleteMany"], function () {
-  this.updateOne({}, { deletedAt: new Date() });
+  this.updateOne({}, { updatedAt: new Date() });
 });
 
 // Query middleware để tự động filter soft delete
 userNotificationSchema.pre(
   ["find", "findOne", "findOneAndUpdate", "count", "countDocuments"],
   function () {
-    if (!this.getQuery().deletedAt) {
-      this.where({ deletedAt: null });
+    if (!("status" in this.getQuery())) {
+      this.where({ status: { $ne: STATUS.DELETED } });
     }
   }
 );

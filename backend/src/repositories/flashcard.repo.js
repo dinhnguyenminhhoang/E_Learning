@@ -1,15 +1,15 @@
 "use strict";
-
-const Flashcard = require("../models/Flashcard");
+const { STATUS } = require("../constants/status.constans");
 const { NotFoundError } = require("../core/error.response");
+const FlashCard = require("../models/FlashCard");
 
 class FlashcardRepository {
   constructor() {
-    this.model = Flashcard;
+    this.model = FlashCard;
     this.defaultPopulate = [
       { path: "word", select: "text" },
       { path: "cardDeck", select: "name" },
-      { path: "deletedBy", select: "name email" },
+      { path: "updatedBy", select: "name email" },
     ];
   }
 
@@ -41,9 +41,22 @@ class FlashcardRepository {
     }
   }
 
+  /**
+   * @param {string} word
+   * @returns {Promise<Object|null>}
+   */
+  async getFlashCardByFrontBack(frontText) {
+    try {
+      return await this.model.findOne({ frontText });
+    } catch (error) {
+      console.error("❌ Error finding category by name:", error);
+      throw error;
+    }
+  }
+
   async list() {
     try {
-      const query = { status: "active", deletedAt: null };
+      const query = { status: "active" };
       const flashcards = await this.model.find(query);
 
       console.log("💡 Flashcards returned:", flashcards.length);
@@ -57,13 +70,13 @@ class FlashcardRepository {
   async findByDeck(deckId) {
     return this.model.find({
       cardDeck: deckId,
-      status: "active",
-      deletedAt: null,
+      status: STATUS.ACTIVE,
+      updatedAt: null,
     });
   }
 
   async findByDifficulty(difficulty) {
-    return this.model.find({ difficulty, status: "active", deletedAt: null });
+    return this.model.find({ difficulty, status: "active", updatedAt: null });
   }
 
   async search(query, options = {}) {
@@ -72,7 +85,7 @@ class FlashcardRepository {
       const searchQuery = {
         $text: { $search: query },
         status: "active",
-        deletedAt: null,
+        updatedAt: null,
       };
 
       return this.model
@@ -93,8 +106,11 @@ class FlashcardRepository {
 
       let query = this.model.findOneAndUpdate(
         { _id: id },
-        data,
-        { new: returnNew, runValidators: true }
+        { $set: data },
+        {
+          new: returnNew,
+          runValidators: true,
+        }
       );
 
       if (populate) query = query.populate(this.defaultPopulate);
@@ -114,7 +130,7 @@ class FlashcardRepository {
       const flashcard = await this.model.findById(id);
       if (!flashcard) throw new NotFoundError("Flashcard not found");
 
-      flashcard.isActive = !flashcard.isActive;
+      flashcard.status = !flashcard.status;
       await flashcard.save();
       return flashcard;
     } catch (error) {
@@ -124,11 +140,11 @@ class FlashcardRepository {
   }
 
   // ===== DELETE =====
-  async softDelete(id, userId) {
+  async softDelete(id) {
     try {
       const deleted = await this.model.findByIdAndUpdate(
         id,
-        { deletedAt: new Date(), deletedBy: userId, status: "inactive" },
+        { updatedAt: new Date(), status: "inactive" },
         { new: true }
       );
 
@@ -144,6 +160,27 @@ class FlashcardRepository {
   // ===== CUSTOM LOGIC =====
   isHard(flashcard) {
     return flashcard.difficulty === "hard";
+  }
+
+  async updateStatusFlashcards(flashcardIds, newStatus) {
+    const session = await this.model.startSession();
+    session.startTransaction();
+
+    try {
+      const result = await this.model.updateMany(
+        { _id: { $in: flashcardIds } },
+        { $set: { status: newStatus } },
+        { session }
+      );
+
+      await session.commitTransaction();
+      return result;
+    } catch (error) {
+      await session.abortTransaction();
+      throw error;
+    } finally {
+      session.endSession();
+    }
   }
 }
 
