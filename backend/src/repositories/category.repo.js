@@ -13,7 +13,7 @@ class CategoryRepository {
     this.model = Category;
     this.defaultPopulate = [
       { path: "parentCategory", select: "name nameVi slug" },
-      { path: "deletedBy", select: "name email" },
+      { path: "updatedBy", select: "name email" },
     ];
   }
 
@@ -67,31 +67,13 @@ class CategoryRepository {
    * @param {Object} options - Tùy chọn populate/lean
    * @returns {Promise<Array>} Categories
    */
-  async findAllCategories(options = {}) {
+  async findCategories(populate = false) {
     try {
-      const { populate = true, lean = false } = options;
-
-      let query = this.model.find({});
-
+      let query = this.model.find({ status: STATUS.ACTIVE });
       if (populate) query = query.populate(this.defaultPopulate);
-      if (lean) query = query.lean();
-
-      return await query.exec();
+      return await query.lean();
     } catch (error) {
-      console.error("❌ Error fetching all categories:", error);
-      throw error;
-    }
-  }
-
-  /**
-   * Lấy tất cả active categories
-   * @returns {Promise<Array>} Categories
-   */
-  async findActive() {
-    try {
-      return await this.model.find({ status: STATUS.ACTIVE, deletedAt: null });
-    } catch (error) {
-      console.error("❌ Error finding active categories:", error);
+      console.error("❌ Error fetching active categories:", error);
       throw error;
     }
   }
@@ -101,17 +83,42 @@ class CategoryRepository {
    * @param {string} level - beginner|intermediate|advanced
    * @returns {Promise<Array>} Categories
    */
-  async findByLevel(level) {
+  // async findByLevel(level) {
+  //   try {
+  //     return await this.model.find({
+  //       level,
+  //       status: STATUS.ACTIVE,
+  //       updatedAt: null,
+  //     });
+  //   } catch (error) {
+  //     console.error("❌ Error finding categories by level:", error);
+  //     throw error;
+  //   }
+  // }
+
+  /**
+   * @param {string} name - Category name
+   * @returns {Promise<Object|null>} Category document
+   */
+  async getCategoryByName(name) {
     try {
-      return await this.model.find({
-        level,
-        status: STATUS.ACTIVE,
-        deletedAt: null,
-      });
+      return await this.model.findOne({ name });
     } catch (error) {
-      console.error("❌ Error finding categories by level:", error);
+      console.error("❌ Error finding category by name:", error);
       throw error;
     }
+  }
+
+  /**
+   * Tìm category theo name hoặc slug
+   * @param {string} name - Tên category
+   * @param {string} slug - Slug category
+   * @returns {Promise<Category|null>}
+   */
+  async findByNameOrSlug(name, slug) {
+    return Category.findOne({
+      $or: [{ name }, { slug }],
+    }).lean();
   }
 
   /**
@@ -122,15 +129,14 @@ class CategoryRepository {
    */
   async search(query, options = {}) {
     try {
-      const { limit = 20, skip = 0, level = null } = options;
+      const { limit = 20, skip = 0 } = options;
 
       const searchQuery = {
         $text: { $search: query },
         status: STATUS.ACTIVE,
-        deletedAt: null,
+        updatedAt: null,
       };
 
-      if (level) searchQuery.level = level;
 
       return await this.model
         .find(searchQuery, { score: { $meta: "textScore" } })
@@ -223,17 +229,15 @@ class CategoryRepository {
   /**
    * Soft delete category
    * @param {string} id - Category ID
-   * @param {string} userId - User who deleted
    * @returns {Promise<Object>} Deleted category
    */
-  async softDelete(id, userId) {
+  async softDelete(id) {
     try {
       const deletedCategory = await this.model.findByIdAndUpdate(
         id,
         {
-          deletedAt: new Date(),
+          updatedAt: new Date(),
           status: STATUS.INACTIVE,
-          deletedBy: userId,
         },
         { new: true }
       );
@@ -242,22 +246,16 @@ class CategoryRepository {
         throw new NotFoundError("Category not found");
       }
 
+      await this.model.updateMany(
+        { parentCategory: id },
+        { status: STATUS.INACTIVE, updatedAt: new Date() }
+      );
+
       return deletedCategory;
     } catch (error) {
       console.error("❌ Error soft deleting category:", error);
       throw error;
     }
-  }
-
-  // ===== UTILITY METHODS =====
-
-  /**
-   * Check if category is root
-   * @param {Object} category - Category document
-   * @returns {boolean}
-   */
-  isRoot(category) {
-    return category.parentCategory === null;
   }
 }
 

@@ -8,10 +8,36 @@ const { validateCreateWord } = require("../middlewares/word");
 const upload = require("../middlewares/upload");
 
 const router = Router();
-router.post("/create", auth.authenticate, validateCreateWord, asynchandler(wordController.createWord));
-router.get("/category/:categoryId", asynchandler(wordController.getWordsByCategory));
-router.put("/:wordId", auth.authenticate, validateCreateWord, asynchandler(wordController.updateWord));
-router.delete("/delete/:wordId", auth.authenticate, asynchandler(wordController.deleteWord));
-router.post("/import", auth.authenticate, upload.single("file"), asynchandler(wordController.importWords));
-router.get("/export-sample", auth.authenticate, asynchandler(wordController.exportSampleWords));
+router.post(
+  "/create",
+  auth.authenticate,
+  validateCreateWord,
+  asynchandler(wordController.createWord)
+);
+router.get(
+  "/category/:categoryId",
+  asynchandler(wordController.getWordsByCategory)
+);
+router.put(
+  "/:wordId",
+  auth.authenticate,
+  validateCreateWord,
+  asynchandler(wordController.updateWord)
+);
+router.delete(
+  "/delete/:wordId",
+  auth.authenticate,
+  asynchandler(wordController.deleteWord)
+);
+router.post(
+  "/import",
+  auth.authenticate,
+  upload.single("file"),
+  asynchandler(wordController.importWords)
+);
+router.get(
+  "/export-sample",
+  auth.authenticate,
+  asynchandler(wordController.exportSampleWords)
+);
 module.exports = router;

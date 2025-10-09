@@ -1,6 +1,7 @@
 "use strict";
 
 const { model, Schema } = require("mongoose");
+const { STATUS } = require("../constants/status.constans");
 
 const DOCUMENT_NAME = "UserProgress";
 const COLLECTION_NAME = "UserProgresses";
@@ -69,14 +70,13 @@ const userProgressSchema = new Schema(
       default: 0, // tổng thời gian học (giây hoặc phút)
     },
 
-    deletedAt: {
+    updatedAt: {
       type: Date,
       default: null,
       index: true,
     },
-    deletedBy: {
-      type: Schema.Types.ObjectId,
-      ref: "User",
+    updatedBy: {
+      type: String,
       default: null,
     },
   },
@@ -109,21 +109,21 @@ userProgressSchema.methods.markCompleted = function (score = 100) {
 
 // ===== STATICS =====
 userProgressSchema.statics.findByUserAndPath = function (userId, pathId) {
-  return this.find({ user: userId, learningPath: pathId, deletedAt: null });
+  return this.find({ user: userId, learningPath: pathId, updatedAt: null });
 };
 
 // ===== MIDDLEWARES =====
 // Soft delete
 userProgressSchema.pre(["deleteOne", "deleteMany"], function () {
-  this.updateOne({}, { deletedAt: new Date(), status: "not_started" });
+  this.updateOne({}, { updatedAt: new Date(), status: "not_started" });
 });
 
 // Query middleware để loại bỏ deleted records
 userProgressSchema.pre(
   ["find", "findOne", "findOneAndUpdate", "count", "countDocuments"],
   function () {
-    if (!this.getQuery().deletedAt) {
-      this.where({ deletedAt: null });
+    if (!("status" in this.getQuery())) {
+      this.where({ status: { $ne: STATUS.DELETED } });
     }
   }
 );

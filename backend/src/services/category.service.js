@@ -1,51 +1,93 @@
 "use strict";
 
+const RESPONSE_MESSAGES = require("../constants/responseMessage");
 const categoryRepository = require("../repositories/category.repo");
+const ResponseBuilder = require("../types/response/baseResponse");
+const { STATUS } = require("../constants/status.constans");
 
 class CategoryService {
   async createCategory(data) {
-    return await categoryRepository.createCategory(data);
+    const existingCategory = await categoryRepository.findByNameOrSlug(
+      data.name,
+      data.slug
+    );
+    if (existingCategory) {
+      if (existingCategory.status === STATUS.DELETED) {
+        data.status = STATUS.ACTIVE;
+        const restored = await categoryRepository.updateById(
+          existingCategory._id,
+          data
+        );
+        return ResponseBuilder.success(RESPONSE_MESSAGES.SUCCESS.CREATED, {
+          category: restored,
+
+        });
+      }
+      return ResponseBuilder.duplicateError();
+    }
+
+    const newCategory = await categoryRepository.createCategory(data);
+    return ResponseBuilder.success(RESPONSE_MESSAGES.SUCCESS.CREATED, {
+      category: newCategory,
+    });
   }
 
-  async updateCategory(id, data) {
-    const category = await categoryRepository.updateById(id, data);
+  async updateCategory(categoryId, data) {
+    try {
+      const existingCategory = await categoryRepository.findById(categoryId);
 
-    if (!category) {
-      const err = new Error("Category not found");
-      err.status = 404;
-      throw err;
+      if (!existingCategory) {
+        return ResponseBuilder.notFoundError();
+      }
+
+      if (data.name && data.name !== existingCategory.name) {
+        const existingCategoryWithName =
+          await categoryRepository.getCategoryByName(data.name);
+
+        if (existingCategoryWithName) {
+          if (existingCategoryWithName.status === STATUS.DELETED) {
+            await categoryRepository.deleteCategory(
+              existingCategoryWithName._id
+            );
+          }
+        }
+      }
+      const updateCategory = await categoryRepository.updateById(
+        categoryId,
+        data
+      );
+      return ResponseBuilder.success(RESPONSE_MESSAGES.SUCCESS.UPDATED, {
+        category: updateCategory,
+      });
+    } catch (error) {
+      console.error("❌ Error updating category:", error);
+      return ResponseBuilder.RESPONSE_MESSAGES.ERROR.SERVER_ERROR;
     }
-    return category;
   }
 
   async getCategoryById(id) {
     const category = await categoryRepository.findById(id);
-    if (!category) {
-      const err = new Error("Category not found");
-      err.status = 404;
-      throw err;
+    if (!category || category.length === 0) {
+      return ResponseBuilder.notFoundError();
     }
-    return category;
+    return ResponseBuilder.success(RESPONSE_MESSAGES.SUCCESS.FETCHED, category);
   }
 
   async findAllCategories() {
-    const category = await categoryRepository.findAllCategories();
-    if (!category) {
-      const err = new Error("Category not found");
-      err.status = 404;
-      throw err;
+    const categories = await categoryRepository.findCategories();
+    if (!categories || categories.length === 0) {
+      return ResponseBuilder.notFoundError();
     }
-    return category;
+    return ResponseBuilder.success(RESPONSE_MESSAGES.SUCCESS.FETCHED, categories);
   }
 
   async deleteCategory(id) {
-    const deleted = await categoryRepository.softDelete(id);
-    if (!deleted) {
-      const err = new Error("Category not found");
-      err.status = 404;
-      throw err;
+    const existingCardDeck = await categoryRepository.findById(id);
+    if (!existingCardDeck) {
+      return ResponseBuilder.notFoundError();
     }
-    return true;
+    await categoryRepository.softDelete(id);
+    return ResponseBuilder.success(RESPONSE_MESSAGES.SUCCESS.DELETED);
   }
 }
 

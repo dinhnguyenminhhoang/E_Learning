@@ -6,6 +6,10 @@ const { STATUS } = require("../constants/status.constans");
 const DOCUMENT_NAME = "LearningPath";
 const COLLECTION_NAME = "LearningPaths";
 
+/**
+ * 🔹 Level Schema: Đại diện cho từng cấp trong lộ trình học
+ * Mỗi level có thể chứa nhiều "Lesson" (ref → Category hoặc Quiz)
+ */
 const levelSchema = new Schema(
   {
     order: {
@@ -20,16 +24,55 @@ const levelSchema = new Schema(
       trim: true,
       maxLength: 150,
     },
-    quizzes: [
+    categories: [
       {
-        type: Schema.Types.ObjectId,
-        ref: "Quiz",
+        categoryId: {
+          // Ref Category (cha hoặc con)
+          type: Schema.Types.ObjectId,
+          ref: "Category",
+          required: true,
+        },
+        selectedDecks: [
+          {
+            lessonId: {
+              // Ref childCategory (lesson con) nếu cha
+              type: Schema.Types.ObjectId,
+              ref: "Category",
+            },
+            title: {
+              type: String,
+              trim: true,
+              maxLength: 150,
+            },
+            selectedDeck: {
+              // 1 deck duy nhất cho lesson này trong path
+              type: Schema.Types.ObjectId,
+              ref: "CardDeck",
+              required: true,
+            },
+            // Optional: Lý do chọn (e.g., 'beginner')
+            selectedLevel: {
+              type: String,
+              enum: ["beginner", "intermediate", "advanced"],
+            },
+            exercise: {
+              type: Schema.Types.ObjectId,
+              ref: "Quiz",
+              required: false,
+            },
+          },
+        ],
       },
     ],
+
+    finalQuiz: { type: Schema.Types.ObjectId, ref: "Quiz" },
   },
   { _id: false }
 );
 
+/**
+ * 🔹 LearningPath Schema: Đại diện 1 lộ trình học (ví dụ: “Travel English”)
+ */
 const learningPathSchema = new Schema(
   {
     target: {
@@ -38,6 +81,8 @@ const learningPathSchema = new Schema(
       required: true,
       index: true,
     },
+
+    key: { type: String, unique: true, index: true, required: true },
 
     title: {
       type: String,
@@ -52,11 +97,22 @@ const learningPathSchema = new Schema(
       maxLength: 2000,
     },
 
+    level: {
+      type: String,
+      enum: ["beginner", "intermediate", "advanced"],
+      default: "beginner",
+      index: true,
+    },
+
+    thumbnail: {
+      type: String,
+      default: null,
+    },
+
     levels: {
       type: [levelSchema],
       validate: {
         validator: function (arr) {
-          // order phải là duy nhất trong levels
           const orders = arr.map((l) => l.order);
           return new Set(orders).size === orders.length;
         },
@@ -70,18 +126,6 @@ const learningPathSchema = new Schema(
       default: STATUS.ACTIVE,
       index: true,
     },
-
-    deletedAt: {
-      type: Date,
-      default: null,
-      index: true,
-    },
-
-    deletedBy: {
-      type: Schema.Types.ObjectId,
-      ref: "User",
-      default: null,
-    },
   },
   {
     timestamps: true,
@@ -89,21 +133,17 @@ const learningPathSchema = new Schema(
     minimize: false,
     versionKey: false,
     toJSON: {
-      transform: function (doc, ret) {
-        return ret;
-      },
+      transform: (doc, ret) => ret,
     },
     toObject: {
-      transform: function (doc, ret) {
-        return ret;
-      },
+      transform: (doc, ret) => ret,
     },
   }
 );
 
-// ===== INDEXES =====
 learningPathSchema.index({ title: "text", description: "text" });
 learningPathSchema.index({ target: 1, status: 1 });
+learningPathSchema.index({ level: 1, status: 1 });
 learningPathSchema.index({ createdAt: -1, status: 1 });
 
 // ===== VIRTUALS =====
@@ -124,11 +164,11 @@ learningPathSchema.methods.removeLevel = function (order) {
 
 // ===== STATICS =====
 learningPathSchema.statics.findActivePaths = function () {
-  return this.find({ status: "active", deletedAt: null });
+  return this.find({ status: "active", updatedAt: null });
 };
 
 learningPathSchema.statics.findByTarget = function (targetId) {
-  return this.find({ target: targetId, status: "active", deletedAt: null });
+  return this.find({ target: targetId, status: "active", updatedAt: null });
 };
 
 learningPathSchema.statics.searchPaths = function (query, options = {}) {
@@ -137,7 +177,7 @@ learningPathSchema.statics.searchPaths = function (query, options = {}) {
   const searchQuery = {
     $text: { $search: query },
     status: "active",
-    deletedAt: null,
+    updatedAt: null,
   };
 
   return this.find(searchQuery, { score: { $meta: "textScore" } })
@@ -150,17 +190,17 @@ learningPathSchema.statics.searchPaths = function (query, options = {}) {
 
 // Soft delete
 learningPathSchema.pre(["deleteOne", "deleteMany"], function () {
-  this.updateOne({}, { deletedAt: new Date(), status: "inactive" });
+  this.updateOne({}, { updatedAt: new Date(), status: "inactive" });
 });
 
 // Query middleware để loại bỏ deleted paths
-learningPathSchema.pre(
-  ["find", "findOne", "findOneAndUpdate", "count", "countDocuments"],
-  function () {
-    if (!this.getQuery().deletedAt) {
-      this.where({ deletedAt: null });
-    }
-  }
-);
+// learningPathSchema.pre(
+//   ["find", "findOne", "findOneAndUpdate", "count", "countDocuments"],
+//   function () {
+//     if (!("status" in this.getQuery())) {
+//       this.where({ status: { $ne: STATUS.DELETED } });
+//     }
+//   }
+// );
 
 module.exports = model(DOCUMENT_NAME, learningPathSchema);
