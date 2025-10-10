@@ -1,8 +1,8 @@
 export interface Feature {
-  icon: any;
-  title: string;
+  key: string;
+  label: string;
+  icon: string;
   description: string;
-  color: string;
 }
 
 export interface AgeRange {
@@ -30,4 +30,12 @@ export interface OnboardingFormData {
   age: string;
   goal: string;
   dailyGoal: string;
+}
+export interface Answer {
+  questionKey: string;
+  answerKeys: string[];
+}
+
+export interface OnboardingSubmitData {
+  answers: Answer[];
 }

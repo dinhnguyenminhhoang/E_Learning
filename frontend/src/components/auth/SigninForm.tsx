@@ -1,10 +1,10 @@
-'use client'
+"use client";
 
-import { tokenManager } from '@/configs/instance'
-import { authStorage } from '@/constant/authStorage'
-import { validateEmail, validatePassword } from '@/constant/validate'
-import { signinApi } from '@/services/auth'
-import { SignInFormData, ValidationErrors } from '@/types/form'
+import { tokenManager } from "@/configs/instance";
+import { authStorage } from "@/constant/authStorage";
+import { validateEmail, validatePassword } from "@/constant/validate";
+import { signinApi } from "@/services/auth";
+import { SignInFormData, ValidationErrors } from "@/types/form";
 import {
   AlertCircle,
   CheckCircle,
@@ -19,182 +19,182 @@ import {
   BookOpen,
   Headphones,
   Sparkles,
-} from 'lucide-react'
-import Link from 'next/link'
-import { useRouter, useSearchParams } from 'next/navigation'
-import React, { useEffect, useState } from 'react'
-import { toast } from 'react-hot-toast'
-import MysticBackground from '../MysticBackground/MysticBackground'
+} from "lucide-react";
+import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
+import React, { useEffect, useState } from "react";
+import { toast } from "react-hot-toast";
+import MysticBackground from "../MysticBackground/MysticBackground";
 
-const PLATFORM_NAME = 'E_LEANING'
+const PLATFORM_NAME = "E_LEANING";
 
 export default function SignInForm() {
-  const router = useRouter()
-  const searchParams = useSearchParams()
+  const router = useRouter();
+  const searchParams = useSearchParams();
 
   const [formData, setFormData] = useState<SignInFormData>({
-    email: '',
-    password: '',
+    email: "",
+    password: "",
     rememberMe: false,
-  })
+  });
 
-  const [errors, setErrors] = useState<ValidationErrors>({})
-  const [isLoading, setIsLoading] = useState(false)
-  const [showPassword, setShowPassword] = useState(false)
-  const [isFormTouched, setIsFormTouched] = useState(false)
+  const [errors, setErrors] = useState<ValidationErrors>({});
+  const [isLoading, setIsLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [isFormTouched, setIsFormTouched] = useState(false);
 
   useEffect(() => {
     if (tokenManager.isAuthenticated()) {
-      const returnUrl = searchParams.get('returnUrl') || '/'
-      router.push(returnUrl)
-      return
+      const returnUrl = searchParams.get("returnUrl") || "/";
+      router.push(returnUrl);
+      return;
     }
 
-    const savedEmail = authStorage.getRememberedEmail()
+    const savedEmail = authStorage.getRememberedEmail();
     if (savedEmail) {
-      setFormData((prev) => ({ ...prev, email: savedEmail, rememberMe: true }))
+      setFormData((prev) => ({ ...prev, email: savedEmail, rememberMe: true }));
     }
 
-    const message = searchParams.get('message')
-    if (message === 'login_required') {
-      toast.error('Bạn cần đăng nhập để truy cập trang này')
+    const message = searchParams.get("message");
+    if (message === "login_required") {
+      toast.error("Bạn cần đăng nhập để truy cập trang này");
     }
-  }, [router, searchParams])
+  }, [router, searchParams]);
 
   const validateForm = (): boolean => {
-    const newErrors: ValidationErrors = {}
+    const newErrors: ValidationErrors = {};
 
-    const emailError = validateEmail(formData.email)
-    if (emailError) newErrors.email = emailError
+    const emailError = validateEmail(formData.email);
+    if (emailError) newErrors.email = emailError;
 
-    const passwordError = validatePassword(formData.password)
-    if (passwordError) newErrors.password = passwordError
+    const passwordError = validatePassword(formData.password);
+    if (passwordError) newErrors.password = passwordError;
 
-    setErrors(newErrors)
-    return Object.keys(newErrors).length === 0
-  }
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
 
   const validateField = (field: keyof SignInFormData, value: string) => {
-    let error: string | null = null
+    let error: string | null = null;
 
     switch (field) {
-      case 'email':
-        error = validateEmail(value)
-        break
-      case 'password':
-        error = validatePassword(value)
-        break
+      case "email":
+        error = validateEmail(value);
+        break;
+      case "password":
+        error = validatePassword(value);
+        break;
     }
 
     setErrors((prev) => ({
       ...prev,
       [field]: error,
       general: undefined,
-    }))
-  }
+    }));
+  };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value, type, checked } = e.target
-    const fieldValue = type === 'checkbox' ? checked : value
+    const { name, value, type, checked } = e.target;
+    const fieldValue = type === "checkbox" ? checked : value;
 
-    setFormData((prev) => ({ ...prev, [name]: fieldValue }))
-    setIsFormTouched(true)
+    setFormData((prev) => ({ ...prev, [name]: fieldValue }));
+    setIsFormTouched(true);
 
-    if (isFormTouched && type !== 'checkbox') {
-      validateField(name as keyof SignInFormData, value)
+    if (isFormTouched && type !== "checkbox") {
+      validateField(name as keyof SignInFormData, value);
     }
-  }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
+    e.preventDefault();
 
     if (!validateForm()) {
-      toast.error('Vui lòng kiểm tra lại thông tin')
-      return
+      toast.error("Vui lòng kiểm tra lại thông tin");
+      return;
     }
 
-    setIsLoading(true)
-    setErrors({})
+    setIsLoading(true);
+    setErrors({});
 
     try {
       const response = await signinApi({
         email: formData.email.trim(),
         password: formData.password,
         rememberMe: formData.rememberMe,
-      })
+      });
       if (response.status === 200) {
-        tokenManager.setTokens(response.metadata!.tokens)
-        tokenManager.setUser(response.metadata!.user)
+        tokenManager.setTokens(response.metadata!.tokens);
+        tokenManager.setUser(response.metadata!.user);
 
         if (formData.rememberMe) {
-          authStorage.setRememberedEmail(formData.email)
+          authStorage.setRememberedEmail(formData.email);
         } else {
-          authStorage.removeRememberedEmail()
+          authStorage.removeRememberedEmail();
         }
 
         authStorage.addRecentActivity({
-          type: 'login',
+          type: "login",
           timestamp: Date.now(),
-          ip: 'unknown',
-        })
+          ip: "unknown",
+        });
 
-        toast.success(response!.message || 'Đăng nhập thành công!')
+        toast.success(response!.message || "Đăng nhập thành công!");
 
-        const returnUrl = searchParams.get('returnUrl') || '/'
-        router.push(returnUrl)
+        const returnUrl = searchParams.get("returnUrl") || "/onboarding";
+        router.push(returnUrl);
       } else {
-        throw new Error(response.message || 'Đăng nhập thất bại')
+        throw new Error(response.message || "Đăng nhập thất bại");
       }
     } catch (error: any) {
-      console.error('❌ Sign in error:', error)
+      console.error("❌ Sign in error:", error);
 
       const errorMessage =
-        error.response?.data?.message || error.message || 'Có lỗi xảy ra'
-      const errorCode = error.response?.data?.error?.code
+        error.response?.data?.message || error.message || "Có lỗi xảy ra";
+      const errorCode = error.response?.data?.error?.code;
 
       switch (errorCode) {
-        case 'INVALID_CREDENTIALS':
-          setErrors({ general: 'Email hoặc mật khẩu không đúng' })
-          break
-        case 'EMAIL_NOT_VERIFIED':
+        case "INVALID_CREDENTIALS":
+          setErrors({ general: "Email hoặc mật khẩu không đúng" });
+          break;
+        case "EMAIL_NOT_VERIFIED":
           setErrors({
-            general: 'Email chưa được xác thực. Vui lòng kiểm tra hộp thư.',
-          })
-          break
-        case 'ACCOUNT_BANNED':
+            general: "Email chưa được xác thực. Vui lòng kiểm tra hộp thư.",
+          });
+          break;
+        case "ACCOUNT_BANNED":
           setErrors({
             general:
-              'Tài khoản đã bị khóa. Liên hệ hỗ trợ để biết thêm chi tiết.',
-          })
-          break
-        case 'RATE_LIMIT_EXCEEDED':
+              "Tài khoản đã bị khóa. Liên hệ hỗ trợ để biết thêm chi tiết.",
+          });
+          break;
+        case "RATE_LIMIT_EXCEEDED":
           setErrors({
-            general: 'Quá nhiều lần đăng nhập. Vui lòng thử lại sau.',
-          })
-          break
+            general: "Quá nhiều lần đăng nhập. Vui lòng thử lại sau.",
+          });
+          break;
         default:
-          setErrors({ general: errorMessage })
-          toast.error(errorMessage)
+          setErrors({ general: errorMessage });
+          toast.error(errorMessage);
       }
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
 
-  const handleSocialLogin = async (provider: 'google' | 'github') => {
+  const handleSocialLogin = async (provider: "google" | "github") => {
     try {
-      setIsLoading(true)
+      setIsLoading(true);
 
-      const returnUrl = searchParams.get('returnUrl') || '/'
-      const oauthUrl = `${process.env.NEXT_PUBLIC_API_URL}/v1/api/auth/${provider}?returnUrl=${encodeURIComponent(returnUrl)}`
+      const returnUrl = searchParams.get("returnUrl") || "/";
+      const oauthUrl = `${process.env.NEXT_PUBLIC_API_URL}/v1/api/auth/${provider}?returnUrl=${encodeURIComponent(returnUrl)}`;
 
-      window.location.href = oauthUrl
+      window.location.href = oauthUrl;
     } catch (error) {
-      console.error(`❌ ${provider} login error:`, error)
-      toast.error('Không thể đăng nhập với ' + provider)
-      setIsLoading(false)
+      console.error(`❌ ${provider} login error:`, error);
+      toast.error("Không thể đăng nhập với " + provider);
+      setIsLoading(false);
     }
-  }
+  };
 
   return (
     <div className="relative min-h-screen overflow-hidden bg-gradient-to-br from-sky-950 via-slate-950 to-emerald-950">
@@ -211,7 +211,8 @@ export default function SignInForm() {
               Đăng nhập vào {PLATFORM_NAME}
             </h1>
             <p className="text-base font-light text-teal-100/80">
-              Học tiếng Anh trực tuyến thông minh – cá nhân hoá theo mục tiêu của bạn
+              Học tiếng Anh trực tuyến thông minh – cá nhân hoá theo mục tiêu
+              của bạn
             </p>
             <div className="mt-3 flex items-center justify-center gap-2">
               <BookOpen className="animate-mystic-spin h-4 w-4 text-sky-300" />
@@ -261,10 +262,10 @@ export default function SignInForm() {
                     onChange={handleInputChange}
                     className={`w-full rounded-2xl border py-4 pr-4 pl-12 backdrop-blur-sm transition-all duration-500 focus:shadow-lg ${
                       errors.email
-                        ? 'border-red-500/50 bg-red-950/20 text-red-200 shadow-red-500/20 placeholder:text-red-300/60'
+                        ? "border-red-500/50 bg-red-950/20 text-red-200 shadow-red-500/20 placeholder:text-red-300/60"
                         : formData.email && !errors.email
-                          ? 'border-emerald-500/50 bg-emerald-950/20 text-emerald-100 shadow-emerald-500/20 placeholder:text-emerald-200/60'
-                          : 'border-teal-500/30 bg-sky-950/20 text-teal-100 placeholder:text-teal-300/50 focus:border-teal-400/60 focus:bg-sky-900/30 focus:shadow-sky-500/20'
+                          ? "border-emerald-500/50 bg-emerald-950/20 text-emerald-100 shadow-emerald-500/20 placeholder:text-emerald-200/60"
+                          : "border-teal-500/30 bg-sky-950/20 text-teal-100 placeholder:text-teal-300/50 focus:border-teal-400/60 focus:bg-sky-900/30 focus:shadow-sky-500/20"
                     }`}
                     placeholder="you@example.com"
                   />
@@ -297,17 +298,17 @@ export default function SignInForm() {
                   <input
                     id="password"
                     name="password"
-                    type={showPassword ? 'text' : 'password'}
+                    type={showPassword ? "text" : "password"}
                     autoComplete="current-password"
                     required
                     value={formData.password}
                     onChange={handleInputChange}
                     className={`w-full rounded-2xl border py-4 pr-12 pl-12 backdrop-blur-sm transition-all duration-500 focus:shadow-lg ${
                       errors.password
-                        ? 'border-red-500/50 bg-red-950/20 text-red-200 shadow-red-500/20 placeholder:text-red-300/60'
+                        ? "border-red-500/50 bg-red-950/20 text-red-200 shadow-red-500/20 placeholder:text-red-300/60"
                         : formData.password && !errors.password
-                          ? 'border-emerald-500/50 bg-emerald-950/20 text-emerald-100 shadow-emerald-500/20 placeholder:text-emerald-200/60'
-                          : 'border-teal-500/30 bg-sky-950/20 text-teal-100 placeholder:text-teal-300/50 focus:border-teal-400/60 focus:bg-sky-900/30 focus:shadow-sky-500/20'
+                          ? "border-emerald-500/50 bg-emerald-950/20 text-emerald-100 shadow-emerald-500/20 placeholder:text-emerald-200/60"
+                          : "border-teal-500/30 bg-sky-950/20 text-teal-100 placeholder:text-teal-300/50 focus:border-teal-400/60 focus:bg-sky-900/30 focus:shadow-sky-500/20"
                     }`}
                     placeholder="••••••••"
                   />
@@ -394,7 +395,7 @@ export default function SignInForm() {
               <div className="grid grid-cols-2 gap-4">
                 <button
                   type="button"
-                  onClick={() => handleSocialLogin('google')}
+                  onClick={() => handleSocialLogin("google")}
                   disabled={isLoading}
                   className="group flex items-center justify-center gap-3 rounded-2xl border border-teal-500/20 bg-sky-950/30 px-6 py-4 text-sm font-medium text-teal-100 backdrop-blur-sm transition-all duration-500 hover:border-teal-400/40 hover:bg-sky-900/40 hover:text-teal-50 focus:bg-sky-900/40 disabled:cursor-not-allowed disabled:opacity-50"
                 >
@@ -403,7 +404,7 @@ export default function SignInForm() {
                 </button>
                 <button
                   type="button"
-                  onClick={() => handleSocialLogin('github')}
+                  onClick={() => handleSocialLogin("github")}
                   disabled={isLoading}
                   className="group flex items-center justify-center gap-3 rounded-2xl border border-teal-500/20 bg-sky-950/30 px-6 py-4 text-sm font-medium text-teal-100 backdrop-blur-sm transition-all duration-500 hover:border-teal-400/40 hover:bg-sky-900/40 hover:text-teal-50 focus:bg-sky-900/40 disabled:cursor-not-allowed disabled:opacity-50"
                 >
@@ -416,7 +417,7 @@ export default function SignInForm() {
             {/* Footer inside card */}
             <div className="mt-8 text-center">
               <p className="text-teal-100/80">
-                Chưa có tài khoản?{' '}
+                Chưa có tài khoản?{" "}
                 <Link
                   href="/signup"
                   className="font-medium text-sky-300 transition-all duration-300 hover:text-sky-200"
@@ -430,14 +431,14 @@ export default function SignInForm() {
           {/* Extra links */}
           <div className="mt-6 space-y-2 text-center">
             <p className="text-sm text-teal-200/70">
-              Bằng việc đăng nhập, bạn đồng ý với{' '}
+              Bằng việc đăng nhập, bạn đồng ý với{" "}
               <Link
                 href="/terms"
                 className="text-sky-300 transition-all duration-300 hover:text-sky-200 hover:underline"
               >
                 Điều khoản sử dụng
-              </Link>{' '}
-              và{' '}
+              </Link>{" "}
+              và{" "}
               <Link
                 href="/privacy"
                 className="text-sky-300 transition-all duration-300 hover:text-sky-200 hover:underline"
@@ -446,13 +447,13 @@ export default function SignInForm() {
               </Link>
             </p>
             <p className="text-xs text-teal-200/60">
-              Mẹo: Bạn có thể đăng nhập rồi truy cập{' '}
+              Mẹo: Bạn có thể đăng nhập rồi truy cập{" "}
               <Link
                 href="/courses"
                 className="underline decoration-dotted underline-offset-4"
               >
                 Khóa học
-              </Link>{' '}
+              </Link>{" "}
               để làm bài kiểm tra trình độ đầu vào.
             </p>
           </div>
@@ -461,58 +462,177 @@ export default function SignInForm() {
 
       <style jsx>{`
         @keyframes mystic-twinkle {
-          0%, 100% { opacity: 0.2; transform: scale(1); }
-          50% { opacity: 1; transform: scale(1.3); }
+          0%,
+          100% {
+            opacity: 0.2;
+            transform: scale(1);
+          }
+          50% {
+            opacity: 1;
+            transform: scale(1.3);
+          }
         }
         @keyframes mystic-pulse {
-          0%, 100% { opacity: 0.4; transform: scale(1); }
-          50% { opacity: 0.8; transform: scale(1.05); }
+          0%,
+          100% {
+            opacity: 0.4;
+            transform: scale(1);
+          }
+          50% {
+            opacity: 0.8;
+            transform: scale(1.05);
+          }
         }
         @keyframes mystic-pulse-delayed {
-          0%, 100% { opacity: 0.3; transform: scale(1); }
-          50% { opacity: 0.7; transform: scale(1.1); }
+          0%,
+          100% {
+            opacity: 0.3;
+            transform: scale(1);
+          }
+          50% {
+            opacity: 0.7;
+            transform: scale(1.1);
+          }
         }
         @keyframes mystic-float {
-          0%, 100% { transform: translateX(-50%) translateY(-50%) translateZ(0); }
-          33% { transform: translateX(-50%) translateY(-60%) translateZ(0); }
-          66% { transform: translateX(-50%) translateY(-40%) translateZ(0); }
+          0%,
+          100% {
+            transform: translateX(-50%) translateY(-50%) translateZ(0);
+          }
+          33% {
+            transform: translateX(-50%) translateY(-60%) translateZ(0);
+          }
+          66% {
+            transform: translateX(-50%) translateY(-40%) translateZ(0);
+          }
         }
         @keyframes mystic-drift {
-          0% { transform: translateX(0px) translateY(0px); opacity: 0; }
-          10% { opacity: 0.6; }
-          90% { opacity: 0.6; }
-          100% { transform: translateX(80px) translateY(-80px); opacity: 0; }
+          0% {
+            transform: translateX(0px) translateY(0px);
+            opacity: 0;
+          }
+          10% {
+            opacity: 0.6;
+          }
+          90% {
+            opacity: 0.6;
+          }
+          100% {
+            transform: translateX(80px) translateY(-80px);
+            opacity: 0;
+          }
         }
         @keyframes mystic-flow {
-          0% { opacity: 0; transform: translateX(-50px) scaleX(0); }
-          10% { opacity: 0.8; transform: translateX(-25px) scaleX(1); }
-          90% { opacity: 0.8; transform: translateX(25px) scaleX(1); }
-          100% { opacity: 0; transform: translateX(50px) scaleX(0); }
+          0% {
+            opacity: 0;
+            transform: translateX(-50px) scaleX(0);
+          }
+          10% {
+            opacity: 0.8;
+            transform: translateX(-25px) scaleX(1);
+          }
+          90% {
+            opacity: 0.8;
+            transform: translateX(25px) scaleX(1);
+          }
+          100% {
+            opacity: 0;
+            transform: translateX(50px) scaleX(0);
+          }
         }
         @keyframes mystic-bounce {
-          0%, 100% { transform: translateY(0px); }
-          50% { transform: translateY(-6px); }
+          0%,
+          100% {
+            transform: translateY(0px);
+          }
+          50% {
+            transform: translateY(-6px);
+          }
         }
-        @keyframes mystic-spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        @keyframes mystic-spin-reverse { 0% { transform: rotate(360deg); } 100% { transform: rotate(0deg); } }
-        @keyframes mystic-glow { 0%, 100% { opacity: 0.5; } 50% { opacity: 1; } }
-        @keyframes mystic-shimmer { 0% { transform: translateX(-100%); } 100% { transform: translateX(100%); } }
-        @keyframes mystic-fade-in { 0% { opacity: 0; transform: translateY(10px); } 100% { opacity: 1; transform: translateY(0); } }
+        @keyframes mystic-spin {
+          0% {
+            transform: rotate(0deg);
+          }
+          100% {
+            transform: rotate(360deg);
+          }
+        }
+        @keyframes mystic-spin-reverse {
+          0% {
+            transform: rotate(360deg);
+          }
+          100% {
+            transform: rotate(0deg);
+          }
+        }
+        @keyframes mystic-glow {
+          0%,
+          100% {
+            opacity: 0.5;
+          }
+          50% {
+            opacity: 1;
+          }
+        }
+        @keyframes mystic-shimmer {
+          0% {
+            transform: translateX(-100%);
+          }
+          100% {
+            transform: translateX(100%);
+          }
+        }
+        @keyframes mystic-fade-in {
+          0% {
+            opacity: 0;
+            transform: translateY(10px);
+          }
+          100% {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
 
-        .animate-mystic-twinkle { animation: mystic-twinkle 6s ease-in-out infinite; }
-        .animate-mystic-pulse { animation: mystic-pulse 4s ease-in-out infinite; }
-        .animate-mystic-pulse-delayed { animation: mystic-pulse-delayed 5s ease-in-out infinite; }
-        .animate-mystic-float { animation: mystic-float 10s ease-in-out infinite; }
-        .animate-mystic-drift { animation: mystic-drift 20s linear infinite; }
-        .animate-mystic-flow { animation: mystic-flow 3s ease-out infinite; }
-        .animate-mystic-bounce { animation: mystic-bounce 2s ease-in-out infinite; }
-        .animate-mystic-spin { animation: mystic-spin 8s linear infinite; }
-        .animate-mystic-spin-reverse { animation: mystic-spin-reverse 6s linear infinite; }
-        .animate-mystic-glow { animation: mystic-glow 3s ease-in-out infinite; }
-        .animate-mystic-shimmer { animation: mystic-shimmer 2s ease-in-out; }
-        .animate-mystic-fade-in { animation: mystic-fade-in 0.5s ease-out; }
-        .bg-gradient-radial { background: radial-gradient(circle, var(--tw-gradient-stops)); }
+        .animate-mystic-twinkle {
+          animation: mystic-twinkle 6s ease-in-out infinite;
+        }
+        .animate-mystic-pulse {
+          animation: mystic-pulse 4s ease-in-out infinite;
+        }
+        .animate-mystic-pulse-delayed {
+          animation: mystic-pulse-delayed 5s ease-in-out infinite;
+        }
+        .animate-mystic-float {
+          animation: mystic-float 10s ease-in-out infinite;
+        }
+        .animate-mystic-drift {
+          animation: mystic-drift 20s linear infinite;
+        }
+        .animate-mystic-flow {
+          animation: mystic-flow 3s ease-out infinite;
+        }
+        .animate-mystic-bounce {
+          animation: mystic-bounce 2s ease-in-out infinite;
+        }
+        .animate-mystic-spin {
+          animation: mystic-spin 8s linear infinite;
+        }
+        .animate-mystic-spin-reverse {
+          animation: mystic-spin-reverse 6s linear infinite;
+        }
+        .animate-mystic-glow {
+          animation: mystic-glow 3s ease-in-out infinite;
+        }
+        .animate-mystic-shimmer {
+          animation: mystic-shimmer 2s ease-in-out;
+        }
+        .animate-mystic-fade-in {
+          animation: mystic-fade-in 0.5s ease-out;
+        }
+        .bg-gradient-radial {
+          background: radial-gradient(circle, var(--tw-gradient-stops));
+        }
       `}</style>
     </div>
-  )
+  );
 }
