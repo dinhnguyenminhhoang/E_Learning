@@ -1,17 +1,16 @@
 "use client";
 
-import { AgeStep } from "@/components/onboarding/AgeStep";
 import { DailyGoalStep } from "@/components/onboarding/DailyGoalStep";
 import { GoalStep } from "@/components/onboarding/GoalStep";
 import { WelcomeStep } from "@/components/onboarding/WelcomeStep";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { OnboardingFormData } from "@/types/onboarding";
+import { getQuestionOnboarding, submitOnboarding } from "@/services/onboarding";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { AnimatePresence } from "framer-motion";
 import { ArrowRight, Gamepad2, Lightbulb, Sparkles } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
 
@@ -36,105 +35,84 @@ export const FEATURES = [
   },
 ];
 
-export const AGE_RANGES = [
-  { value: "under-11", label: "Under 11" },
-  { value: "12-17", label: "12 - 17" },
-  { value: "18-24", label: "18 - 24" },
-  { value: "25-34", label: "25 - 34" },
-  { value: "35-44", label: "35 - 44" },
-  { value: "45-54", label: "45 - 54" },
-  { value: "55-65", label: "55 - 65" },
-  { value: "66+", label: "66+" },
-];
-
-export const LEARNING_GOALS = [
-  { value: "personal-growth", label: "Enhance personal growth" },
-  { value: "travel", label: "Prepare for travel and exploration" },
-  { value: "connect", label: "Connect with people" },
-  { value: "education", label: "Support my education" },
-  { value: "career", label: "Boost my career" },
-  { value: "fun", label: "Just for fun and enjoyment" },
-  { value: "content", label: "Access to more content" },
-  { value: "other", label: "Other" },
-];
-
-export const DAILY_GOALS = [
-  {
-    value: "easy",
-    label: "Easy",
-    words: 5,
-    duration: 15,
-    yearly: 1800,
-    color: "text-green-500",
-    icon: "🌱",
-  },
-  {
-    value: "moderate",
-    label: "Moderate",
-    words: 10,
-    duration: 30,
-    yearly: 3600,
-    color: "text-yellow-500",
-    icon: "🔥",
-    recommended: true,
-  },
-  {
-    value: "hard",
-    label: "Hard",
-    words: 15,
-    duration: 45,
-    yearly: 5400,
-    color: "text-orange-500",
-    icon: "💪",
-  },
-  {
-    value: "most-challenged",
-    label: "Most challenged",
-    words: 30,
-    duration: 90,
-    yearly: 10800,
-    color: "text-red-500",
-    icon: "🚀",
-  },
-];
-const onboardingSchema = z.object({
-  age: z.string().min(1, "Please select your age range"),
-  goal: z.string().min(1, "Please select a learning goal"),
-  dailyGoal: z.string().min(1, "Please select a daily goal"),
-});
+const createOnboardingSchema = (steps: any[]) => {
+  const schemaObj: any = {};
+  steps.forEach((step) => {
+    schemaObj[step.key.toLowerCase()] = z
+      .string()
+      .min(1, `Please select ${step.title.toLowerCase()}`);
+  });
+  return z.object(schemaObj);
+};
 
 export default function OnboardingPage() {
   const [step, setStep] = useState(0);
+  const [onboardingSteps, setOnboardingSteps] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
   const navigator = useRouter();
+
+  useEffect(() => {
+    const fetchQuestionsData = async () => {
+      try {
+        setLoading(true);
+        const response = await getQuestionOnboarding();
+        console.log("Response from API:", response);
+
+        if (response.code === 200 && response.data) {
+          setOnboardingSteps(response.data);
+        }
+      } catch (error) {
+        console.error("Error fetching onboarding data:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchQuestionsData();
+  }, []);
+
+  const getDefaultValues = () => {
+    const defaults: any = {};
+    onboardingSteps.forEach((step) => {
+      defaults[step.key.toLowerCase()] = "";
+    });
+    return defaults;
+  };
+
   const {
     setValue,
     watch,
     handleSubmit,
     formState: { errors },
-  } = useForm<OnboardingFormData>({
-    resolver: zodResolver(onboardingSchema),
-    defaultValues: {
-      age: "",
-      goal: "",
-      dailyGoal: "",
-    },
+  } = useForm<any>({
+    resolver:
+      onboardingSteps.length > 0
+        ? zodResolver(createOnboardingSchema(onboardingSteps))
+        : undefined,
+    defaultValues: getDefaultValues(),
   });
 
-  const currentAge = watch("age");
-  const currentGoal = watch("goal");
-  const currentDailyGoal = watch("dailyGoal");
+  const formValues = watch();
 
-  const progress = ((step + 1) / 4) * 100;
+  const totalSteps = onboardingSteps.length + 1;
+  const progress = ((step + 1) / totalSteps) * 100;
 
   const handleNext = () => {
     if (step === 0) {
       setStep(1);
-    } else if (step === 1 && currentAge) {
-      setStep(2);
-    } else if (step === 2 && currentGoal) {
-      setStep(3);
-    } else if (step === 3 && currentDailyGoal) {
-      handleSubmit(onSubmit)();
+    } else if (step < totalSteps - 1) {
+      const currentStepData = onboardingSteps[step - 1];
+      const currentValue = formValues[currentStepData.key.toLowerCase()];
+
+      if (currentValue) {
+        setStep(step + 1);
+      }
+    } else {
+      const currentStepData = onboardingSteps[step - 1];
+      const currentValue = formValues[currentStepData.key.toLowerCase()];
+
+      if (currentValue) {
+        handleSubmit(onSubmit)();
+      }
     }
   };
 
@@ -142,16 +120,115 @@ export default function OnboardingPage() {
     if (step > 0) setStep(step - 1);
   };
 
-  const onSubmit = (data: OnboardingFormData) => {
-    console.log("Onboarding completed:", data);
-    navigator.push("/learn");
+  const onSubmit = async (data: any) => {
+    try {
+      const formattedData = {
+        answers: onboardingSteps.map((step) => ({
+          questionKey: step.key,
+          answerKeys: [data[step.key.toLowerCase()]],
+        })),
+      };
+
+      const response = await submitOnboarding(formattedData);
+      console.log("response after submit:", response);
+      if (response.code) {
+        navigator.push("/learn");
+      }
+    } catch (error) {
+      console.error("Error submitting onboarding:", error);
+    }
   };
 
-  const canContinue =
-    step === 0 ||
-    (step === 1 && currentAge) ||
-    (step === 2 && currentGoal) ||
-    (step === 3 && currentDailyGoal);
+  const canContinue = () => {
+    if (step === 0) return true;
+
+    const currentStepData = onboardingSteps[step - 1];
+    if (!currentStepData) return false;
+
+    const currentValue = formValues[currentStepData.key.toLowerCase()];
+    return !!currentValue;
+  };
+
+  const renderStepComponent = () => {
+    if (step === 0) {
+      return <WelcomeStep key="welcome" features={FEATURES} />;
+    }
+
+    const currentStepData = onboardingSteps[step - 1];
+    if (!currentStepData) return null;
+
+    const fieldKey = currentStepData.key.toLowerCase();
+    const currentValue = formValues[fieldKey];
+
+    const mappedOptions = currentStepData.options.map((opt: any) => ({
+      value: opt.key,
+      label: opt.label,
+      icon: opt.icon,
+      description: opt.description,
+    }));
+
+    switch (currentStepData.key) {
+      case "GOALS":
+        return (
+          <GoalStep
+            key={currentStepData.key}
+            goals={mappedOptions}
+            value={currentValue}
+            onChange={(value) => setValue(fieldKey, value)}
+            title={currentStepData.title}
+            description={currentStepData.description}
+          />
+        );
+
+      case "TIME_COMMITMENT":
+        return (
+          <DailyGoalStep
+            key={currentStepData.key}
+            goals={mappedOptions}
+            value={currentValue}
+            onChange={(value) => setValue(fieldKey, value)}
+            title={currentStepData.title}
+            description={currentStepData.description}
+          />
+        );
+
+      case "LEARNING_STYLE":
+      case "LEVEL":
+        return (
+          <GoalStep
+            key={currentStepData.key}
+            goals={mappedOptions}
+            value={currentValue}
+            onChange={(value) => setValue(fieldKey, value)}
+            title={currentStepData.title}
+            description={currentStepData.description}
+          />
+        );
+
+      default:
+        return (
+          <GoalStep
+            key={currentStepData.key}
+            goals={mappedOptions}
+            value={currentValue}
+            onChange={(value) => setValue(fieldKey, value)}
+            title={currentStepData.title}
+            description={currentStepData.description}
+          />
+        );
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading onboarding...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex flex-col">
@@ -159,7 +236,11 @@ export default function OnboardingPage() {
         <h1 className="text-2xl font-semibold text-gray-900">Onboarding</h1>
         {step > 0 && (
           <button
-            onClick={() => alert("Skip onboarding")}
+            onClick={() => {
+              if (confirm("Are you sure you want to skip onboarding?")) {
+                navigator.push("/learn");
+              }
+            }}
             className="text-sm text-gray-600 hover:text-gray-900 flex items-center gap-1"
           >
             Skip onboarding <ArrowRight className="w-4 h-4" />
@@ -172,36 +253,7 @@ export default function OnboardingPage() {
       </div>
 
       <div className="flex-1 flex items-center justify-center px-6 pb-20">
-        <AnimatePresence mode="wait">
-          {step === 0 && <WelcomeStep key="welcome" features={FEATURES} />}
-
-          {step === 1 && (
-            <AgeStep
-              key="age"
-              ageRanges={AGE_RANGES}
-              value={currentAge}
-              onChange={(value) => setValue("age", value)}
-            />
-          )}
-
-          {step === 2 && (
-            <GoalStep
-              key="goal"
-              goals={LEARNING_GOALS}
-              value={currentGoal}
-              onChange={(value) => setValue("goal", value)}
-            />
-          )}
-
-          {step === 3 && (
-            <DailyGoalStep
-              key="daily-goal"
-              goals={DAILY_GOALS}
-              value={currentDailyGoal}
-              onChange={(value) => setValue("dailyGoal", value)}
-            />
-          )}
-        </AnimatePresence>
+        <AnimatePresence mode="wait">{renderStepComponent()}</AnimatePresence>
       </div>
 
       <div className="fixed bottom-0 left-0 right-0 p-6 bg-white border-t border-gray-200">
@@ -219,10 +271,10 @@ export default function OnboardingPage() {
           <Button
             size="lg"
             onClick={handleNext}
-            disabled={!canContinue}
+            disabled={!canContinue()}
             className="flex-1 bg-blue-600 hover:bg-blue-700"
           >
-            Continue
+            {step === totalSteps - 1 ? "Get Started" : "Continue"}
           </Button>
         </div>
       </div>

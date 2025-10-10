@@ -3,7 +3,7 @@ import { User } from './user'
 export interface ApiResponse<T = any> {
   status: number
   message: string
-  metadata?: T
+  data?: T
 }
 
 export interface AuthTokens {
