@@ -17,6 +17,7 @@ class UserLearningPathService {
       learningPathId
     );
 
+    
     if (existing) {
       return null;
     }

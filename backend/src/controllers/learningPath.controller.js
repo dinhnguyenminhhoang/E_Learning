@@ -9,13 +9,12 @@ const LearningPathController = {
   },
 
   async assignLessonToPath(req, res) {
+    
     const response = await LearningPathService.assignLessonToPath(req);
     res.status(response.code).json(response);
   },
 
   async getAllPath(req, res) {
-    console.log("ok");
-
     const response = await LearningPathService.getAllPath(req);
     res.status(response.code).json(response);
   },
