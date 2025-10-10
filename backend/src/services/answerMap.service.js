@@ -23,22 +23,16 @@ class AnswerMapService {
 
     const targetMapping =
       await answerMapRepo.findMappedTargetByAnswer(levelAnswer);
+
     if (!targetMapping) {
       return ResponseBuilder.notFoundError("No target found for given answers");
-    }
-
-    const { target, learningPath } = targetMapping;
-    if (!target || !learningPath) {
-      return ResponseBuilder.notFoundError(
-        "Mapping missing target or learningPath"
-      );
-    }
+    } console.log("targetMapping");
 
     try {
       const assignToUser = await userLearningPathService.assignPathToUser(
         toObjectId(userId),
-        learningPath._id,
-        target._id
+        targetMapping.learningPath,
+        targetMapping.target
       );
       if (!assignToUser) {
         return ResponseBuilder.badRequest();
@@ -50,7 +44,7 @@ class AnswerMapService {
       );
     }
 
-    return ResponseBuilder.success(SUCCESS.CREATED, { target, learningPath });
+    return ResponseBuilder.success(SUCCESS.CREATED);
   }
 }
 

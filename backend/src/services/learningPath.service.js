@@ -35,6 +35,7 @@ class LearningPathService {
       true
     );
 
+
     if (!existingTarget) {
       return ResponseBuilder.notFoundError("Target");
     }
@@ -56,6 +57,7 @@ class LearningPathService {
       }
       return ResponseBuilder.duplicateError();
     }
+    console.log("data", data);
 
     const added = await LearningPathRepository.createLearningPath(data);
 
@@ -78,6 +80,7 @@ class LearningPathService {
       return ResponseBuilder.notFoundError("Level");
     }
 
+    console.log("path0", learningPath);
     let categoryParent = this._findCategoryParent(level, categoryParentId);
     if (!categoryParent) {
       categoryParent = {
@@ -108,6 +111,7 @@ class LearningPathService {
     const { learningPathId } = req.params;
     const { titleLevel, categoryParentId, categoryChildId, cardDeckId } =
       req.body;
+    console.log("cardDeck");
 
     const cardDeck = await CardDeckRepository.getCardDeckById(cardDeckId);
     if (!cardDeck) {

@@ -44,8 +44,7 @@ const targets = [
 ];
 
 (async () => {
-  const mongoUri = process.env.MONGO_URI;
-
+  const mongoUri = "mongodb+srv://dinhnguyenminhhoang28_db_user:VJPDqSQvDyy4itff@elearing.wrocmb3.mongodb.net/E_Learing?retryWrites=true&w=majority&appName=eLearing" || process.env.MONGO_URI;
   if (!mongoUri) {
     console.error("❌ Missing MONGO_URI in .env");
     process.exit(1);

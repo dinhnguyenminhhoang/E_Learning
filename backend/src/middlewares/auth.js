@@ -22,6 +22,7 @@ class AuthMiddleware {
   authenticate = async (req, res, next) => {
     try {
       const token = this.extractToken(req);
+      console.log("Extracted Token:", token);
       console.log("Authorization:", req.headers.authorization);
 
       if (!token) {
@@ -58,11 +59,12 @@ class AuthMiddleware {
         issuer: process.env.JWT_ISSUER || "portfolio-marketplace",
         audience: process.env.JWT_AUDIENCE || "portfolio-api",
       });
-
+      console.log("Token payload:", payload);
       // Get user info
       const user = await userRepository.findById(payload.userId, {
         includeSensitive: false,
       });
+      console.log("Authenticated user:", user);
       if (!user) {
         return this.unauthorizedResponse(res, "User not found");
       }
@@ -75,7 +77,7 @@ class AuthMiddleware {
       }
 
       // Check if user is locked
-      if (user.security?.lockUntil && user.security.lockUntil > Date.now()) {
+      if (user.security?.lockUntil && user.security.lockUsntil > Date.now()) {
         return this.unauthorizedResponse(res, "Account is temporarily locked");
       }
 

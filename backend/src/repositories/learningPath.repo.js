@@ -8,8 +8,10 @@ class LearningPathRepository {
     if (!isFindAll) {
       query.status = { $ne: STATUS.DELETED };
     }
-
-    return await LearningPathModel.findOne(query).populate("target");
+    console.log("query", query);
+    const path = await LearningPathModel.findOne(query).populate("target");
+    console.log("path", path);
+    return path;
   }
 
   async addLesson(learningPathId, updatedLevels) {
