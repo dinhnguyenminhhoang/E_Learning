@@ -11,19 +11,15 @@ class UserLearningPathService {
    * @param {String} targetId - ID mục tiêu học tập (optional)
    */
   async assignPathToUser(userId, learningPathId, targetId) {
-    // Kiểm tra xem user đã có lộ trình này chưa
     const existing = await UserLearningPathRepository.findByUserAndPath(
       userId,
       learningPathId
     );
 
-    
     if (existing) {
-      return null;
+      return ResponseBuilder.duplicateError();
     }
-    console.log("ok");
 
-    // Tạo bản ghi mới
     const newRecord = await UserLearningPathRepository.create({
       user: userId,
       learningPath: learningPathId,
@@ -42,7 +38,6 @@ class UserLearningPathService {
     return newRecord;
   }
 
-  // Lấy tất cả lộ trình mà user đã tham gia
   async getUserLearningPaths(userId) {
     const paths = await UserLearningPathRepository.findByUserId(userId);
     return ResponseBuilder.success("Fetched user learning paths", paths);

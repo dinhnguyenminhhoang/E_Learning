@@ -10,7 +10,6 @@ class UserLearningPathRepository {
       .populate("target");
   }
 
-  // Tìm theo user + learningPath (để tránh trùng)
   async findByUserAndPath(userId, learningPathId) {
     return await UserLearningPathModel.findOne({
       user: userId,

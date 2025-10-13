@@ -7,7 +7,8 @@ class OnboardingRepo {
     async getActiveQuestions() {
         return await OnboardingQuestion.find({ status: STATUS.ACTIVE })
             .sort({ order: 1 })
-            .select("key title description type options order ");
+            .select("key title description type options.key options.label options.icon options.description order ")
+            .lean();
     }
 
     async getQuestionByKey(key) {
