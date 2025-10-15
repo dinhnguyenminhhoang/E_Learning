@@ -2,20 +2,33 @@
 const UserOnboardingAnswerRepo = require("../repositories/userOnboardingAnswer.repo");
 const ResponseBuilder = require("../types/response/baseResponse");
 const RESPONSE_MESSAGES = require("../constants/responseMessage");
+const AnswerMapService = require("../services/answerMap.service");
 
 class UserOnboardingAnswerService {
-  async saveAnswers(UserId, answers) {
-    await UserOnboardingAnswerRepo.deleteByUser(UserId);
+  async handleSaveAnswers(userId, answers) {
+    if (!userId) return ResponseBuilder.badRequest("Vui lòng đăng nhập.");
+
+    if (!Array.isArray(answers) || answers.length === 0)
+      return ResponseBuilder.badRequest("Không có dữ liệu câu trả lời.");
+
+    const existingAnswers = await UserOnboardingAnswerRepo.getByUser(userId);
+    if (existingAnswers && existingAnswers.length > 0)
+      return ResponseBuilder.duplicateError();
+
     const docs = answers.map((a) => ({
-      user: UserId,
-      questionKey: a.questionKey,
-      answerKeys: a.answerKeys,
+      user: userId,
+      questionKey: a.questionKey?.toUpperCase(),
+      answerKeys: a.answerKeys?.map((key) => key.toUpperCase()),
     }));
-    const userAnswer = await UserOnboardingAnswerRepo.insertMany(docs);
-    return ResponseBuilder.success(
-      RESPONSE_MESSAGES.SUCCESS.OK,
-      userAnswer
-    );
+
+    const savedAnswers = await UserOnboardingAnswerRepo.insertMany(docs);
+
+    if (!savedAnswers)
+      return ResponseBuilder.badRequest();
+
+    const mapResult = await AnswerMapService.mapAnswerToTarget(userId, answers);
+
+    return mapResult;
   }
 
   async getAnswers(UserId) {

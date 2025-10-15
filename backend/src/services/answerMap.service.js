@@ -6,45 +6,55 @@ const answerMapRepo = require("../repositories/answerMap.repo");
 const learningPathRepo = require("../repositories/learningPath.repo");
 const ResponseBuilder = require("../types/response/baseResponse");
 const userLearningPathService = require("./userLearningPath.service");
+const RESPONSE_MESSAGES = require("../constants/responseMessage");
 
 class AnswerMapService {
   async mapAnswerToTarget(userId, answers) {
-    if (!answers || answers.length === 0) {
-      return ResponseBuilder.notFoundError("No answers provided");
-    }
-
-    const levelAnswer = answers.find(
-      (a) => a.questionKey.toUpperCase() === "LEVEL"
-    );
-
-    if (!levelAnswer || !levelAnswer.answerKeys?.length) {
-      return ResponseBuilder.notFoundError("No LEVEL answer found");
-    }
-
-    const targetMapping =
-      await answerMapRepo.findMappedTargetByAnswer(levelAnswer);
-
-    if (!targetMapping) {
-      return ResponseBuilder.notFoundError("No target found for given answers");
-    } console.log("targetMapping");
-
     try {
+      const levelAnswer = answers.find(
+        (a) => a.questionKey.toUpperCase() === "LEVEL"
+      );
+
+      if (
+        !levelAnswer ||
+        !levelAnswer.answerKeys?.length ||
+        levelAnswer.answerKeys.length === 0
+      ) {
+        return ResponseBuilder.notFoundError(
+          "Không tìm thấy câu trả lời LEVEL."
+        );
+      }
+
+      const targetMapping =
+        await answerMapRepo.findMappedTargetByAnswer(levelAnswer);
+
+      if (!targetMapping) {
+        return ResponseBuilder.notFoundError(
+          "Không tìm thấy mục tiêu học phù hợp."
+        );
+      }
+
       const assignToUser = await userLearningPathService.assignPathToUser(
         toObjectId(userId),
         targetMapping.learningPath,
         targetMapping.target
       );
+
       if (!assignToUser) {
-        return ResponseBuilder.badRequest();
+        return ResponseBuilder.badRequest("Gán lộ trình học thất bại.");
       }
+
+      return ResponseBuilder.success(RESPONSE_MESSAGES.SUCCESS.CREATED);
     } catch (err) {
       console.error(
-        `[mapAnswerToTarget] Failed to assign path for user ${userId}`,
+        `[AnswerMapService] Error mapping answer for user ${userId}:`,
+        err
+      );
+      return ResponseBuilder.error(
+        RESPONSE_MESSAGES.ERROR.INTERNAL_SERVER_ERROR,
         err.message
       );
     }
-
-    return ResponseBuilder.success(SUCCESS.CREATED);
   }
 }
 
