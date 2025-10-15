@@ -32,7 +32,7 @@ const questionSchema = new Schema(
       index: true,
     },
     options: [optionSchema],
-    order: { type: Number },
+    order: { type: Number, index: true },
     status: {
       type: String,
       enum: Object.values(STATUS),
@@ -46,8 +46,7 @@ const questionSchema = new Schema(
   }
 );
 
-questionSchema.index({ order: 1, status: 1 }); // compound index
-questionSchema.index({ title: "text", description: "text" }); // full-text search
+questionSchema.index({ status: 1, order: 1 });
 
 module.exports =
   mongoose.models[DOCUMENT_NAME] || model(DOCUMENT_NAME, questionSchema);
