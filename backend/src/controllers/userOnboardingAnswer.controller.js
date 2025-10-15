@@ -5,11 +5,10 @@ const UserOnboardingAnswerService = require("../services/userOnboardingAnswer.se
 
 class UserOnboardingAnswerController {
   async save(req, res) {
-    const UserId = req.user?._id;
+    const userId = req.user?._id;
     const answers = Array.isArray(req.body.answers) ? req.body.answers : [];
-    await UserOnboardingAnswerService.saveAnswers(UserId, answers);
-    const targets = await answerMapService.mapAnswerToTarget(UserId, answers);
-    return res.status(targets.code).json(targets);
+    const result = await UserOnboardingAnswerService.handleSaveAnswers(userId, answers);
+    return res.status(result.code).json(result);
   }
 
   async get(req, res) {

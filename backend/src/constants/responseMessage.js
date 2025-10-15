@@ -8,8 +8,8 @@ const RESPONSE_MESSAGES = {
   },
   ERROR: {
     VALIDATION_FAILED: "Dữ liệu không hợp lệ",
-    DUPLICATE_WORD: "Từ đã tồn tại",
-    WORD_NOT_FOUND: "không tồn tại",
+    DUPLICATE: "Dữ liệu đã tồn tại",
+    NOT_FOUND: "dữ liệu không tồn tại",
     UNAUTHORIZED: "Bạn chưa được xác thực",
     FORBIDDEN: "Bạn không có quyền truy cập",
     INTERNAL_SERVER_ERROR: "Lỗi máy chủ",
