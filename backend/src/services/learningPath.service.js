@@ -1,5 +1,4 @@
 const LearningPathRepository = require("../repositories/learningPath.repo");
-const CardDeckRepository = require("../repositories/cardDeck.repo");
 const TargetRepository = require("../repositories/target.repo");
 const ResponseBuilder = require("../types/response/baseResponse");
 const { toObjectId } = require("../helpers/idHelper");
@@ -11,16 +10,8 @@ class LearningPathService {
     return learningPath.levels.find((l) => l.title === titleLevel);
   }
 
-  _findCategoryParent(level, categoryParentId) {
-    return level.categories.find(
-      (c) => c.categoryId.toString() === categoryParentId
-    );
-  }
-
-  _findLesson(categoryParent, categoryChildId) {
-    return categoryParent.selectedDecks.find(
-      (l) => l.lessonId.toString() === categoryChildId
-    );
+  _findLesson(level, lessonId) {
+    return level.lessons.find((c) => c.lesson.toString() === lessonId);
   }
 
   static async getPathsByTargets(targetIds) {
@@ -34,7 +25,6 @@ class LearningPathService {
       toObjectId(data.targetId),
       true
     );
-
 
     if (!existingTarget) {
       return ResponseBuilder.notFoundError("Target");
@@ -57,7 +47,6 @@ class LearningPathService {
       }
       return ResponseBuilder.duplicateError();
     }
-    console.log("data", data);
 
     const added = await LearningPathRepository.createLearningPath(data);
 
@@ -67,10 +56,8 @@ class LearningPathService {
   async addLessonToLearningPath({
     learningPathId,
     titleLevel,
-    categoryParentId,
-    categoryChildId,
-    cardDeckId,
-    selectedLevel,
+    lessonId,
+    order,
   }) {
     const learningPath = await LearningPathRepository.findById(learningPathId);
     if (!learningPath) return ResponseBuilder.notFoundError("Learning");
@@ -80,28 +67,15 @@ class LearningPathService {
       return ResponseBuilder.notFoundError("Level");
     }
 
-    console.log("path0", learningPath);
-    let categoryParent = this._findCategoryParent(level, categoryParentId);
-    if (!categoryParent) {
-      categoryParent = {
-        categoryId: toObjectId(categoryParentId),
-        selectedDecks: [],
-      };
-      level.categories.push(categoryParent);
-    }
-
-    let lesson = this._findLesson(categoryParent, categoryChildId);
+    let lesson = this._findLesson(level, lessonId);
     if (lesson) {
-      lesson.selectedDeck = toObjectId(cardDeckId);
-      lesson.selectedLevel = selectedLevel;
-    } else {
-      categoryParent.selectedDecks.push({
-        lessonId: toObjectId(categoryChildId),
-        selectedDeck: toObjectId(cardDeckId),
-        selectedLevel,
-      });
+      return ResponseBuilder.duplicateError("Lesson is existing in path!");
     }
-
+    const addingLesson = {
+      lesson: toObjectId(lessonId),
+      order: order ?? 0,
+    };
+    level.lessons.push(addingLesson);
     const updatedPath = await LearningPathRepository.save(learningPath);
 
     return ResponseBuilder.success("Lesson added successfully", updatedPath);
@@ -109,23 +83,12 @@ class LearningPathService {
 
   async assignLessonToPath(req) {
     const { learningPathId } = req.params;
-    const { titleLevel, categoryParentId, categoryChildId, cardDeckId } =
-      req.body;
-    console.log("cardDeck");
-
-    const cardDeck = await CardDeckRepository.getCardDeckById(cardDeckId);
-    if (!cardDeck) {
-      return ResponseBuilder.notFoundError("Card deck");
-    }
-    const selectedLevel = cardDeck.level;
-
+    const { titleLevel, lessonId, order } = req.body;
     return await this.addLessonToLearningPath({
       learningPathId,
       titleLevel,
-      categoryParentId,
-      categoryChildId,
-      cardDeckId,
-      selectedLevel,
+      lessonId,
+      order,
     });
   }
 
@@ -135,14 +98,8 @@ class LearningPathService {
   }
 
   async getLearningPathHierarchy(req) {
-    const {
-      learningPathId,
-      isLevel,
-      isModule,
-      isLesson,
-      levelOrder,
-      moduleId,
-    } = req.query;
+    const { learningPathId, isLevel, isLesson, isBlock, levelOrder, lessonId } =
+      req.query;
 
     if (isLevel === "true") {
       const path =
@@ -154,41 +111,34 @@ class LearningPathService {
       );
     }
 
-    if (isModule === "true" && levelOrder) {
-      const path = await LearningPathRepository.findModulesByLevel(
+    if (isLesson === "true" && levelOrder) {
+      const path = await LearningPathRepository.findLessonsByLevel(
         learningPathId,
         Number(levelOrder)
       );
       if (!path || !path.levels.length)
         return ResponseBuilder.notFoundError("Level");
 
-      const modules = path.levels[0].categories.map((module) => ({
-        categoryId: module.categoryId,
-        selectedDeckCount: module.selectedDecks?.length ?? 0,
+      const lessons = path.levels[0].lessons.map((module) => ({
+        lesson: module.lesson,
+        order: module.order ?? 0,
+        title: lesson.title ?? "",
       }));
 
-      return ResponseBuilder.success("Fetched modules successfully", modules);
+      return ResponseBuilder.success("Fetched lessons successfully", lessons);
     }
 
-    if (isLesson === "true" && moduleId) {
-      const path = await LearningPathRepository.findLessonsByModule(
+    if (isBlock === "true" && lessonId) {
+      const path = await LearningPathRepository.findBlocksByLesson(
         learningPathId,
-        moduleId
+        Number(levelOrder),
+        lessonId
       );
 
-      if (!path || !path.levels?.[0]?.categories?.[0])
-        return ResponseBuilder.notFoundError("Module");
+      if (!blocks || !blocks.length)
+        return ResponseBuilder.notFoundError("Lesson");
 
-      const lessons = path.levels[0].categories[0].selectedDecks.map(
-        (lesson) => ({
-          lessonId: lesson.lessonId,
-          title: lesson.title,
-          selectedDeck: lesson.selectedDeck,
-          selectedLevel: lesson.selectedLevel,
-        })
-      );
-
-      return ResponseBuilder.success("Fetched lessons successfully", lessons);
+      return ResponseBuilder.success("Fetched blocks successfully", blocks);
     }
 
     return ResponseBuilder.badRequest("Invalid query parameters");
