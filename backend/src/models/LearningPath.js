@@ -2,43 +2,52 @@
 
 const { model, Schema } = require("mongoose");
 const { STATUS } = require("../constants/status.constans");
-
 const DOCUMENT_NAME = "LearningPath";
 const COLLECTION_NAME = "LearningPaths";
 
 /** Level Schema */
-const levelSchema = new Schema(
-  {
-    order: { type: Number, required: true, min: 1, index: true },
-    title: { type: String, required: [true, "Level title is required"], trim: true, maxLength: 150 },
-    categories: [
-      {
-        categoryId: { type: Schema.Types.ObjectId, ref: "Category", required: true },
-        // selectedDecks: 
-        //   {
-        //     lessonId: { type: Schema.Types.ObjectId, ref: "Category" },
-        //     title: { type: String, trim: true, maxLength: 150 },
-        //     selectedDeck: { type: Schema.Types.ObjectId, ref: "CardDeck", required: true },
-        //     selectedLevel: { type: String, enum: ["beginner", "intermediate", "advanced"] },
-        //     exercise: { type: Schema.Types.ObjectId, ref: "Quiz" },
-        //   },
-
-      },
-    ],
-    finalQuiz: { type: Schema.Types.ObjectId, ref: "Quiz" },
+const levelSchema = new Schema({
+  order: { type: Number, required: true, min: 1, index: true },
+  title: {
+    type: String,
+    required: [true, "Level title is required"],
+    trim: true,
+    maxLength: 150,
   },
-  { _id: false }
-);
+  lessons: [
+    {
+      lesson: { type: Schema.Types.ObjectId, ref: "Lesson", required: true },
+      order: { type: Number, required: true },
+    },
+  ],
+  finalQuiz: { type: Schema.Types.ObjectId, ref: "Quiz" },
+});
 
 /** LearningPath Schema */
 const learningPathSchema = new Schema(
   {
-    target: { type: Schema.Types.ObjectId, ref: "Target", required: true, index: true },
+    target: {
+      type: Schema.Types.ObjectId,
+      ref: "Target",
+      required: true,
+      index: true,
+    },
 
     // BẮT BUỘC – nhưng sẽ tự sinh nếu thiếu (xem middleware pre('validate') bên dưới)
-    key: { type: String, unique: true, index: true, required: true, trim: true },
+    key: {
+      type: String,
+      unique: true,
+      index: true,
+      required: true,
+      trim: true,
+    },
 
-    title: { type: String, required: [true, "Learning path title is required"], trim: true, maxLength: 200 },
+    title: {
+      type: String,
+      required: [true, "Learning path title is required"],
+      trim: true,
+      maxLength: 200,
+    },
     description: { type: String, trim: true, maxLength: 2000 },
 
     // Trình độ tổng quát của lộ trình
@@ -102,7 +111,10 @@ learningPathSchema.methods.removeLevel = function (order) {
 };
 
 /** Statics */
-learningPathSchema.statics.findActivePaths = function (filter = {}, options = {}) {
+learningPathSchema.statics.findActivePaths = function (
+  filter = {},
+  options = {}
+) {
   return this.find({ status: STATUS.ACTIVE, ...filter }, null, options);
 };
 learningPathSchema.statics.findByTarget = function (targetId, options = {}) {
@@ -124,7 +136,8 @@ learningPathSchema.pre("validate", function (next) {
   if (!this.key && this.title) {
     this.key = this.title
       .toLowerCase()
-      .normalize("NFD").replace(/[\u0300-\u036f]/g, "") // bỏ dấu tiếng Việt
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "") // bỏ dấu tiếng Việt
       .replace(/[^a-z0-9]+/g, "-")
       .replace(/(^-|-$)+/g, "");
   }
@@ -132,11 +145,17 @@ learningPathSchema.pre("validate", function (next) {
 });
 
 // Soft delete: thay vì xóa, cập nhật status = DELETED (nếu có trong STATUS)
-learningPathSchema.pre("deleteOne", { document: true, query: false }, function (next) {
-  this.status = STATUS.DELETED ?? "deleted";
-  // updatedAt sẽ tự cập nhật nhờ timestamps
-  this.save().then(() => next()).catch(next);
-});
+learningPathSchema.pre(
+  "deleteOne",
+  { document: true, query: false },
+  function (next) {
+    this.status = STATUS.DELETED ?? "deleted";
+    // updatedAt sẽ tự cập nhật nhờ timestamps
+    this.save()
+      .then(() => next())
+      .catch(next);
+  }
+);
 
 // (Tùy nhu cầu) Tự động bỏ qua DELETED trong các truy vấn list
 // learningPathSchema.pre(["find", "findOne", "count", "countDocuments"], function () {

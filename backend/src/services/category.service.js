@@ -12,6 +12,9 @@ class CategoryService {
       data.slug
     );
     if (existingCategory) {
+      if (existingCategory.slug === data.slug) {
+        return ResponseBuilder.duplicateError();
+      }
       if (existingCategory.status === STATUS.DELETED) {
         data.status = STATUS.ACTIVE;
         const restored = await categoryRepository.updateById(
@@ -20,7 +23,6 @@ class CategoryService {
         );
         return ResponseBuilder.success(RESPONSE_MESSAGES.SUCCESS.CREATED, {
           category: restored,
-
         });
       }
       return ResponseBuilder.duplicateError();
@@ -35,9 +37,16 @@ class CategoryService {
   async updateCategory(categoryId, data) {
     try {
       const existingCategory = await categoryRepository.findById(categoryId);
-
+      const existingCategoryBySlug = await categoryRepository.findByNameOrSlug(
+        "",
+        data.slug
+      );
+      console.log("slug by cate", existingCategoryBySlug);
       if (!existingCategory) {
         return ResponseBuilder.notFoundError();
+      }
+      if (existingCategoryBySlug && existingCategoryBySlug.slug === existingCategory.slug) {
+        return ResponseBuilder.duplicateError();
       }
 
       if (data.name && data.name !== existingCategory.name) {
@@ -78,7 +87,10 @@ class CategoryService {
     if (!categories || categories.length === 0) {
       return ResponseBuilder.notFoundError();
     }
-    return ResponseBuilder.success(RESPONSE_MESSAGES.SUCCESS.FETCHED, categories);
+    return ResponseBuilder.success(
+      RESPONSE_MESSAGES.SUCCESS.FETCHED,
+      categories
+    );
   }
 
   async deleteCategory(id) {
