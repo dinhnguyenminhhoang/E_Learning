@@ -40,48 +40,6 @@ const categorySchema = new Schema(
       maxLength: 1000,
     },
 
-    icon: {
-      type: String,
-      trim: true,
-      validate: {
-        validator: urlValidator,
-        message: "Icon must be a valid URL",
-      },
-    },
-
-    color: {
-      type: String,
-      trim: true,
-      match: /^#([0-9A-Fa-f]{3}){1,2}$/, // validate mã màu hex
-    },
-
-    // level: {
-    //   type: String,
-    //   enum: ["beginner", "intermediate", "advanced"],
-    //   default: "beginner",
-    //   index: true,
-    // },
-
-    parentCategory: {
-      type: Schema.Types.ObjectId,
-      ref: "Category",
-      default: null,
-      index: true,
-    },
-    childCategories: [
-      { type: Schema.Types.ObjectId, ref: "Category", default: null },
-    ],
-    wordCount: {
-      type: Number,
-      default: 0,
-      min: 0,
-    },
-    decks: [
-      {
-        type: Schema.Types.ObjectId,
-        ref: "CardDeck",
-      },
-    ],
     status: {
       type: String,
       enum: Object.values(STATUS),
@@ -119,7 +77,6 @@ const categorySchema = new Schema(
 
 // ===== INDEXES =====
 categorySchema.index({ name: "text", nameVi: "text", description: "text" });
-categorySchema.index({ parentCategory: 1, status: 1 });
 categorySchema.index({ createdAt: -1, status: 1 });
 
 module.exports = model(DOCUMENT_NAME, categorySchema);

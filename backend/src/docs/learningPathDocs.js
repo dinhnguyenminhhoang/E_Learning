@@ -124,24 +124,13 @@ const learningPathDocs = {
               type: "object",
               properties: {
                 titleLevel: { type: "string", example: "Level 1" },
-                categoryParentId: {
-                  type: "string",
-                  example: "6701b9a7e123a15bcd999001",
-                },
-                categoryChildId: {
-                  type: "string",
-                  example: "6701b9a7e123a15bcd999002",
-                },
-                cardDeckId: {
-                  type: "string",
-                  example: "6701b9a7e123a15bcd999003",
-                },
+                lessonId: { type: "string", example: "6801c9f9123a15bcd987654" },
+                order: { type: "integer", example: 1}
               },
               required: [
                 "titleLevel",
-                "categoryParentId",
-                "categoryChildId",
-                "cardDeckId",
+                "lessonId",
+                "order",
               ],
             },
           },
@@ -183,13 +172,13 @@ const learningPathDocs = {
           example: true,
         },
         {
-          name: "isModule",
+          name: "isLesson",
           in: "query",
           schema: { type: "boolean" },
           example: true,
         },
         {
-          name: "isLesson",
+          name: "isBlock",
           in: "query",
           schema: { type: "boolean" },
           example: true,
@@ -201,7 +190,7 @@ const learningPathDocs = {
           example: 1,
         },
         {
-          name: "moduleId",
+          name: "lessonId",
           in: "query",
           schema: { type: "string" },
           example: "6701b9a7e123a15bcd999001",

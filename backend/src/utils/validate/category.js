@@ -17,19 +17,18 @@ export const createCategorySchema = Joi.object({
     .valid("beginner", "intermediate", "advanced")
     .default("beginner"),
 
-  parentCategory: Joi.string()
-    .regex(/^[0-9a-fA-F]{24}$/)
-    .allow(null),
-  childCategories: Joi.array()
-    .items(
-      Joi.string()
-        .regex(/^[0-9a-fA-F]{24}$/)
-        .message("Each child category must be a valid MongoDB ObjectId")
-    )
-    .allow(null)
-    .default([]),
+  // parentCategory: Joi.string()
+  //   .regex(/^[0-9a-fA-F]{24}$/)
+  //   .allow(null),
+  // childCategories: Joi.array()
+  //   .items(
+  //     Joi.string()
+  //       .regex(/^[0-9a-fA-F]{24}$/)
+  //       .message("Each child category must be a valid MongoDB ObjectId")
+  //   )
+  //   .allow(null)
+  //   .default([]),
 
-  wordCount: Joi.number().min(0).default(0),
   status: Joi.string()
     .valid(...Object.values(STATUS))
     .default(STATUS.ACTIVE),

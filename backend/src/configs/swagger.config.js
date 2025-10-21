@@ -12,6 +12,7 @@ const cardDeckDocs = require("../docs/cardDeck");
 const learningPathDocs = require("../docs/learningPathDocs");
 const onboardingDocs = require("../docs/onboardingDocs");
 const userOnboardingAnswerDocs = require("../docs/userOnboardingAnswerDocs");
+const lessonDocs = require("../docs/lessonDocs");
 // const userDocs = require('../docs/user.docs');
 
 /**
@@ -312,6 +313,11 @@ const swaggerDefinition = {
       learningPathDocs.assignLessonToPath,
     "/v1/api/learning-path/hierarchy": learningPathDocs.getHierarchy,
     "/v1/api/learning-path/level/{learningPathId}": learningPathDocs.createNewLevel,
+
+    // ---------------- LESSON ----------------
+    "/v1/api/lesson": {
+      ...lessonDocs.getAllLessons,
+    },
   },
   tags: [
     {
