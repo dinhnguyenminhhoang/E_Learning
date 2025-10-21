@@ -40,6 +40,12 @@ class LearningPathRepository {
     });
   }
 
+  async findByTitle(title) {
+    return await LearningPathModel.findOne({
+      title: title,
+    }).lean();
+  }
+
   async clearLevels(learningPathId) {
     return await LearningPathModel.findByIdAndUpdate(
       learningPathId,
@@ -82,26 +88,35 @@ class LearningPathRepository {
   }
 
   async findLevelsByPath(learningPathId) {
-    return await LearningPathModel.findById(toObjectId(learningPathId)).select(
-      "levels.order levels.title levels._id"
-    );
+    return await LearningPathModel.findById(toObjectId(learningPathId))
+      .select("levels.order levels.title levels._id")
+      .lean();
   }
 
-  async findModulesByLevel(learningPathId, levelOrder) {
+  async findLessonsByLevel(learningPathId, levelOrder) {
     return await LearningPathModel.findOne(
       { _id: toObjectId(learningPathId), "levels.order": levelOrder },
       { "levels.$": 1 }
-    );
+    ).lean();
   }
 
-  async findLessonsByModule(learningPathId, moduleId) {
-    return await LearningPathModel.findOne(
+  async findBlocksByLesson(learningPathId, levelOrder, lessonId) {
+    const path = await LearningPathModel.findOne(
       {
         _id: toObjectId(learningPathId),
-        "levels.categories.categoryId": toObjectId(moduleId),
+        "levels.order": levelOrder,
       },
-      { "levels.categories.$": 1 }
+      { "levels.$": 1 }
+    ).lean();
+
+    if (!path?.levels?.length) return null;
+
+    const level = path.levels[0];
+    const lesson = level.lessons.find(
+      (l) => l.lesson.toString() === lessonId.toString()
     );
+
+    return lesson?.blocks ?? [];
   }
   static async findByTargetIds(targetIds) {
     return LearningPath.find({ target: { $in: targetIds } }).lean();

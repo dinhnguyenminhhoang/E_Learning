@@ -12,7 +12,6 @@ class CategoryRepository {
   constructor() {
     this.model = Category;
     this.defaultPopulate = [
-      { path: "parentCategory", select: "name nameVi slug" },
       { path: "updatedBy", select: "name email" },
     ];
   }
@@ -247,7 +246,6 @@ class CategoryRepository {
       }
 
       await this.model.updateMany(
-        { parentCategory: id },
         { status: STATUS.INACTIVE, updatedAt: new Date() }
       );
 
