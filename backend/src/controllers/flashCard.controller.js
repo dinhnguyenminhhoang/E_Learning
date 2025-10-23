@@ -28,7 +28,6 @@ class FlashcardController {
 
   async list(req, res) {
     const flashcards = await flashcardService.listFlashcards({});
-    console.log("hiii");
     return res.status(flashcards.code).json(flashcards);
   }
 

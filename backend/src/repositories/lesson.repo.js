@@ -50,5 +50,39 @@ class LessonRepository {
       lessons,
     };
   }
+
+  async getLessonById(lessonId) {
+    const lesson = await Lesson.findById(lessonId).populate("blocks.block");
+    return lesson;
+  }
+
+  async createLesson(lessonData) {
+    const lesson = new Lesson(lessonData);
+    return lesson.save();
+  }
+
+  async updateLesson(lessonId, updateData) {
+    const updated = await Lesson.findByIdAndUpdate(
+      lessonId,
+      { $set: updateData },
+      { new: true }
+    );
+    return updated;
+  }
+  async getLessonByTitle(title) {
+    return Lesson.findOne({ title: title });
+  }
+
+  async deleteHardLesson(lessonId) {
+    return Lesson.findByIdAndDelete(lessonId);
+  }
+
+  async deleteSoftLesson(lessonId) {
+    return Lesson.findByIdAndUpdate(
+      lessonId,
+      { status: STATUS.DELETED },
+      { new: true }
+    );
+  }
 }
 module.exports = new LessonRepository();
