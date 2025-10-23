@@ -7,14 +7,21 @@ const LEVEL_ENUM = ["beginner", "intermediate", "advanced"];
 
 const LessonSchema = new Schema(
   {
-    title: { type: String, required: true, trim: true, maxlength: 255 },
+    title: {
+      type: String,
+      required: true,
+      trim: true,
+      maxlength: 255,
+      unique: true,
+    },
     description: { type: String, trim: true },
     skill: { type: String, enum: SKILL_ENUM, required: true },
     topic: { type: String, required: true, trim: true, maxlength: 100 },
     level: { type: String, enum: LEVEL_ENUM, required: true },
     duration_minutes: { type: Number, min: 1, default: 30 },
     order: { type: Number, default: 0 },
-    prerequisites: [{ type: Schema.Types.ObjectId, ref: "Lesson" }], // các bài cần hoàn thành để được học bài này
+    thumbnail: { type: String, trim: true },
+    prerequisites: [{ type: Schema.Types.ObjectId, ref: "Lesson" }],
     status: { type: String, enum: STATUS, default: STATUS.ACTIVE },
     categoryId: {
       type: Schema.Types.ObjectId,

@@ -104,6 +104,8 @@ const quizSchema = new Schema(
       type: [questionSchema],
       default: [],
     },
+    xpReward: { type: Number, default: 50 },
+
     status: {
       type: String,
       enum: Object.values(STATUS),
