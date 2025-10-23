@@ -18,3 +18,5 @@ require("./UserLearningPath");
 require("./UserOnboardingAnswer");
 require("./UserProgress");
 require("./Word");
+require("./Lessson");
+require("./subModel/contentBlock.schema");

@@ -42,7 +42,7 @@ const userLearningPathSchema = new Schema(
     progress: {
       currentLevel: { type: Number, default: 1, min: 1 },
       currentLesson: { type: Number, default: 1, min: 1 },
-      completedLessons: [{ type: Number }],
+      completedLessons: [{ type: String }],
       startedAt: { type: Date, default: Date.now },
       updatedAt: { type: Date, default: Date.now },
     },

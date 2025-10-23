@@ -312,11 +312,20 @@ const swaggerDefinition = {
     "/v1/api/learning-path/{learningPathId}/assign":
       learningPathDocs.assignLessonToPath,
     "/v1/api/learning-path/hierarchy": learningPathDocs.getHierarchy,
-    "/v1/api/learning-path/level/{learningPathId}": learningPathDocs.createNewLevel,
+    "/v1/api/learning-path/level/{learningPathId}":
+      learningPathDocs.createNewLevel,
 
     // ---------------- LESSON ----------------
+    "/v1/api/lesson/{lessonId}": {
+      ...lessonDocs.updateLesson,
+      ...lessonDocs.deleteLesson,
+    },
     "/v1/api/lesson": {
       ...lessonDocs.getAllLessons,
+      ...lessonDocs.createLesson,
+    },
+    "/v1/api/lesson/{lessonId}/user/{userId}": {
+      ...lessonDocs.getLesson,
     },
   },
   tags: [
