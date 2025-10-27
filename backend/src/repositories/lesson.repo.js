@@ -52,7 +52,7 @@ class LessonRepository {
   }
 
   async getLessonById(lessonId) {
-    const lesson = await Lesson.findById(lessonId).populate("blocks.block");
+    const lesson = await Lesson.findById(lessonId);
     return lesson;
   }
 
@@ -84,5 +84,22 @@ class LessonRepository {
       { new: true }
     );
   }
+
+  async assignBlockToLesson(lessonId, blockId, order) {
+    return await Lesson.findByIdAndUpdate(
+      lessonId,
+      {
+        $push: {
+          blocks: { block: blockId, order: order },
+        },
+      },
+      { new: true }
+    );
+  }
+
+  async getLessonsByBlockId(blockId) {
+    return Lesson.find({ "blocks.block": blockId });
+  }
+
 }
 module.exports = new LessonRepository();

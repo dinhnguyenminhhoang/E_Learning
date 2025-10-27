@@ -4,7 +4,29 @@ const ResponseBuilder = require("../types/response/baseResponse");
 const UserRepository = require("../repositories/user.repo");
 const UserLearningPathRepository = require("../repositories/userLearningPath.repo");
 const { toObjectId } = require("../helpers/idHelper");
+const lessonRepo = require("../repositories/lesson.repo");
+const { default: AppError } = require("../utils/appError");
+const lessonBlockHelper = require("../helpers/lessonBlock.helper");
 class LessonService {
+  _existingSkillInLesson(lesson, skill) {
+    const skillExists = lesson.blocks.some((b) => b.skill === skill);
+    if (skillExists) {
+      throw new AppError(
+        `Block with skill '${skill}' already exists in lesson.`,
+        409
+      );
+    }
+  }
+
+  _existingBlockInLesson(lesson, blockId) {
+    const isExisting = lesson.blocks.find(
+      (b) => b.block._id.toString() === blockId
+    );
+    if (isExisting) {
+      throw new AppError("Block already assigned to lesson.", 409);
+    }
+  }
+
   async getAllLessons(req) {
     const lessons = await LessonRepository.getAllLessons(req);
     return ResponseBuilder.successWithPagination({
@@ -120,6 +142,28 @@ class LessonService {
     }
     await LessonRepository.deleteSoftLesson(toObjectId(lessonId));
     return ResponseBuilder.success("Deleted lesson successfully");
+  }
+
+  async assignBlockToLesson(req) {
+    const { lessonId } = req.params;
+    const { blockId, order } = req.body;
+
+    const existingBlock = await lessonBlockHelper.existingBlock(blockId);
+    const existingLesson = await lessonBlockHelper.existingLesson(lessonId);
+    this._existingBlockInLesson(existingLesson, blockId);
+
+    await lessonBlockHelper.checkOrderExists(existingLesson, order);
+    await this._existingSkillInLesson(existingLesson, existingBlock.skill);
+
+    const assigned = await lessonRepo.assignBlockToLesson(
+      toObjectId(lessonId),
+      toObjectId(blockId),
+      order
+    );
+    return ResponseBuilder.success({
+      message: "Block assigned to lesson successfully",
+      data: assigned,
+    });
   }
 }
 module.exports = new LessonService();

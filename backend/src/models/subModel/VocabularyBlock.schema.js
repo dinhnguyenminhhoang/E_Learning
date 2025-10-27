@@ -1,6 +1,6 @@
 const mongoose = require("mongoose");
 const { Schema } = mongoose;
-const ContentBlock = require("./contentBlock.model");
+const ContentBlock = require("./contentBlock.schema");
 
 const VocabularyBlock = ContentBlock.discriminator("vocabulary",
   new Schema({
