@@ -31,4 +31,30 @@ router.put(
   auth.authenticate,
   asynchandler(lessonController.updateLesson)
 );
+
+router.post(
+  "/:lessonId/blocks",
+  auth.authenticate,
+  asynchandler(lessonController.assignBlockToLesson)
+);
+
+//Block routes
+router.post(
+  "/blocks",
+  auth.authenticate,
+  asynchandler(lessonController.createBlock)
+);
+
+router.put(
+  "/blocks/:blockId",
+  auth.authenticate,
+  asynchandler(lessonController.updateBlock)
+);
+
+router.delete(
+  "/blocks/:blockId",
+  auth.authenticate,
+  asynchandler(lessonController.deleteBlock)
+);
+
 module.exports = router;
