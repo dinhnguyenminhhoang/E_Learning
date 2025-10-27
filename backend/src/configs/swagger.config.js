@@ -70,6 +70,175 @@ const swaggerDefinition = {
       },
     },
     schemas: {
+      // Block Schemas
+      ContentBlock: {
+        type: "object",
+        required: ["type", "skill"],
+        properties: {
+          type: {
+            type: "string",
+            enum: ["vocabulary", "grammar", "quiz", "media"],
+            description: "Type of content block",
+          },
+          title: {
+            type: "string",
+            description: "Title of the block",
+          },
+          description: {
+            type: "string",
+            description: "Description of the block",
+          },
+          skill: {
+            type: "string",
+            enum: ["listening", "speaking", "reading", "writing"],
+            description: "Primary skill targeted by this block",
+          },
+          difficulty: {
+            type: "string",
+            enum: ["beginner", "intermediate", "advanced"],
+            default: "beginner",
+            description: "Difficulty level of the block",
+          },
+          order: {
+            type: "number",
+            default: 0,
+            description: "Order of the block within the lesson",
+          },
+          lessonId: {
+            type: "string",
+            description: "ID of the lesson this block belongs to",
+          },
+        },
+      },
+      GrammarBlock: {
+        allOf: [
+          { $ref: "#/components/schemas/ContentBlock" },
+          {
+            type: "object",
+            required: ["topic", "explanation", "exercise"],
+            properties: {
+              topic: {
+                type: "string",
+                description: "Grammar topic covered in this block",
+              },
+              explanation: {
+                type: "string",
+                description: "Detailed explanation of the grammar concept",
+              },
+              examples: {
+                type: "array",
+                items: {
+                  type: "string",
+                },
+                description:
+                  "Example sentences demonstrating the grammar concept",
+              },
+              videoUrl: {
+                type: "string",
+                description: "Optional URL to a video explaining the concept",
+              },
+              exercise: {
+                type: "string",
+                description: "Reference to a Quiz for practice exercises",
+              },
+            },
+          },
+        ],
+      },
+      VocabularyBlock: {
+        allOf: [
+          { $ref: "#/components/schemas/ContentBlock" },
+          {
+            type: "object",
+            required: ["cardDeck"],
+            properties: {
+              cardDeck: {
+                type: "string",
+                description:
+                  "Reference to a CardDeck containing vocabulary items",
+              },
+            },
+          },
+        ],
+      },
+      MediaBlock: {
+        allOf: [
+          { $ref: "#/components/schemas/ContentBlock" },
+          {
+            type: "object",
+            required: ["mediaType", "sourceUrl"],
+            properties: {
+              mediaType: {
+                type: "string",
+                enum: ["audio", "video"],
+                description: "Type of media content",
+              },
+              sourceUrl: {
+                type: "string",
+                description: "URL to the media content",
+              },
+              transcript: {
+                type: "string",
+                description: "Optional transcript of the media content",
+              },
+              tasks: {
+                type: "array",
+                items: {
+                  type: "object",
+                  properties: {
+                    question: {
+                      type: "string",
+                      description: "Question about the media content",
+                    },
+                    answer: {
+                      type: "string",
+                      description: "Expected answer to the question",
+                    },
+                  },
+                },
+                description:
+                  "List of tasks/questions related to the media content",
+              },
+            },
+          },
+        ],
+      },
+      QuizBlock: {
+        allOf: [
+          { $ref: "#/components/schemas/ContentBlock" },
+          {
+            type: "object",
+            required: ["questions"],
+            properties: {
+              questions: {
+                type: "array",
+                items: {
+                  type: "object",
+                  required: ["q"],
+                  properties: {
+                    q: {
+                      type: "string",
+                      description: "Question text",
+                    },
+                    options: {
+                      type: "array",
+                      items: {
+                        type: "string",
+                      },
+                      description: "List of possible answer options",
+                    },
+                    answer: {
+                      type: "string",
+                      description: "Correct answer",
+                    },
+                  },
+                },
+                description: "List of questions in the quiz",
+              },
+            },
+          },
+        ],
+      },
       // Common Response Schemas
       SuccessResponse: {
         type: "object",
@@ -326,6 +495,16 @@ const swaggerDefinition = {
     },
     "/v1/api/lesson/{lessonId}/user/{userId}": {
       ...lessonDocs.getLesson,
+    },
+    "/v1/api/lesson/{lessonId}/blocks": {
+      ...lessonDocs.assignBlockToLesson,
+    },
+    "/v1/api/lesson/blocks": {
+      ...lessonDocs.createBlock,
+    },
+    "/v1/api/lesson/blocks/{blockId}": {
+      ...lessonDocs.updateBlock,
+      ...lessonDocs.deleteBlock,
     },
   },
   tags: [

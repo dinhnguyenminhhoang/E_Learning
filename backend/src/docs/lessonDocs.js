@@ -1,5 +1,10 @@
 "use strict";
 
+const {
+  updateBlock,
+  deleteBlock,
+} = require("../controllers/lesson.controller");
+
 const lessonDocs = {
   // =====================================
   // 📚 1. Lấy danh sách tất cả Lessons (với filter + pagination)
@@ -477,6 +482,281 @@ const lessonDocs = {
         404: {
           description: "Không tìm thấy bài học cần xóa",
         },
+      },
+    },
+  },
+
+  assignBlockToLesson: {
+    post: {
+      tags: ["Lesson"],
+      summary: "Gán một Block nội dung vào bài học",
+      description:
+        "Gán một Block nội dung (Content Block) đã tồn tại vào một bài học cụ thể với thứ tự xác định.",
+      security: [{ bearerAuth: [] }],
+      parameters: [
+        {
+          in: "path",
+          name: "lessonId",
+          required: true,
+          schema: { type: "string", example: "6718b6cd12" },
+          description: "ID của bài học cần gán Block",
+        },
+      ],
+      requestBody: {
+        required: true,
+        content: {
+          "application/json": {
+            schema: {
+              type: "object",
+              required: ["blockId", "order"],
+              properties: {
+                blockId: {
+                  type: "string",
+                  example: "6719a3b57e",
+                  description: "ID của Block nội dung cần gán",
+                },
+                order: {
+                  type: "number",
+                  example: 1,
+                  description:
+                    "Thứ tự của Block trong bài học (không trùng lặp với các Block khác trong cùng bài học)",
+                },
+              },
+            },
+          },
+        },
+      },
+      responses: {
+        200: {
+          description: "Block đã được gán thành công vào bài học.",
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                properties: {
+                  success: {
+                    type: "boolean",
+                    example: true,
+                  },
+                  message: {
+                    type: "string",
+                    example: "Block assigned to lesson successfully.",
+                  },
+                  data: {
+                    type: "object",
+                    description: "Thông tin bài học sau khi cập nhật.",
+                    properties: {
+                      _id: {
+                        type: "string",
+                        example: "6718b6cd12",
+                      },
+                      title: {
+                        type: "string",
+                        example: "Lesson 1: Basic Vocabulary",
+                      },
+                      blocks: {
+                        type: "array",
+                        description: "Danh sách các block đã gán vào bài học",
+                        items: {
+                          type: "object",
+                          properties: {
+                            block: {
+                              type: "string",
+                              example: "6719a3b57e",
+                            },
+                            order: {
+                              type: "number",
+                              example: 1,
+                            },
+                          },
+                        },
+                      },
+                      updatedAt: {
+                        type: "string",
+                        example: "2025-10-26T10:15:30.000Z",
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+        400: {
+          description:
+            "Dữ liệu không hợp lệ hoặc block đã tồn tại trong bài học.",
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                properties: {
+                  success: { type: "boolean", example: false },
+                  message: {
+                    type: "string",
+                    example:
+                      "Invalid order value or block already exists in this lesson.",
+                  },
+                },
+              },
+            },
+          },
+        },
+        404: {
+          description: "Không tìm thấy bài học hoặc block.",
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                properties: {
+                  success: { type: "boolean", example: false },
+                  message: {
+                    type: "string",
+                    example: "Lesson or block not found.",
+                  },
+                },
+              },
+            },
+          },
+        },
+        500: {
+          description: "Lỗi hệ thống hoặc lỗi máy chủ.",
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                properties: {
+                  success: { type: "boolean", example: false },
+                  message: {
+                    type: "string",
+                    example: "Internal server error.",
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+  },
+
+  createBlock: {
+    post: {
+      tags: ["Block"],
+      summary: "Tạo mới một Block nội dung (Content Block)",
+      description:
+        "Tạo mới một block thuộc một trong các loại: `grammar`, `vocabulary`, `quiz`, hoặc `media`. Mỗi loại có cấu trúc nội dung riêng biệt.",
+      security: [{ bearerAuth: [] }],
+      requestBody: {
+        required: true,
+        content: {
+          "application/json": {
+            schema: {
+              oneOf: [
+                { $ref: "#/components/schemas/GrammarBlock" },
+                { $ref: "#/components/schemas/VocabularyBlock" },
+                { $ref: "#/components/schemas/QuizBlock" },
+                { $ref: "#/components/schemas/MediaBlock" },
+              ],
+              discriminator: {
+                propertyName: "type",
+                mapping: {
+                  grammar: "#/components/schemas/GrammarBlock",
+                  vocabulary: "#/components/schemas/VocabularyBlock",
+                  quiz: "#/components/schemas/QuizBlock",
+                  media: "#/components/schemas/MediaBlock",
+                },
+              },
+            },
+          },
+        },
+      },
+      responses: {
+        200: {
+          description: "Block created successfully",
+        },
+        400: { description: "Invalid block data or missing fields" },
+        401: { description: "Unauthorized (missing or invalid token)" },
+        500: { description: "Internal server error" },
+      },
+    },
+  },
+
+  deleteBlock: {
+    delete: {
+      tags: ["Block"],
+      summary: "Xóa Block nội dung (Content Block) theo ID",
+      security: [{ bearerAuth: [] }],
+      description: "Xóa một Block ",
+      parameters: [
+        {
+          in: "path",
+          name: "blockId",
+          required: true,
+          schema: { type: "string", example: "6719a3b57e" },
+          description: "ID của Block cần xóa",
+        },
+      ],
+      responses: {
+        200: {
+          description: "Block deleted successfully",
+        },
+        400: { description: "Invalid block ID" },
+        401: { description: "Unauthorized (missing or invalid token)" },
+        500: { description: "Internal server error" },
+      },
+    },
+  },
+
+  updateBlock: {
+    put: {
+      tags: ["Block"],
+      summary: "Cập nhật nội dung Block",
+      description: "Cập nhật thông tin chi tiết của một Block nội dung.",
+      security: [{ bearerAuth: [] }],
+      parameters: [
+        {
+          in: "path",
+          name: "blockId",
+          required: true,
+          schema: { type: "string", example: "6719a3b57e" },
+          description: "ID của Block cần cập nhật",
+        },
+      ],
+      requestBody: {
+        required: true,
+        content: {
+          "application/json": {
+            schema: {
+              type: "object",
+              description: "Các trường có thể cập nhật của Block",
+              properties: {
+                title: { type: "string", example: "Updated Block Title" },
+                description: {
+                  type: "string",
+                  example: "Updated description.",
+                },
+                skill: {
+                  type: "string",
+                  enum: ["listening", "speaking", "reading", "writing"],
+                  example: "reading",
+                  description: "Kỹ năng của Block.",
+                },
+                difficulty: {
+                  type: "string",
+                  enum: ["beginner", "intermediate", "advanced"],
+                  example: "intermediate",
+                  description: "Mức độ khó của Block.",
+                },
+              },
+            },
+          },
+        },
+      },
+      responses: {
+        200: {
+          description: "Block updated successfully",
+        },
+        400: { description: "Invalid block data or missing fields" },
       },
     },
   },

@@ -1,12 +1,14 @@
 const mongoose = require("mongoose");
 const { Schema } = mongoose;
-const ContentBlock = require("./contentBlock.model");
+const ContentBlock = require("./contentBlock.schema");
 
-const GrammarBlock = ContentBlock.discriminator("grammar",
+const GrammarBlock = ContentBlock.discriminator(
+  "grammar",
   new Schema({
     topic: { type: String, required: true },
-    rules: [String],
-    examples: [String]
+    explanation: { type: String, required: true },
+    examples: [{ type: String }],
+    videoUrl: { type: String },
   })
 );
 
