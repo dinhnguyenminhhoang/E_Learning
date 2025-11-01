@@ -8,6 +8,21 @@ const LearningPathController = {
     res.status(response.code).json(response);
   },
 
+  async attachQuizToLevel(req, res) {
+    const response = await LearningPathService.attachQuizToLevel(req);
+    res.status(response.code).json(response);
+  },
+
+  async updateQuizInLevel(req, res) {
+    const response = await LearningPathService.updateQuizInLevel(req);
+    res.status(response.code).json(response);
+  },
+
+  async removeQuizFromLevel(req, res) {
+    const response = await LearningPathService.removeQuizFromLevel(req);
+    res.status(response.code).json(response);
+  },
+
   async assignLessonToPath(req, res) {
     
     const response = await LearningPathService.assignLessonToPath(req);

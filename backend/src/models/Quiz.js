@@ -44,7 +44,8 @@ const questionSchema = new Schema(
     },
 
     correctAnswer: {
-      type: String, // dành cho fill_blank hoặc true_false
+      type: String, 
+      trim: true,
       default: null,
     },
 
@@ -97,15 +98,19 @@ const quizSchema = new Schema(
       item: {
         type: Schema.Types.ObjectId,
         required: true,
-        refPath: "attachedTo.kind", // dynamic reference
+        refPath: "attachedTo.kind",
       },
     },
     questions: {
       type: [questionSchema],
       default: [],
     },
-    xpReward: { type: Number, default: 50 },
-
+    xpReward: { type: Number, default: 50, min: 0 },
+    difficulty: {
+      type: String,
+      enum: ["EASY", "MEDIUM", "HARD"],
+      default: "EASY",
+    },
     status: {
       type: String,
       enum: Object.values(STATUS),

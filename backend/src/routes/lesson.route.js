@@ -5,6 +5,16 @@ const auth = require("../middlewares/auth");
 const { validateCreateLesson } = require("../middlewares/lesson");
 
 const router = Router();
+router.post(
+  "/attach-quiz",
+  auth.authenticate,
+  asynchandler(lessonController.attachQuizToLesson)
+);
+router.post(
+  "/detach-quiz",
+  auth.authenticate,
+  asynchandler(lessonController.detachQuizFromLesson)
+);
 router.get(
   "/",
   auth.authenticate,

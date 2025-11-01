@@ -1,6 +1,16 @@
 const lessonService = require("../services/lesson.service");
 const blockService = require("../services/block.service");
 class LessonController {
+  async attachQuizToLesson(req, res) {
+    const attachQuizToLesson = await lessonService.attachQuizToLesson(req);
+    return res.status(attachQuizToLesson.code).json(attachQuizToLesson);
+  }
+
+  async detachQuizFromLesson(req, res) {
+    const detachQuizFromLesson = await lessonService.detachQuizFromLesson(req);
+    return res.status(detachQuizFromLesson.code).json(detachQuizFromLesson);
+  }
+
   async getAllLessons(req, res) {
     const lessons = await lessonService.getAllLessons(req);
     return res.status(lessons.code).json(lessons);
