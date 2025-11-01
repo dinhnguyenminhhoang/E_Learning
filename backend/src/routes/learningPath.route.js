@@ -13,6 +13,24 @@ router.post(
 );
 
 router.post(
+  "/attach-quiz",
+  auth.authenticate,
+  asynchandler(LearningPathController.attachQuizToLevel)
+);
+
+router.put(
+  "/update-quiz-in-level",
+  auth.authenticate,
+  asynchandler(LearningPathController.updateQuizInLevel)
+);
+
+router.delete(
+  "/remove-quiz-from-level",
+  auth.authenticate,
+  asynchandler(LearningPathController.removeQuizFromLevel)
+);
+
+router.post(
   "/:learningPathId/assign",
   asynchandler(LearningPathController.assignLessonToPath)
 );
