@@ -3,6 +3,7 @@
 const { badRequestError, AuthFailureError } = require("../core/error.response");
 const { CREATED, SuccessResponse } = require("../core/success.response");
 const AuthService = require("../services/auth.service");
+const googleAuthService = require("../services/googleAuth.service");
 const { extractSessionData } = require("../utils");
 
 class AuthController {
@@ -239,5 +240,59 @@ class AuthController {
       next(new badRequestError(error.message));
     }
   };
+
+  async googleLogin(req, res, next) {
+    try {
+      const { idToken } = req.body;
+      if (!idToken) {
+        return res.status(400).json({ message: "Missing idToken" });
+      }
+
+      // Lấy dữ liệu thiết bị, IP, userAgent
+      const sessionData = extractSessionData(req);
+
+      // Gọi service để đăng nhập Google
+      const result = await googleAuthService.loginWithGoogle(
+        idToken,
+        sessionData
+      );
+
+      // Cấu hình cookie
+      const cookieOptions = {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+        maxAge: result.tokens.refreshExpiresIn * 1000, // tính bằng ms
+        path: "/",
+      };
+
+      // Gắn refreshToken vào cookie
+      res.cookie("refreshToken", result.tokens.refreshToken, cookieOptions);
+
+      // Bỏ refreshToken khỏi body response để bảo mật
+      const responseData = {
+        ...result,
+        tokens: {
+          accessToken: result.tokens.accessToken,
+          tokenType: result.tokens.tokenType,
+          expiresIn: result.tokens.expiresIn,
+        },
+      };
+
+      res.set({
+        "X-User-ID": result.user.id,
+        "X-User-Roles": result.user.roles.join(","),
+        "X-Session-ID": result.session.deviceId,
+      });
+
+      new SuccessResponse({
+        message: "Google sign in successful!",
+        metadata: responseData,
+      }).send(res);
+    } catch (error) {
+      console.error("❌ Google SignIn error:", error);
+      next(new badRequestError(error.message || "Invalid Google token"));
+    }
+  }
 }
 module.exports = new AuthController();
