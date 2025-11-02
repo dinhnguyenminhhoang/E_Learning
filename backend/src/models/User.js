@@ -35,8 +35,9 @@ const userSchema = new Schema(
     },
     password: {
       type: String,
-      required: [true, "Password is required"],
-      minLength: [8, "Password must be at least 8 characters"],
+      required: function () {
+        return this.provider === "local";
+      }, // only required for local auth
       select: false,
     },
     phoneNumber: {
@@ -141,6 +142,8 @@ const userSchema = new Schema(
         },
       ],
     },
+    provider: { type: String, default: "local" },
+
     updatedAt: {
       type: Date,
       default: null,

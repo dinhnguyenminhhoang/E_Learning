@@ -59,4 +59,7 @@ router.get("/verify-email", authController.verifyEmail);
  */
 router.post("/reset-password", authController.resetPassword);
 
+router.post('/google', authController.googleLogin);
+
+
 module.exports = router;
