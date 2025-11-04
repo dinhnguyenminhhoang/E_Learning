@@ -97,7 +97,9 @@ class LearningPathRepository {
     return await LearningPathModel.findOne(
       { _id: toObjectId(learningPathId), "levels.order": levelOrder },
       { "levels.$": 1 }
-    ).lean();
+    )
+      .populate("levels.lessons.lesson")
+      .lean();
   }
 
   async findBlocksByLesson(learningPathId, levelOrder, lessonId) {
@@ -108,6 +110,7 @@ class LearningPathRepository {
       },
       { "levels.$": 1 }
     ).lean();
+    console.log("path", path);
 
     if (!path?.levels?.length) return null;
 

@@ -19,7 +19,6 @@ const LessonSchema = new Schema(
     topic: { type: String, required: true, trim: true, maxlength: 100 },
     level: { type: String, enum: LEVEL_ENUM, required: true },
     duration_minutes: { type: Number, min: 1, default: 30 },
-    order: { type: Number, default: 0 },
     thumbnail: { type: String, trim: true },
     prerequisites: [{ type: Schema.Types.ObjectId, ref: "Lesson" }],
     status: { type: String, enum: STATUS, default: STATUS.ACTIVE },

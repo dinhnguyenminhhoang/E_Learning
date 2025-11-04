@@ -1,7 +1,7 @@
 "use strict";
 
-const ResponseBuilder = require("../types/response/baseResponse"); // nếu bạn đang dùng format này
-const UserLearningPathRepository = require("../repositories/userLearningPath.repo"); // ✅ import repo
+const ResponseBuilder = require("../types/response/baseResponse");
+const UserLearningPathRepository = require("../repositories/userLearningPath.repo");
 
 class UserLearningPathService {
   /**
@@ -38,7 +38,8 @@ class UserLearningPathService {
     return newRecord;
   }
 
-  async getUserLearningPaths(userId) {
+  async getUserLearningPaths(req) {
+    const userId = req.user._id;
     const paths = await UserLearningPathRepository.findByUserId(userId);
     return ResponseBuilder.success("Fetched user learning paths", paths);
   }

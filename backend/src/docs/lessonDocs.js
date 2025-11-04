@@ -96,7 +96,6 @@ const lessonDocs = {
                         topic: "grammar",
                         level: "beginner",
                         duration_minutes: 30,
-                        order: 1,
                         categoryId: {
                           _id: "6701b8f7d123a15bcd987654",
                           name: "Grammar Basics",
@@ -165,11 +164,7 @@ const lessonDocs = {
                   description:
                     "Thời lượng bài học (phút), mặc định là 30, tối thiểu 1",
                 },
-                order: {
-                  type: "integer",
-                  example: 1,
-                  description: "Thứ tự sắp xếp của bài học (mặc định = 0)",
-                },
+               
                 categoryId: {
                   type: "string",
                   example: "6701b8f7d123a15bcd987654",
@@ -208,7 +203,6 @@ const lessonDocs = {
                     topic: "grammar",
                     level: "beginner",
                     duration_minutes: 30,
-                    order: 1,
                     categoryId: "6701b8f7d123a15bcd987654",
                     prerequisites: [],
                     createdAt: "2025-10-23T04:45:10.000Z",
@@ -264,7 +258,7 @@ const lessonDocs = {
                   title: "Cơ bản về ReactJS",
                   categoryId: "6718b5a47c",
                   level: "Intermediate",
-                  order: 2,
+
                 },
               },
             },
@@ -330,11 +324,6 @@ const lessonDocs = {
                   example: 50,
                   description: "Thời lượng của bài học (phút).",
                 },
-                order: {
-                  type: "number",
-                  example: 2,
-                  description: "Thứ tự xuất hiện của bài học trong danh mục.",
-                },
                 thumbnail: {
                   type: "string",
                   example:
@@ -372,12 +361,7 @@ const lessonDocs = {
                         example: "6719a3d49c",
                         description: "ID của Quiz bài tập (nếu có).",
                       },
-                      order: {
-                        type: "number",
-                        example: 1,
-                        description:
-                          "Thứ tự xuất hiện của block trong bài học.",
-                      },
+      
                     },
                   },
                 },
@@ -390,7 +374,6 @@ const lessonDocs = {
               topic: "ReactJS",
               level: "advanced",
               duration_minutes: 50,
-              order: 3,
               thumbnail: "https://cdn.example.com/react-update.png",
               prerequisites: ["6718b2f123"],
               categoryId: "6718b5a47c",

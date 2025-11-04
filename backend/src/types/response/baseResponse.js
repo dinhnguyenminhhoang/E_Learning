@@ -68,16 +68,16 @@ class ResponseBuilder {
     );
   }
 
-  static duplicateError() {
+  static duplicateError(message = "Duplicate resource") {
     return this.error(
-      RESPONSE_MESSAGES.ERROR.DUPLICATE,
+      message,
       HTTP_STATUS.CONFLICT
     );
   }
 
-  static notFoundError() {
+  static notFoundError(message = "Resource not found") {
     return this.error(
-      RESPONSE_MESSAGES.ERROR.NOT_FOUND,
+      message,
       HTTP_STATUS.NOT_FOUND
     );
   }

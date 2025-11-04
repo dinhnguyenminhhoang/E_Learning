@@ -31,8 +31,7 @@ const userLearningPathSchema = new Schema(
       type: String,
       enum: {
         values: ["active", "paused", "abandoned", "completed"],
-        message:
-          "Status must be one of: active, paused, abandoned, completed",
+        message: "Status must be one of: active, paused, abandoned, completed",
       },
       default: "paused",
       index: true,
@@ -42,7 +41,7 @@ const userLearningPathSchema = new Schema(
     progress: {
       currentLevel: { type: Number, default: 1, min: 1 },
       currentLesson: { type: Number, default: 1, min: 1 },
-      completedLessons: [{ type: String }],
+      completedLessons: [{ type: Schema.Types.ObjectId, ref: "Lesson" }],
       startedAt: { type: Date, default: Date.now },
       updatedAt: { type: Date, default: Date.now },
     },
