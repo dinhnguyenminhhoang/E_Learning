@@ -52,7 +52,7 @@ class LessonRepository {
   }
 
   async getLessonById(lessonId) {
-    const lesson = await Lesson.findById(lessonId);
+    const lesson = await Lesson.findById(lessonId).lean();
     return lesson;
   }
 
@@ -100,6 +100,5 @@ class LessonRepository {
   async getLessonsByBlockId(blockId) {
     return Lesson.find({ "blocks.block": blockId });
   }
-
 }
 module.exports = new LessonRepository();

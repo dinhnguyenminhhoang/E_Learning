@@ -14,9 +14,12 @@ class UserLearningPathRepository {
     return await UserLearningPathModel.findOne({
       user: userId,
       learningPath: learningPathId,
-    });
+    }).lean();
   }
 
+  async findByUserId(userId) {
+    return await UserLearningPathModel.find({ user: userId }).lean();
+  }
   // Tạo mới UserLearningPath
   async create(data) {
     return await UserLearningPathModel.create(data);

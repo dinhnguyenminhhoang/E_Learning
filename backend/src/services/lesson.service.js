@@ -9,8 +9,8 @@ const lessonRepo = require("../repositories/lesson.repo");
 const { default: AppError } = require("../utils/appError");
 const lessonBlockHelper = require("../helpers/lessonBlock.helper");
 const { HTTP_STATUS } = require("../constants/httpStatus");
+const blockRepo = require("../repositories/block.repo");
 class LessonService {
-  
   _existingSkillInLesson(lesson, skill) {
     const skillExists = lesson.blocks.some((b) => b.skill === skill);
     if (skillExists) {
@@ -31,7 +31,7 @@ class LessonService {
   }
 
   async attachQuizToLesson(req) {
-    const { lessonId, quizId, blockId, order } = req.body;
+    const { lessonId, quizId, blockId } = req.body;
     const lesson = await LessonRepository.getLessonById(toObjectId(lessonId));
     if (!lesson)
       return ResponseBuilder.error(
@@ -62,13 +62,6 @@ class LessonService {
           HTTP_STATUS.NOT_FOUND
         );
       block.exercise = quiz._id;
-      if (order) block.order = order;
-    } else {
-      lesson.blocks.push({
-        block: null,
-        exercise: quiz._id,
-        order: order || lesson.blocks.length + 1,
-      });
     }
 
     quiz.attachedTo = {
@@ -81,10 +74,10 @@ class LessonService {
     await quiz.save();
     await lesson.save();
 
-    return ResponseBuilder.success({
-      message: "Quiz được đính kèm vào bài học thành công!",
-      data: { lesson, quiz },
-    });
+    return ResponseBuilder.success(
+      "Quiz được đính kèm vào bài học thành công!",
+      { lesson, quiz }
+    );
   }
 
   async detachQuizFromLesson(req) {
@@ -119,24 +112,24 @@ class LessonService {
     await quiz.save();
     await lesson.save();
 
-    return ResponseBuilder.success({
-      message: "Gỡ quiz khỏi bài học thành công!",
-      data: { lesson, quiz },
+    return ResponseBuilder.success("Gỡ quiz khỏi bài học thành công!", {
+      lesson,
+      quiz,
     });
   }
 
   async getAllLessons(req) {
     const lessons = await LessonRepository.getAllLessons(req);
-    return ResponseBuilder.successWithPagination({
-      message: "Lấy danh sách bài học thành công",
-      data: lessons,
-      pagination: {
+    return ResponseBuilder.successWithPagination(
+      "Lấy danh sách bài học thành công",
+      lessons,
+      {
         total: lessons.total,
         pageNum: lessons.pageNum,
         pageSize: lessons.pageSize,
         totalPages: lessons.totalPages,
-      },
-    });
+      }
+    );
   }
 
   async createLesson(req) {
@@ -147,7 +140,6 @@ class LessonService {
       topic: req.body.topic,
       level: req.body.level,
       duration_minutes: req.body.duration_minutes,
-      order: req.body.order,
       status: STATUS.PENDING,
       categoryId: req.body.categoryId,
       prerequisites: req.body.prerequisites || [],
@@ -162,19 +154,13 @@ class LessonService {
           existingLesson._id,
           lesson
         );
-        return ResponseBuilder.success({
-          message: "Tạo bài học thành công!",
-          data: restored,
-        });
+        return ResponseBuilder.success("Tạo bài học thành công!", restored);
       }
       return ResponseBuilder.duplicateError("Tiêu đề bài học đã tồn tại");
     }
 
     const added = await LessonRepository.createLesson(lesson);
-    return ResponseBuilder.success({
-      message: "Tạo bài học thành công!",
-      data: added,
-    });
+    return ResponseBuilder.success("Tạo bài học thành công!", added);
   }
 
   // get to learn
@@ -182,21 +168,34 @@ class LessonService {
     const { lessonId, userId } = req.params;
     const lesson = await LessonRepository.getLessonById(toObjectId(lessonId));
     const user = await UserRepository.findById(userId);
+
     if (!lesson || !user) {
-      return ResponseBuilder.error(
-        "Không tìm thấy bài học.",
-        HTTP_STATUS.NOT_FOUND
-      );
+      return ResponseBuilder.notFoundError("Không tìm thấy bài học.");
     }
-    const userLearningPath = await UserLearningPathRepository.findByUserAndPath(
-      toObjectId(userId),
-      toObjectId(lesson.categoryId)
+
+    const userLearningPath = await UserLearningPathRepository.findByUserId(
+      toObjectId(userId)
     );
+
+    const blockIds = lesson.blocks.map((b) => b.block);
+
+    const fullBlocks = await Promise.all(
+      blockIds.map(async (id) => {
+        const block = await blockRepo.getBlockById(id);
+        return block;
+      })
+    );
+
+    lesson.blocks = fullBlocks;
+
     const isLessonCompleted =
-      userLearningPath?.progress?.completedLessons?.includes(lesson.order);
-    return ResponseBuilder.success({
-      message: "Lấy dữ liệu bài học thành công",
-      data: { isLessonCompleted, ...lesson },
+      userLearningPath?.progress?.completedLessons?.some(
+        (id) => id.toString() === lesson._id.toString()
+      );
+
+    return ResponseBuilder.success("Lấy dữ liệu bài học thành công", {
+      isLessonCompleted,
+      ...lesson,
     });
   }
 
@@ -208,10 +207,7 @@ class LessonService {
       toObjectId(lessonId)
     );
     if (!existingLesson) {
-      return ResponseBuilder.error(
-        "Không tìm thấy bài học.",
-        HTTP_STATUS.NOT_FOUND
-      );
+      return ResponseBuilder.notFoundError("Không tìm thấy bài học.");
     }
 
     if (lessonUpdates.title && lessonUpdates.title !== existingLesson.title) {
@@ -242,10 +238,7 @@ class LessonService {
       toObjectId(lessonId)
     );
     if (!existingLesson) {
-      return ResponseBuilder.error(
-        "Không tìm thấy bài học.",
-        HTTP_STATUS.NOT_FOUND
-      );
+      return ResponseBuilder.notFoundError("Không tìm thấy bài học.");
     }
     await LessonRepository.deleteSoftLesson(toObjectId(lessonId));
     return ResponseBuilder.success("Xóa bài học thành công");
