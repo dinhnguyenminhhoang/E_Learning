@@ -49,8 +49,6 @@ export const createLessonSchema = Joi.object({
       "number.min": "Duration must be at least 1 minute",
     }),
 
-  order: Joi.number().integer().min(0).default(0),
-
   categoryId: Joi.string()
     .regex(/^[0-9a-fA-F]{24}$/)
     .required()

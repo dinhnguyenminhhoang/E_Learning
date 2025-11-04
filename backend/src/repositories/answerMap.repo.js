@@ -31,9 +31,11 @@ class AnswerMapRepo {
 
     console.log("query", query);
 
-    const mapping = await AnswerMap.findOne(query).select("_id learningPath target");
-     
-      console.log("mapping", mapping);
+    const mapping = await AnswerMap.findOne(query).select(
+      "_id learningPath target"
+    );
+
+    console.log("mapping", mapping);
     return mapping;
   }
 }
