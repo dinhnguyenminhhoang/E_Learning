@@ -1,6 +1,6 @@
 "use strict";
 class UserProgressService {
-    async createUserProgress() {
+    async createUserProgress(userProgressData) {
         
     }
 }

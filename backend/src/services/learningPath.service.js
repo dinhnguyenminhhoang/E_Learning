@@ -4,8 +4,8 @@ const TargetRepository = require("../repositories/target.repo");
 const ResponseBuilder = require("../types/response/baseResponse");
 const { toObjectId } = require("../helpers/idHelper");
 const { STATUS } = require("../constants/status.constans");
-const { HTTP_STATUS } = require("../constants/httpStatus");
 const RESPONSE_MESSAGES = require("../constants/responseMessage");
+const userLearningPathRepo = require("../repositories/userLearningPath.repo");
 
 class LearningPathService {
   _findLevel(learningPath, titleLevel) {
@@ -28,28 +28,19 @@ class LearningPathService {
       toObjectId(learningPathId)
     );
     if (!learningPath) {
-      return ResponseBuilder.error(
-        "Không tìm thấy lộ trình học.",
-        HTTP_STATUS.NOT_FOUND
-      );
+      return ResponseBuilder.notFoundError("Không tìm thấy lộ trình học.");
     }
 
     const level = learningPath.levels.find(
       (lvl) => lvl.order === Number(levelOrder)
     );
     if (!level) {
-      return ResponseBuilder.error(
-        "Không tìm thấy cấp độ.",
-        HTTP_STATUS.NOT_FOUND
-      );
+      return ResponseBuilder.notFoundError("Không tìm thấy cấp độ.");
     }
 
     const quiz = await QuizRepository.getQuizById(toObjectId(quizId));
     if (!quiz) {
-      return ResponseBuilder.error(
-        "Không tìm thấy quiz.",
-        HTTP_STATUS.NOT_FOUND
-      );
+      return ResponseBuilder.notFoundError("Không tìm thấy quiz.");
     }
 
     level.finalQuiz = quiz._id;
@@ -72,28 +63,19 @@ class LearningPathService {
       toObjectId(learningPathId)
     );
     if (!learningPath) {
-      return ResponseBuilder.error(
-        "Không tìm thấy lộ trình học.",
-        HTTP_STATUS.NOT_FOUND
-      );
+      return ResponseBuilder.notFoundError("Không tìm thấy lộ trình học.");
     }
 
     const level = learningPath.levels.find(
       (lvl) => lvl.order === Number(levelOrder)
     );
     if (!level) {
-      return ResponseBuilder.error(
-        "Không tìm thấy cấp độ.",
-        HTTP_STATUS.NOT_FOUND
-      );
+      return ResponseBuilder.notFoundError("Không tìm thấy cấp độ.");
     }
 
     const quiz = await QuizRepository.getQuizById(toObjectId(newQuizId));
     if (!quiz) {
-      return ResponseBuilder.error(
-        "Không tìm thấy quiz.",
-        HTTP_STATUS.NOT_FOUND
-      );
+      return ResponseBuilder.notFoundError("Không tìm thấy quiz.");
     }
 
     level.finalQuiz = quiz._id;
@@ -110,25 +92,19 @@ class LearningPathService {
   }
 
   async removeQuizFromLevel(req) {
-    const { learningPathId, levelOrder} = req.body;
+    const { learningPathId, levelOrder } = req.body;
     const learningPath = await LearningPathRepository.findById(
       toObjectId(learningPathId)
     );
     if (!learningPath) {
-      return ResponseBuilder.error(
-        "Không tìm thấy lộ trình học.",
-        HTTP_STATUS.NOT_FOUND
-      );
+      return ResponseBuilder.notFoundError("Không tìm thấy lộ trình học.");
     }
 
     const level = learningPath.levels.find(
       (lvl) => lvl.order === Number(levelOrder)
     );
     if (!level) {
-      return ResponseBuilder.error(
-        "Không tìm thấy cấp độ.",
-        HTTP_STATUS.NOT_FOUND
-      );
+      return ResponseBuilder.notFoundError("Không tìm thấy cấp độ.");
     }
 
     if (!level.finalQuiz) {
@@ -152,10 +128,7 @@ class LearningPathService {
     );
 
     if (!existingTarget) {
-      return ResponseBuilder.error(
-        "Không tìm thấy mục tiêu.",
-        HTTP_STATUS.NOT_FOUND
-      );
+      return ResponseBuilder.notFoundError("Không tìm thấy mục tiêu.");
     }
 
     const existingPath = await LearningPathRepository.findByTargetId(
@@ -189,17 +162,11 @@ class LearningPathService {
   }) {
     const learningPath = await LearningPathRepository.findById(learningPathId);
     if (!learningPath)
-      return ResponseBuilder.error(
-        "Không tìm thấy lộ trình học.",
-        HTTP_STATUS.NOT_FOUND
-      );
+      return ResponseBuilder.notFoundError("Không tìm thấy lộ trình học.");
 
     let level = this._findLevel(learningPath, titleLevel);
     if (!level) {
-      return ResponseBuilder.error(
-        "Không tìm thấy cấp độ.",
-        HTTP_STATUS.NOT_FOUND
-      );
+      return ResponseBuilder.notFoundError("Không tìm thấy cấp độ.");
     }
 
     let lesson = this._findLesson(level, lessonId);
@@ -242,10 +209,7 @@ class LearningPathService {
       const path =
         await LearningPathRepository.findLevelsByPath(learningPathId);
       if (!path)
-        return ResponseBuilder.error(
-          "Không tìm thấy lộ trình.",
-          HTTP_STATUS.NOT_FOUND
-        );
+        return ResponseBuilder.notFoundError("Không tìm thấy lộ trình.");
       return ResponseBuilder.success(
         "lấy dữ liệu cấp độ thành công",
         path.levels
@@ -257,33 +221,38 @@ class LearningPathService {
         learningPathId,
         Number(levelOrder)
       );
+      console.log("path", path.levels[0].lessons);
       if (!path || !path.levels.length)
-        return ResponseBuilder.error(
-          "Không tìm thấy cấp độ.",
-          HTTP_STATUS.NOT_FOUND
-        );
+        return ResponseBuilder.notFoundError("Không tìm thấy cấp độ.");
 
-      const lessons = path.levels[0].lessons.map((module) => ({
-        lesson: module.lesson,
-        order: module.order ?? 0,
-        title: lesson.title ?? "",
-      }));
+      const userLearningPath = await userLearningPathRepo.findByUserAndPath(
+        req.user._id,
+        toObjectId(learningPathId)
+      );
+
+      console.log("userLearningPath", userLearningPath);
+
+      const lessons = path.levels[0].lessons
+        .filter((module) => module.lesson)
+        .map((module) => ({
+          lesson: module.lesson._id,
+          order: module.order ?? 0,
+          title: module.lesson.title ?? "",
+        }));
 
       return ResponseBuilder.success("Lấy dữ liệu bài học thành công", lessons);
     }
 
     if (isBlock === "true" && lessonId) {
-      const path = await LearningPathRepository.findBlocksByLesson(
+      const blocks = await LearningPathRepository.findBlocksByLesson(
         learningPathId,
         Number(levelOrder),
         lessonId
       );
 
+      console.log("blocks", blocks);
       if (!blocks || !blocks.length)
-        return ResponseBuilder.error(
-          "Không tìm thấy blocks.",
-          HTTP_STATUS.NOT_FOUND
-        );
+        return ResponseBuilder.notFoundError("Không tìm thấy blocks.");
 
       return ResponseBuilder.success("Lấy blocks thành công", blocks);
     }
@@ -299,10 +268,7 @@ class LearningPathService {
     );
 
     if (!existingPath) {
-      return ResponseBuilder.error(
-        "Không tìm thấy lộ trình học.",
-        HTTP_STATUS.NOT_FOUND
-      );
+      return ResponseBuilder.notFoundError("Không tìm thấy lộ trình học.");
     }
 
     const isDuplicate = existingPath.levels?.some(

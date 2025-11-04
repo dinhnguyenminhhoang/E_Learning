@@ -22,19 +22,28 @@ const userProgressSchema = new Schema(
       index: true,
     },
 
-    levelOrder: {
-      type: Number, // thứ tự level trong lộ trình
-      required: true,
-      min: 1,
-      index: true,
-    },
+    // levelOrder: {
+    //   type: Number, // thứ tự level trong lộ trình
+    //   required: true,
+    //   min: 1,
+    //   index: true,
+    // },
 
-    lessonOrder: {
-      type: Number, // thứ tự bài học (hoặc quiz) trong level
-      required: true,
-      min: 1,
-      index: true,
-    },
+    // lessonOrder: {
+    //   type: Number, // thứ tự bài học (hoặc quiz) trong level
+    //   required: true,
+    //   min: 1,
+    //   index: true,
+    // },
+
+    lessonLeaned: [
+      {
+        type: Schema.Types.ObjectId,
+        ref: "Lesson",
+        required: true,
+        index: true,
+      },
+    ],
 
     status: {
       type: String,
