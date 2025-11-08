@@ -1,10 +1,6 @@
 import { fetchBaseQuery } from "@reduxjs/toolkit/query/react";
-import type {
-  BaseQueryFn,
-  FetchArgs,
-  FetchBaseQueryError,
-} from "@reduxjs/toolkit/query";
-import { getCookie, removeCookie } from "@/lib/cookies";
+import type { BaseQueryFn, FetchArgs, FetchBaseQueryError } from "@reduxjs/toolkit/query";
+import { getCookie, setCookie, removeCookie } from "@/lib/cookies";
 
 let isRefreshing = false;
 let failedQueue: Array<{ resolve: (token: string) => void; reject: (err: any) => void }> = [];
@@ -17,11 +13,11 @@ const processQueue = (error: any, token: string | null = null) => {
   failedQueue = [];
 };
 
-export const customBaseQueryWithReauth: BaseQueryFn<
-  string | FetchArgs,
-  unknown,
-  FetchBaseQueryError
-> = async (args, api, extraOptions) => {
+export const customBaseQueryWithReauth: BaseQueryFn<string | FetchArgs, unknown, FetchBaseQueryError> = async (
+  args,
+  api,
+  extraOptions
+) => {
   const baseQuery = fetchBaseQuery({
     baseUrl: process.env.NEXT_PUBLIC_SERVER_URI,
     credentials: "include",
@@ -34,10 +30,10 @@ export const customBaseQueryWithReauth: BaseQueryFn<
 
   let result = await baseQuery(args, api, extraOptions);
 
-  // Nếu token hết hạn
+  // ✅ Token hết hạn
   if (result.error && result.error.status === 401) {
     if (isRefreshing) {
-      // Chờ refresh hoàn tất
+      // Nếu đang refresh, chờ refresh xong
       return new Promise((resolve, reject) => {
         failedQueue.push({ resolve, reject });
       })
@@ -48,22 +44,22 @@ export const customBaseQueryWithReauth: BaseQueryFn<
     isRefreshing = true;
     try {
       const refreshResult = await baseQuery(
-        { url: "/auth/refresh", method: "POST" },
+        { url: "/user/refresh-token", method: "POST" },
         api,
         extraOptions
       );
 
-      const newAccessToken = (refreshResult.data as any)?.data?.accessToken;
+      const newAccessToken = (refreshResult.data as any)?.metadata?.accessToken;
 
       if (newAccessToken) {
+        // 🔹 Lưu lại token mới vào cookie
+        setCookie("access_token", newAccessToken);
         processQueue(null, newAccessToken);
+
+        // 🔹 Gọi lại request cũ
         result = await baseQuery(args, api, extraOptions);
       } else {
-        processQueue(new Error("Refresh token failed"));
-        removeCookie("access_token");
-        if (typeof window !== "undefined") {
-          window.location.href = "/auth/sign-in";
-        }
+        throw new Error("Refresh token failed");
       }
     } catch (err) {
       processQueue(err);

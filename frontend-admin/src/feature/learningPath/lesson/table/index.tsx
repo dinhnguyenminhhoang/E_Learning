@@ -1,11 +1,11 @@
 "use client";
 
 import { ColumnDef } from "@tanstack/react-table";
-import { useCallback } from "react";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { DataTable } from "@/components/data-table/data-table";
-import { useDataTableNextJS } from "@/hooks/use-data-table-nextjs";
+import { useDataTable } from "@/hooks/use-data-table";
 import { DataTableToolbar } from "@/components/data-table/data-table-toolbar";
+import { parseAsInteger, useQueryState } from "nuqs";
+import { useMemo } from "react";
 
 interface LessonTableParams<TData extends Record<string, unknown>> {
   data: TData[];
@@ -20,39 +20,30 @@ export function LessonTable<TData extends Record<string, unknown>>({
   columns,
   onAdd,
 }: LessonTableParams<TData>) {
-  const router = useRouter();
-  const pathname = usePathname();
-  const searchParams = useSearchParams();
+  const [pageNum, setPageNum] = useQueryState("pageNum", parseAsInteger.withDefault(1));
+  const [pageSize, setPageSize] = useQueryState("pageSize", parseAsInteger.withDefault(10));
 
-  const pageSize = Number(searchParams.get("pageSize")) || 10;
-  const currentPage = Number(searchParams.get("page")) || 1;
-  const pageCount = Math.ceil(totalItems / pageSize);
+  const pageCount = useMemo(() => Math.ceil(totalItems / pageSize), [totalItems, pageSize]);
 
-  const createQueryString = useCallback(
-    (params: Record<string, string | number>) => {
-      const newSearchParams = new URLSearchParams(searchParams.toString());
-      Object.entries(params).forEach(([key, value]) => {
-        newSearchParams.set(key, String(value));
-      });
-      return newSearchParams.toString();
-    },
-    [searchParams],
-  );
-
-  const { table } = useDataTableNextJS({
+  const { table } = useDataTable({
     data,
     columns,
     pageCount,
-    defaultPageSize: pageSize,
-    defaultPage: currentPage,
-    debounceMs: 500,
-    onPageChange: (page) => {
-      router.push(`${pathname}?${createQueryString({ page })}`, { scroll: false });
+    initialState: {
+      pagination: { pageIndex: pageNum - 1, pageSize },
     },
-    onPageSizeChange: (size) => {
-      router.push(`${pathname}?${createQueryString({ pageSize: size, page: 1 })}`, { scroll: false });
+    shallow: false,
+    debounceMs: 0,
+    onPaginationChange: (updater) => {
+      const next = typeof updater === "function" ? updater({ pageIndex: pageNum - 1, pageSize }) : updater;
+
+      setPageNum(next.pageIndex + 1);
+      setPageSize(next.pageSize);
     },
   });
+
+  if (!pageSize) return null;
+    console.log("ok1");
 
   return (
     <DataTable table={table} totalRecords={totalItems}>
