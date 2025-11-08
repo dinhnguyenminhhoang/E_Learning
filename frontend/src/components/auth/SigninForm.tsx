@@ -3,7 +3,7 @@
 import { tokenManager } from "@/configs/instance";
 import { authStorage } from "@/constant/authStorage";
 import { validateEmail, validatePassword } from "@/constant/validate";
-import { signinApi } from "@/services/auth";
+import { signinApi, getGoogleSigninUrl } from "@/services/auth";
 import { SignInFormData, ValidationErrors } from "@/types/form";
 import {
   AlertCircle,
@@ -186,9 +186,17 @@ export default function SignInForm() {
       setIsLoading(true);
 
       const returnUrl = searchParams.get("returnUrl") || "/";
-      const oauthUrl = `${process.env.NEXT_PUBLIC_API_URL}/v1/api/auth/${provider}?returnUrl=${encodeURIComponent(returnUrl)}`;
-
-      window.location.href = oauthUrl;
+      
+      // Sử dụng service để lấy Google signin URL
+      if (provider === "google") {
+        const oauthUrl = getGoogleSigninUrl(returnUrl);
+        window.location.href = oauthUrl;
+      } else {
+        // GitHub hoặc provider khác vẫn dùng pattern cũ
+        const baseUrl = process.env.NEXT_PUBLIC_API_URL || process.env.API_BASE_URL || 'http://localhost:8080'
+        const oauthUrl = `${baseUrl}/v1/api/auth/${provider}?returnUrl=${encodeURIComponent(returnUrl)}`;
+        window.location.href = oauthUrl;
+      }
     } catch (error) {
       console.error(`❌ ${provider} login error:`, error);
       toast.error("Không thể đăng nhập với " + provider);
