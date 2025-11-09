@@ -1,7 +1,7 @@
 import { createApi } from "@reduxjs/toolkit/query/react";
 import { customBaseQueryWithReauth } from "./base-api";
-import { Lesson } from "@/types/response/lesson";
-import { PaginatedResponse } from "@/types/response/base-response";
+import { Lesson, LessonBody, LessonUpdateBody } from "@/types/response/lesson";
+import { BaseResponse, PaginatedResponse } from "@/types/response/base-response";
 
 export const lessonApi = createApi({
   reducerPath: "lessonApi",
@@ -34,9 +34,25 @@ export const lessonApi = createApi({
           method: "GET",
         };
       },
-      providesTags: ["Lesson"],
+      providesTags: () => [{ type: "Lesson", id: "LIST" }],
+    }),
+    addLesson: builder.mutation<BaseResponse<any>, { body: LessonBody }>({
+      query: ({ body }) => ({
+        url: `/lesson`,
+        method: "POST",
+        body,
+      }),
+      invalidatesTags: () => [{ type: "Lesson", id: "LIST" }],
+    }),
+    updateLesson: builder.mutation<BaseResponse<any>, { body: LessonUpdateBody; lessonId: string }>({
+      query: ({ body, lessonId }) => ({
+        url: `/lesson/${lessonId}`,
+        method: "PUT",
+        body,
+      }),
+      invalidatesTags: () => [{ type: "Lesson", id: "LIST" }],
     }),
   }),
 });
 
-export const { useGetAllLessonQuery } = lessonApi;
+export const { useGetAllLessonQuery, useAddLessonMutation, useUpdateLessonMutation } = lessonApi;

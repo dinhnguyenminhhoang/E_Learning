@@ -18,19 +18,13 @@ interface CellActionProps {
   onAssignPosition?: (row: any) => void;
 }
 
-export const CellAction: React.FC<CellActionProps> = ({
-  data,
-  onEdit,
-  onDelete,
-  onAssignPosition,
-}) => {
+export const CellAction: React.FC<CellActionProps> = ({ data, onEdit, onDelete, onAssignPosition }) => {
   const handleAssignPosition = () => {
     toast.warning("Chức năng này đang được phát triển, vui lòng quay lại sau!");
     onAssignPosition?.(data);
   };
 
   const handleEdit = () => {
-    toast.warning("Chức năng này đang được phát triển, vui lòng quay lại sau!");
     onEdit?.(data);
   };
 
@@ -42,7 +36,7 @@ export const CellAction: React.FC<CellActionProps> = ({
   return (
     <DropdownMenu modal={false}>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" className="h-8 w-8 p-0 cursor-pointer">
+        <Button variant="ghost" className="h-8 w-8 cursor-pointer p-0">
           <span className="sr-only">Open menu</span>
           <IconDotsVertical className="h-4 w-4" />
         </Button>

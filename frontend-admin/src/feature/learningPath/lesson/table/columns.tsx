@@ -5,6 +5,7 @@ import { ColumnDef } from "@tanstack/react-table";
 import { Lesson } from "@/types/response/lesson";
 import { CellAction } from "./action";
 import { Text } from "lucide-react";
+import { Category } from "@/types/response/category";
 
 export const createColumns = (
   pageNum: number,
