@@ -74,7 +74,7 @@ class ApiClient {
   private handleLogout() {
     if (typeof window !== "undefined") {
       localStorage.removeItem("accessToken");
-      window.location.href = "/login";
+      window.location.href = "/signin";
     }
   }
 

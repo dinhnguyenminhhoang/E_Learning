@@ -20,13 +20,13 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   useEffect(() => {
     if (!isLoading) {
       if (!isAuthenticated) {
-        router.replace("/login");
+        router.replace("/signin");
         return;
       }
 
       if (requireAdmin && !isAdmin) {
         console.warn("⚠️ Access denied: Admin role required");
-        router.replace("/home");
+        router.replace("/");
       }
     }
   }, [isAuthenticated, isAdmin, isLoading, requireAdmin, router]);

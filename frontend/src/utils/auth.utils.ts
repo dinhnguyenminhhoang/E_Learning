@@ -24,7 +24,7 @@ export const getRedirectPath = (userRoles: UserRole[]): string => {
     return "/admin/dashboard";
   }
 
-  return "/home";
+  return "/";
 };
 
 export const saveAuthData = (accessToken: string, user: any) => {
