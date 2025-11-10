@@ -77,6 +77,5 @@ const categorySchema = new Schema(
 
 // ===== INDEXES =====
 categorySchema.index({ name: "text", nameVi: "text", description: "text" });
-categorySchema.index({ createdAt: -1, status: 1 });
 
 module.exports = model(DOCUMENT_NAME, categorySchema);

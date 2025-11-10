@@ -182,7 +182,6 @@ userSchema.index({ status: 1, "verification.emailVerified": 1 }); // Active veri
 userSchema.index({ roles: 1, status: 1 }); // Admin/role queries
 userSchema.index({ createdAt: -1, status: 1 }); // Recent users
 userSchema.index({ "security.lastLoginAt": -1 }); // Recent login sorting
-userSchema.index({ updatedAt: 1 }, { sparse: true }); // Soft delete queries
 
 // Geospatial Index (nếu cần location-based features)
 userSchema.index({ "addresses.location": "2dsphere" });

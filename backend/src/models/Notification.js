@@ -77,8 +77,6 @@ const userNotificationSchema = new Schema(
 
 // ===== INDEXES =====
 userNotificationSchema.index({ user: 1, isRead: 1, type: 1 });
-userNotificationSchema.index({ scheduledAt: 1 });
-userNotificationSchema.index({ sentAt: 1 });
 
 // ===== STATICS =====
 userNotificationSchema.statics.findUnreadByUser = function (userId) {

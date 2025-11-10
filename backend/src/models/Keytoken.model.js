@@ -37,7 +37,7 @@ const keyTokenSchema = new Schema(
       type: Schema.Types.ObjectId,
       required: [true, "User reference is required"],
       ref: "User",
-      index: true, 
+      index: true,
     },
 
     keys: {
@@ -249,9 +249,6 @@ keyTokenSchema.index(
 ); // TTL index
 keyTokenSchema.index({ user: 1, "session.deviceId": 1 }); // Device-specific tokens
 keyTokenSchema.index({ "session.lastUsedAt": -1, "security.isActive": 1 }); // Recent activity
-keyTokenSchema.index({ "security.revokedAt": 1 }, { sparse: true }); // Revoked tokens
-keyTokenSchema.index({ "security.isCompromised": 1 }, { sparse: true }); // Compromised tokens
-keyTokenSchema.index({ createdAt: -1, user: 1 }); // Recent tokens per user
 
 // Unique compound index để prevent duplicate active tokens per device
 keyTokenSchema.index(
