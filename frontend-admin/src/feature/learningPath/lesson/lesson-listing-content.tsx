@@ -16,7 +16,6 @@ export function LessonListingContent({
   onTableStateChange?: (state: { sorting: any; filters: any }) => void;
   onAdd?: () => void;
 }) {
-  console.log("ok", employees)
   return (
     <div className="space-y-4">
       <LessonTable data={employees} totalItems={totalEmployees} columns={columns} onAdd={onAdd} />
