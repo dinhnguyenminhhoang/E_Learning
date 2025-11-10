@@ -13,7 +13,6 @@ const learningPathDocs = require("../docs/learningPathDocs");
 const onboardingDocs = require("../docs/onboardingDocs");
 const userOnboardingAnswerDocs = require("../docs/userOnboardingAnswerDocs");
 const lessonDocs = require("../docs/lessonDocs");
-// const userDocs = require('../docs/user.docs');
 
 /**
  * Updated Swagger Configuration
@@ -415,8 +414,6 @@ const swaggerDefinition = {
     },
     // External documentation paths
     authPaths: authDocs,
-    // userPaths: userDocs,
-    // portfolioPaths: portfolioDocs
   },
   // Manual paths definition (using external docs)
   paths: {
@@ -444,33 +441,33 @@ const swaggerDefinition = {
     "/v1/api/category/{id}": categoryDocs.updateCategory,
     "/v1/api/category/delete/{id}": categoryDocs.deleteCategory,
 
-    // // ---------------- FLASHCARD ----------------
+    // ---------------- FLASHCARD ----------------
     "/v1/api/flashcard/create": flashcardDocs.createFlashcard,
     "/v1/api/flashcard": flashcardDocs.listFlashcards,
     "/v1/api/flashcard/getById/{id}": flashcardDocs.getFlashcardById,
     "/v1/api/flashcard/{id}": flashcardDocs.updateFlashcard,
     "/v1/api/flashcard/delete/{id}": flashcardDocs.deleteFlashcard,
 
-    // // ---------------- ONBOARDING ----------------
+    // ---------------- ONBOARDING ----------------
     "/v1/api/onboarding": onboardingDocs.getOnboardingQuestions,
 
-    // // ---------------- ONBOARDINGANSWER ----------------
+    // ---------------- ONBOARDINGANSWER ----------------
     "/v1/api/userOnboardingAnswer": userOnboardingAnswerDocs.save,
 
     // ---------------- CARD DECK ----------------
     "/v1/api/card-deck": {
-      ...cardDeckDocs.createCardDeck, // POST
-      ...cardDeckDocs.getListCardDecks, // GET
+      ...cardDeckDocs.createCardDeck,
+      ...cardDeckDocs.getListCardDecks,
     },
 
     "/v1/api/card-deck/{cardDeckId}": {
-      ...cardDeckDocs.getCardDeck, // GET
-      ...cardDeckDocs.updateCardDeck, // PUT
-      ...cardDeckDocs.deleteCardDeck, // DELETE
+      ...cardDeckDocs.getCardDeck,
+      ...cardDeckDocs.updateCardDeck,
+      ...cardDeckDocs.deleteCardDeck,
     },
 
     "/v1/api/card-deck/category/{categoryId}": {
-      ...cardDeckDocs.getCardDeckByCategory, // GET
+      ...cardDeckDocs.getCardDeckByCategory,
     },
 
     // ---------------- LEARNING PATH ----------------
@@ -555,9 +552,9 @@ const swaggerDefinition = {
 const swaggerOptions = {
   definition: swaggerDefinition,
   apis: [
-    "./src/routes/*.js", // Route files với @swagger comments
-    "./src/controllers/*.js", // Controller files
-    "./docs/*.yaml", // Additional YAML docs
+    "./src/routes/*.js",
+    "./src/controllers/*.js",
+    "./docs/*.yaml",
   ],
 };
 
@@ -579,22 +576,22 @@ const swaggerUiOptions = {
     tryItOutEnabled: true,
   },
   customCss: `
-        .swagger-ui .topbar { display: none; }
-        .swagger-ui .info { margin: 20px 0; }
-        .swagger-ui .scheme-container { 
-            background: #f7f7f7; 
-            padding: 20px; 
-            border-radius: 5px; 
-        }
-        .swagger-ui .info .title {
-            color: #2c3e50;
-            font-size: 2.5rem;
-        }
-        .swagger-ui .info .description {
-            color: #7f8c8d;
-            font-size: 1.1rem;
-        }
-    `,
+    .swagger-ui .topbar { display: none; }
+    .swagger-ui .info { margin: 20px 0; }
+    .swagger-ui .scheme-container { 
+      background: #f7f7f7; 
+      padding: 20px; 
+      border-radius: 5px; 
+    }
+    .swagger-ui .info .title {
+      color: #2c3e50;
+      font-size: 2.5rem;
+    }
+    .swagger-ui .info .description {
+      color: #7f8c8d;
+      font-size: 1.1rem;
+    }
+  `,
   customSiteTitle: "Portfolio Marketplace API Documentation",
   customfavIcon: "/favicon.ico",
 };
@@ -604,42 +601,61 @@ const swaggerUiOptions = {
  * @param {Object} app - Express app instance
  */
 function setupSwagger(app) {
-  // Serve swagger JSON
-  app.get("/api-docs.json", (req, res) => {
-    res.setHeader("Content-Type", "application/json");
-    res.send(swaggerSpec);
-  });
+  console.log('📚 Initializing Swagger documentation...');
 
-  // Serve swagger UI
-  app.use("/api-docs", swaggerUi.serve);
-  app.get("/api-docs", swaggerUi.setup(swaggerSpec, swaggerUiOptions));
-
-  // Alternative routes
-  app.get("/docs", (req, res) => {
-    res.redirect("/api-docs");
-  });
-
-  // Health check for docs
-  app.get("/docs/health", (req, res) => {
-    res.json({
-      status: "healthy",
-      docs: {
-        available: true,
-        url: "/api-docs",
-        version: swaggerSpec.info.version,
-      },
-      timestamp: new Date().toISOString(),
+  try {
+    // Serve swagger JSON with correct Content-Type
+    app.get("/api-docs.json", (req, res) => {
+      res.setHeader("Content-Type", "application/json");
+      res.send(swaggerSpec);
     });
-  });
 
-  console.log("📚 Swagger documentation available at:");
-  console.log(`   - UI: http://localhost:${process.env.PORT || 8080}/api-docs`);
-  console.log(
-    `   - JSON: http://localhost:${process.env.PORT || 8080}/api-docs.json`
-  );
-  console.log(
-    `   - Health: http://localhost:${process.env.PORT || 8080}/docs/health`
-  );
+    // Serve swagger UI với options đầy đủ
+    const swaggerMiddleware = swaggerUi.serveFiles(swaggerSpec, swaggerUiOptions);
+
+    app.use("/api-docs", (req, res, next) => {
+      // Set correct MIME types for static files
+      if (req.path.endsWith('.js')) {
+        res.setHeader('Content-Type', 'application/javascript; charset=utf-8');
+      } else if (req.path.endsWith('.css')) {
+        res.setHeader('Content-Type', 'text/css; charset=utf-8');
+      } else if (req.path.endsWith('.json')) {
+        res.setHeader('Content-Type', 'application/json; charset=utf-8');
+      }
+      next();
+    }, swaggerMiddleware);
+
+    app.get("/api-docs", swaggerUi.setup(swaggerSpec, swaggerUiOptions));
+
+    // Alternative routes
+    app.get("/docs", (req, res) => {
+      res.redirect("/api-docs");
+    });
+
+    // Health check for docs
+    app.get("/docs/health", (req, res) => {
+      res.json({
+        status: "healthy",
+        docs: {
+          available: true,
+          url: "/api-docs",
+          version: swaggerSpec.info.version,
+          environment: process.env.NODE_ENV || 'development',
+        },
+        timestamp: new Date().toISOString(),
+      });
+    });
+
+    console.log("✅ Swagger documentation initialized successfully");
+    console.log("📚 Swagger documentation available at:");
+    console.log(`   - Environment: ${process.env.NODE_ENV || 'development'}`);
+    console.log(`   - UI: /api-docs`);
+    console.log(`   - JSON: /api-docs.json`);
+    console.log(`   - Health: /docs/health`);
+  } catch (error) {
+    console.error('❌ Failed to initialize Swagger:', error.message);
+    console.error('Swagger documentation will not be available');
+  }
 }
 
 /**
