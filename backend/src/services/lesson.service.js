@@ -122,7 +122,7 @@ class LessonService {
     const lessons = await LessonRepository.getAllLessons(req);
     return ResponseBuilder.successWithPagination(
       "Lấy danh sách bài học thành công",
-      lessons,
+      lessons.lessons,
       {
         total: lessons.total,
         pageNum: lessons.pageNum,

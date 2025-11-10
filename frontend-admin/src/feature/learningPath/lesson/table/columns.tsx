@@ -1,197 +1,122 @@
+"use client";
 
-"use client"
-
-import { Column, ColumnDef } from "@tanstack/react-table";
-import { Text } from "lucide-react";
-import dayjs from "dayjs";
-import { Checkbox } from "@/components/ui/checkbox";
-import type { Option } from "@/types/data-table";
-import { DataTableColumnHeader } from "@/components/data-table/data-table-column-header";
+import { Badge } from "@/components/ui/badge";
+import { ColumnDef } from "@tanstack/react-table";
+import { Lesson } from "@/types/response/lesson";
 import { CellAction } from "./action";
+import { Text } from "lucide-react";
 
 export const createColumns = (
   pageNum: number,
   pageSize: number,
-  positionOptions: Option[] = [],
-  departmentOptions: Option[] = []
-): ColumnDef<any>[] => [
+  onEdit?: (data: Lesson) => void,
+  onDelete?: (data: Lesson) => void,
+): ColumnDef<Lesson>[] => [
   {
     id: "index",
-    header: ({ column }: { column: Column<any, unknown> }) => (
-      <DataTableColumnHeader column={column} title="STT" />
-    ),
+    header: "STT",
     size: 60,
-    cell: ({ row }) => (
-      <div className="text-center font-medium">
-        {(pageNum - 1) * pageSize + row.index + 1}
-      </div>
-    ),
+    cell: ({ row }) => <div className="text-center font-medium">{(pageNum - 1) * pageSize + row.index + 1}</div>,
     meta: { label: "STT" },
   },
   {
-    id: "employeeCode",
-    accessorKey: "employeeCode",
-    enableSorting: true,
-    header: ({ column }: { column: Column<any, unknown> }) => (
-      <DataTableColumnHeader column={column} title="MÃ NHÂN VIÊN" />
-    ),
-    size: 140,
+    id: "search",
+    accessorKey: "title",
+    header: "Tiêu đề bài học",
     cell: ({ cell }) => {
-      const employeeCode =
-        cell.getValue<any["employeeCode"]>() ?? "";
+      const title = cell.getValue<string>() ?? "";
+      const shortTitle = title.length > 40 ? title.slice(0, 40) + "..." : title;
       return (
-        <div
-          className="truncate whitespace-nowrap overflow-hidden font-medium"
-          title={employeeCode}
-        >
-          {employeeCode}
+        <div className="font-medium break-words whitespace-normal" title={title}>
+          {shortTitle}
         </div>
       );
     },
-    meta: { label: "Mã nhân viên" },
-  },
-  {
-    id: "fullName",
-    accessorKey: "fullName",
     enableSorting: true,
-    header: ({ column }: { column: Column<any, unknown> }) => (
-      <DataTableColumnHeader column={column} title="HỌ VÀ TÊN" />
-    ),
-    size: 200,
-    cell: ({ cell }) => {
-      const fullName = cell.getValue<any["fullName"]>() ?? "";
-      const shortName =
-        fullName.length > 30 ? fullName.slice(0, 30) + "..." : fullName;
-      return (
-        <div
-          className="truncate whitespace-nowrap overflow-hidden font-medium"
-          title={fullName}
-        >
-          {shortName}
-        </div>
-      );
-    },
     enableColumnFilter: true,
+    enableGlobalFilter: true,
     meta: {
-      label: "Họ và tên",
-      placeholder: "Tìm kiếm theo tên, chức vụ...",
+      label: "Tiêu đề bài học",
+      placeholder: "Tìm kiếm theo tiêu đề...",
       variant: "text",
       icon: Text as unknown as React.FC<React.SVGProps<SVGSVGElement>>,
     },
   },
   {
-    id: "position",
-    accessorKey: "position.title",
+    id: "skill",
+    accessorKey: "skill",
+    header: "Kỹ năng",
+    cell: ({ cell }) => <div className="text-left">{cell.getValue<string>()}</div>,
     enableSorting: true,
     enableColumnFilter: true,
-    header: ({ column }: { column: Column<any, unknown> }) => (
-      <DataTableColumnHeader column={column} title="TÊN CHỨC VỤ" />
-    ),
-    size: 180,
-    cell: ({ cell }) => {
-      const positionTitle = cell.getValue<string>() || "Chưa có chức vụ";
-      return (
-        <div className="truncate whitespace-nowrap overflow-hidden">
-          {positionTitle}
-        </div>
-      );
-    },
     meta: {
-      label: "Chức vụ",
-      variant: "select",
-      options: positionOptions,
+      label: "Kỹ năng",
+      placeholder: "Chọn kỹ năng",
+      variant: "multiSelect",
     },
   },
   {
-    id: "department",
-    accessorKey: "department.name",
+    id: "level",
+    accessorKey: "level",
+    header: "Trình độ",
+    cell: ({ cell }) => <div className="text-left">{cell.getValue<string>()}</div>,
     enableSorting: true,
     enableColumnFilter: true,
-    header: ({ column }: { column: Column<any, unknown> }) => (
-      <DataTableColumnHeader column={column} title="TÊN PHÒNG BAN" />
-    ),
-    size: 180,
-    cell: ({ cell }) => {
-      const departmentName = cell.getValue<string>() || "Chưa có phòng ban";
-      return (
-        <div className="truncate whitespace-nowrap overflow-hidden">
-          {departmentName}
-        </div>
-      );
-    },
     meta: {
-      label: "Phòng ban",
-      variant: "select",
-      options: departmentOptions,
+      label: "Trình độ",
+      placeholder: "Chọn trình độ",
+      variant: "multiSelect",
     },
   },
   {
-    id: "managerName",
-    accessorKey: "managerName",
+    id: "duration_minutes",
+    accessorKey: "duration_minutes",
+    header: "Thời lượng (phút)",
+    cell: ({ cell }) => <div className="text-left">{cell.getValue<number>()}</div>,
     enableSorting: true,
-    header: ({ column }: { column: Column<any, unknown> }) => (
-      <DataTableColumnHeader column={column} title="QUẢN LÝ" />
-    ),
-    size: 160,
-    cell: ({ cell }) => {
-      const managerName =
-        cell.getValue<any["managerName"]>() ??
-        "Chưa có quản lý";
-      return (
-        <div className="truncate whitespace-nowrap overflow-hidden text-gray-700">
-          {managerName}
-        </div>
-      );
-    },
-    meta: { label: "Quản lý" },
+    meta: { label: "Thời lượng" },
   },
   {
-    id: "isProbation",
-    accessorKey: "isProbation",
-    enableSorting: true,
-    header: ({ column }: { column: Column<any, unknown> }) => (
-      <DataTableColumnHeader column={column} title="THỬ VIỆC" />
-    ),
-    size: 100,
+    id: "status",
+    accessorKey: "status",
+    header: "Trạng thái",
     cell: ({ cell }) => {
-      const isProbation = cell.getValue<any["isProbation"]>();
+      const status = cell.getValue<string>() ?? "";
+      const statusMap: Record<string, { label: string; className: string }> = {
+        ACTIVE: {
+          label: "Đang hoạt động",
+          className: "bg-green-100 text-green-800 border-green-200 ",
+        },
+        INACTIVE: {
+          label: "Ngưng hoạt động",
+          className: "bg-gray-100 text-gray-800 border-gray-200",
+        },
+        DRAFT: {
+          label: "Bản nháp",
+          className: "bg-yellow-100 text-yellow-800 border-yellow-200",
+        },
+      };
+
+      const { label, className } = statusMap[status] ?? {
+        label: "Không xác định",
+        className: "bg-red-100 text-red-800 border-red-200",
+      };
+
       return (
-        <div className="flex justify-left pl-5">
-          <Checkbox
-            checked={isProbation}
-            disabled
-            className="pointer-events-none"
-          />
+        <div className="flex justify-left ">
+          <Badge variant="outline" className={`capitalize ${className}`}>
+            {label}
+          </Badge>
         </div>
       );
     },
-    meta: { label: "Thử việc" },
-  },
-  {
-    id: "startDate",
-    accessorKey: "startDate",
-    enableSorting: true,
-    header: ({ column }: { column: Column<any, unknown> }) => (
-      <DataTableColumnHeader column={column} title="NGÀY BẮT ĐẦU" />
-    ),
-    size: 140,
-    cell: ({ cell }) => {
-      const startDate = cell.getValue<any["startDate"]>();
-      return (
-        <div className="text-center text-gray-700">
-          {startDate ? dayjs(startDate).format("DD/MM/YYYY") : "Chưa có"}
-        </div>
-      );
-    },
-    meta: { label: "Ngày bắt đầu" },
+    meta: { label: "Trạng thái" },
   },
   {
     id: "actions",
-    header: ({ column }: { column: Column<any, unknown> }) => (
-      <DataTableColumnHeader column={column} title="THAO TÁC" />
-    ),
-    cell: ({ row }) => <CellAction data={row.original} />,
-    size: 80,
+    header: "Thao tác",
+    size: 100,
+    cell: ({ row }) => <CellAction data={row.original} onEdit={onEdit} onDelete={onDelete} />,
     meta: { label: "Thao tác" },
   },
 ];

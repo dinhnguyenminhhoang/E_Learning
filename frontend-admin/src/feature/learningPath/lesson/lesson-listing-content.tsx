@@ -2,6 +2,7 @@
 
 import { ColumnDef } from "@tanstack/react-table";
 import { LessonTable } from "./table";
+import { Lesson } from "@/types/response/lesson";
 
 export function LessonListingContent({
   employees,
@@ -9,12 +10,13 @@ export function LessonListingContent({
   columns,
   onAdd,
 }: {
-  employees: any[];
+  employees: Lesson[];
   totalEmployees: number;
   columns: ColumnDef<any, any>[];
   onTableStateChange?: (state: { sorting: any; filters: any }) => void;
   onAdd?: () => void;
 }) {
+  console.log("ok", employees)
   return (
     <div className="space-y-4">
       <LessonTable data={employees} totalItems={totalEmployees} columns={columns} onAdd={onAdd} />

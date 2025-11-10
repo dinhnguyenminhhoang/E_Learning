@@ -37,7 +37,7 @@ export function TableCards() {
         </CardHeader>
         <CardContent className="flex size-full flex-col gap-4">
           <div className="overflow-hidden rounded-md border">
-            <DataTable table={table} columns={recentLeadsColumns} />
+            <DataTable table={table} />
           </div>
           <DataTablePagination table={table} />
         </CardContent>

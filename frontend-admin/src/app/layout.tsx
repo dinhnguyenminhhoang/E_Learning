@@ -4,6 +4,7 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 
 import { ReduxProvider } from "@/providers/redux-provider";
+import { NuqsProvider } from "@/providers/nuqs-provider";
 
 import { Toaster } from "@/components/ui/sonner";
 import { APP_CONFIG } from "@/config/app-config";
@@ -34,8 +35,10 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
       <body className={`${inter.className} min-h-screen antialiased`}>
         <PreferencesStoreProvider themeMode={themeMode} themePreset={themePreset}>
           <ReduxProvider>
-            {children}
-            <Toaster />
+            <NuqsProvider>
+              {children}
+              <Toaster />
+            </NuqsProvider>
           </ReduxProvider>
         </PreferencesStoreProvider>
       </body>

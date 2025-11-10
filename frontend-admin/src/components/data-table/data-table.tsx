@@ -1,10 +1,10 @@
 import { type Table as TanstackTable, flexRender } from "@tanstack/react-table";
+import type * as React from "react";
 
-import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { getCommonPinningStyles } from "@/lib/data-table";
+import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { DataTablePagination } from "./data-table-pagination";
-
 interface DataTableProps<TData> extends React.ComponentProps<"div"> {
   table: TanstackTable<TData>;
   totalRecords?: number;
@@ -12,13 +12,21 @@ interface DataTableProps<TData> extends React.ComponentProps<"div"> {
   onRowClick?: (row: TData) => void;
 }
 
-export function DataTable<TData>({
-  table,
-  totalRecords,
-  actionBar,
-  children,
-  onRowClick,
-}: DataTableProps<TData>) {
+export function DataTable<TData>({ table, totalRecords, actionBar, children, onRowClick }: DataTableProps<TData>) {
+  // Debug: log row model length and underlying data length each render
+  try {
+    // table.options may not be typed for `data`, so cast to any for debugging
+    // eslint-disable-next-line no-console
+    console.log(
+      "DataTable render - visibleRows:",
+      table.getRowModel().rows.length,
+      "dataLength:",
+      (table.options as any)?.data?.length,
+    );
+  } catch (e) {
+    // ignore logging errors in production
+  }
+
   return (
     <div className="flex flex-1 flex-col space-y-4">
       {children}
@@ -36,12 +44,7 @@ export function DataTable<TData>({
                         ...getCommonPinningStyles({ column: header.column }),
                       }}
                     >
-                      {header.isPlaceholder
-                        ? null
-                        : flexRender(
-                            header.column.columnDef.header,
-                            header.getContext()
-                          )}
+                      {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
                     </TableHead>
                   ))}
                 </TableRow>
@@ -53,9 +56,7 @@ export function DataTable<TData>({
                   <TableRow
                     key={row.id}
                     data-state={row.getIsSelected() && "selected"}
-                    className={
-                      onRowClick ? "cursor-pointer hover:bg-gray-100" : ""
-                    }
+                    className={onRowClick ? "cursor-pointer hover:bg-gray-100" : ""}
                     onClick={() => onRowClick?.(row.original)}
                   >
                     {row.getVisibleCells().map((cell) => (
@@ -65,20 +66,14 @@ export function DataTable<TData>({
                           ...getCommonPinningStyles({ column: cell.column }),
                         }}
                       >
-                        {flexRender(
-                          cell.column.columnDef.cell,
-                          cell.getContext()
-                        )}
+                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
                       </TableCell>
                     ))}
                   </TableRow>
                 ))
               ) : (
                 <TableRow>
-                  <TableCell
-                    colSpan={table.getAllColumns().length}
-                    className="h-24 text-center"
-                  >
+                  <TableCell colSpan={table.getAllColumns().length} className="h-24 text-center">
                     Không có dữ liệu.
                   </TableCell>
                 </TableRow>
@@ -90,9 +85,7 @@ export function DataTable<TData>({
       </div>
       <div className="flex flex-col gap-2.5">
         <DataTablePagination table={table} totalRecords={totalRecords} />
-        {actionBar &&
-          table.getFilteredSelectedRowModel().rows.length > 0 &&
-          actionBar}
+        {actionBar && table.getFilteredSelectedRowModel().rows.length > 0 && actionBar}
       </div>
     </div>
   );

@@ -6,14 +6,9 @@ import * as React from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
-import {
-  Cross2Icon,
-  DownloadIcon,
-  PlusIcon,
-  UploadIcon,
-} from "@radix-ui/react-icons";
-import { DataTableViewOptions } from "./data-table-view-options";
+import { Cross2Icon, DownloadIcon, PlusIcon, UploadIcon } from "@radix-ui/react-icons";
 import { DataTableFacetedFilter } from "./data-table-faceted-filter";
+import { DataTableViewOptions } from "./data-table-view-options";
 
 interface DataTableToolbarProps<TData> extends React.ComponentProps<"div"> {
   table: Table<TData>;
@@ -49,10 +44,7 @@ export function DataTableToolbar<TData>({
   const [isImportModalOpen, setIsImportModalOpen] = React.useState(false);
   const [isExportModalOpen, setIsExportModalOpen] = React.useState(false);
 
-  const columns = React.useMemo(
-    () => table.getAllColumns().filter((column) => column.getCanFilter()),
-    [table]
-  );
+  const columns = React.useMemo(() => table.getAllColumns().filter((column) => column.getCanFilter()), [table]);
 
   const onReset = React.useCallback(() => {
     table.resetColumnFilters();
@@ -80,10 +72,7 @@ export function DataTableToolbar<TData>({
       <div
         role="toolbar"
         aria-orientation="horizontal"
-        className={cn(
-          "flex w-full items-start justify-between gap-2",
-          className
-        )}
+        className={cn("flex w-full items-start justify-between gap-2", className)}
         {...props}
       >
         <div className="flex flex-1 flex-wrap items-center gap-2">
@@ -107,25 +96,13 @@ export function DataTableToolbar<TData>({
         </div>
         <div className="flex items-center gap-2">
           {(onExport ?? ExportModalComponent) && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleExport}
-              className="h-8"
-              cursor
-            >
+            <Button variant="outline" size="sm" onClick={handleExport} className="h-8" cursor>
               <UploadIcon />
               Xuất
             </Button>
           )}
           {(onImport ?? ImportModalComponent) && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleImport}
-              className="h-8"
-              cursor
-            >
+            <Button variant="outline" size="sm" onClick={handleImport} className="h-8" cursor>
               <DownloadIcon />
               Nhập
             </Button>
@@ -135,7 +112,7 @@ export function DataTableToolbar<TData>({
               variant="outline"
               size="sm"
               onClick={onAdd}
-              className="text-white bg-primary hover:bg-primary/90"
+              className="bg-primary hover:bg-primary/90 text-white"
               cursor
             >
               <PlusIcon />
@@ -172,11 +149,10 @@ interface DataTableToolbarFilterProps<TData> {
   column: Column<TData>;
 }
 
-function DataTableToolbarFilter<TData>({
-  column,
-}: DataTableToolbarFilterProps<TData>) {
+function DataTableToolbarFilter<TData>({ column }: DataTableToolbarFilterProps<TData>) {
   {
     const columnMeta = column.columnDef.meta;
+    // eslint-disable-next-line complexity
     const onFilterRender = React.useCallback(() => {
       if (!columnMeta?.variant) {
         return null;
@@ -222,16 +198,6 @@ function DataTableToolbarFilter<TData>({
               <p>Range</p>
             </div>
           );
-
-       // case "date":
-        // case "dateRange":
-        //   return (
-        //     <DataTableDateFilter
-        //       column={column}
-        //       title={columnMeta.label ?? column.id}
-        //       multiple={columnMeta.variant === "dateRange"}
-        //     />
-        //   );
 
         case "select":
         case "multiSelect":
