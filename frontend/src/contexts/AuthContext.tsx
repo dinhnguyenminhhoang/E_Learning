@@ -88,15 +88,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const protectRoutes = useCallback(() => {
     const isAdminRoute = pathname?.startsWith("/admin");
-    const isAuthRoute = pathname === "/login" || pathname === "/signup";
+    const isAuthRoute =
+      pathname === "/forgot-password" ||
+      pathname === "/signup" ||
+      pathname === "/signin" ||
+      pathname.includes("/reset-passsword") ||
+      pathname === "/verify-email";
 
     if (isAdminRoute && !authState.isAdmin) {
       console.warn("⚠️ Access denied: Admin only route");
-      router.replace("/home");
+      router.replace("/");
       return;
     }
     if (!authState.isAuthenticated && !isAuthRoute && pathname !== "/") {
-      router.replace("/login");
+      router.replace("/signin");
       return;
     }
 
@@ -151,7 +156,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       await authService.signUp({ name, email, password });
 
       router.push(
-        "/login?message=Please check your email to verify your account"
+        "/signin?message=Please check your email to verify your account"
       );
 
       setAuthState((prev) => ({ ...prev, isLoading: false }));
