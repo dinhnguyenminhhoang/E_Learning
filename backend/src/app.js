@@ -6,6 +6,7 @@ const { getRateLimiter, presets } = require("./helpers/rateLimit");
 const cookieParser = require("cookie-parser");
 const { setupSwagger } = require("./configs/swagger.config");
 const cors = require("cors");
+const { getRedisHelper } = require("./helpers/redisHelper");
 
 const app = express();
 app.use(morgan("dev"));
@@ -30,6 +31,21 @@ app.use(
 require("./dbs/init.mongodb");
 // Register all models (for population)
 require("./models");
+//redis
+const initRedis = async () => {
+  try {
+    const redis = getRedisHelper();
+    await redis.connect();
+    console.log('✅ Redis initialized for rate limiter');
+  } catch (error) {
+    console.error('⚠️  Redis connection failed, rate limiter may not work:', error.message);
+    // App vẫn chạy được nếu Redis fail
+  }
+};
+
+// Init Redis (không block app start)
+initRedis();
+
 //limit
 const rateLimiter = getRateLimiter();
 // app.use(rateLimiter.middlewareWithLists());
