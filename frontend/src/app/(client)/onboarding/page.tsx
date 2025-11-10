@@ -5,7 +5,11 @@ import { GoalStep } from "@/components/onboarding/GoalStep";
 import { WelcomeStep } from "@/components/onboarding/WelcomeStep";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { getQuestionOnboarding, submitOnboarding } from "@/services/onboarding";
+import {
+  getQuestionOnboarding,
+  submitOnboarding,
+  OnboardingQuestion,
+} from "@/services/onboarding.service";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { AnimatePresence } from "framer-motion";
 import { ArrowRight, Gamepad2, Lightbulb, Sparkles } from "lucide-react";
@@ -13,6 +17,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
+import { toast } from "react-hot-toast";
 
 export const FEATURES = [
   {
@@ -35,45 +40,58 @@ export const FEATURES = [
   },
 ];
 
-const createOnboardingSchema = (steps: any[]) => {
+const createOnboardingSchema = (steps: OnboardingQuestion[]) => {
   const schemaObj: any = {};
   steps.forEach((step) => {
-    schemaObj[step.key.toLowerCase()] = z
-      .string()
-      .min(1, `Please select ${step.title.toLowerCase()}`);
+    if (step.type === "multiple") {
+      schemaObj[step.key.toLowerCase()] = z
+        .array(z.string())
+        .min(1, `Please select at least one ${step.title.toLowerCase()}`);
+    } else {
+      schemaObj[step.key.toLowerCase()] = z
+        .string()
+        .min(1, `Please select ${step.title.toLowerCase()}`);
+    }
   });
   return z.object(schemaObj);
 };
 
 export default function OnboardingPage() {
   const [step, setStep] = useState(0);
-  const [onboardingSteps, setOnboardingSteps] = useState<any[]>([]);
+  const [onboardingSteps, setOnboardingSteps] = useState<OnboardingQuestion[]>(
+    []
+  );
   const [loading, setLoading] = useState(true);
-  const navigator = useRouter();
+  const [submitting, setSubmitting] = useState(false);
+  const router = useRouter();
 
   useEffect(() => {
-    const fetchQuestionsData = async () => {
-      try {
-        setLoading(true);
-        const response = await getQuestionOnboarding();
-        console.log("Response from API:", response);
-
-        if (response.code === 200 && response.data) {
-          setOnboardingSteps(response.data);
-        }
-      } catch (error) {
-        console.error("Error fetching onboarding data:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
     fetchQuestionsData();
   }, []);
+
+  const fetchQuestionsData = async () => {
+    try {
+      setLoading(true);
+      const response = await getQuestionOnboarding();
+
+      if (response.code === 200 && response.data) {
+        const sortedData = response.data.sort((a, b) => a.order - b.order);
+        setOnboardingSteps(sortedData);
+      } else {
+        toast.error("Không thể tải câu hỏi onboarding");
+      }
+    } catch (error) {
+      console.error("Error fetching onboarding data:", error);
+      toast.error("Đã xảy ra lỗi khi tải câu hỏi");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const getDefaultValues = () => {
     const defaults: any = {};
     onboardingSteps.forEach((step) => {
-      defaults[step.key.toLowerCase()] = "";
+      defaults[step.key.toLowerCase()] = step.type === "multiple" ? [] : "";
     });
     return defaults;
   };
@@ -83,6 +101,7 @@ export default function OnboardingPage() {
     watch,
     handleSubmit,
     formState: { errors },
+    reset,
   } = useForm<any>({
     resolver:
       onboardingSteps.length > 0
@@ -90,6 +109,12 @@ export default function OnboardingPage() {
         : undefined,
     defaultValues: getDefaultValues(),
   });
+
+  useEffect(() => {
+    if (onboardingSteps.length > 0) {
+      reset(getDefaultValues());
+    }
+  }, [onboardingSteps]);
 
   const formValues = watch();
 
@@ -99,19 +124,43 @@ export default function OnboardingPage() {
   const handleNext = () => {
     if (step === 0) {
       setStep(1);
-    } else if (step < totalSteps - 1) {
+      return;
+    }
+
+    if (step < totalSteps - 1) {
       const currentStepData = onboardingSteps[step - 1];
       const currentValue = formValues[currentStepData.key.toLowerCase()];
 
-      if (currentValue) {
-        setStep(step + 1);
+      if (currentStepData.type === "multiple") {
+        if (Array.isArray(currentValue) && currentValue.length > 0) {
+          setStep(step + 1);
+        } else {
+          toast.error("Vui lòng chọn ít nhất một tùy chọn");
+        }
+      } else {
+        if (currentValue) {
+          setStep(step + 1);
+        } else {
+          toast.error("Vui lòng chọn một tùy chọn");
+        }
       }
     } else {
       const currentStepData = onboardingSteps[step - 1];
       const currentValue = formValues[currentStepData.key.toLowerCase()];
 
-      if (currentValue) {
+      const isValid =
+        currentStepData.type === "multiple"
+          ? Array.isArray(currentValue) && currentValue.length > 0
+          : !!currentValue;
+
+      if (isValid) {
         handleSubmit(onSubmit)();
+      } else {
+        toast.error(
+          currentStepData.type === "multiple"
+            ? "Vui lòng chọn ít nhất một tùy chọn"
+            : "Vui lòng chọn một tùy chọn"
+        );
       }
     }
   };
@@ -122,20 +171,37 @@ export default function OnboardingPage() {
 
   const onSubmit = async (data: any) => {
     try {
+      setSubmitting(true);
+
       const formattedData = {
-        answers: onboardingSteps.map((step) => ({
-          questionKey: step.key,
-          answerKeys: [data[step.key.toLowerCase()]],
-        })),
+        answers: onboardingSteps.map((step) => {
+          const value = data[step.key.toLowerCase()];
+          return {
+            questionKey: step.key,
+            answerKeys: Array.isArray(value) ? value : [value],
+          };
+        }),
       };
 
+      console.log("Submitting data:", formattedData);
+
       const response = await submitOnboarding(formattedData);
-      console.log("response after submit:", response);
-      if (response.code) {
-        navigator.push("/learn");
+
+      if (response.code === 200) {
+        toast.success("Hoàn thành onboarding thành công!");
+        setTimeout(() => {
+          router.push("/learn");
+        }, 1000);
+      } else {
+        toast.error(response.message || "Có lỗi xảy ra");
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error submitting onboarding:", error);
+      toast.error(
+        error?.response?.data?.message || "Không thể lưu câu trả lời"
+      );
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -146,7 +212,12 @@ export default function OnboardingPage() {
     if (!currentStepData) return false;
 
     const currentValue = formValues[currentStepData.key.toLowerCase()];
-    return !!currentValue;
+
+    if (currentStepData.type === "multiple") {
+      return Array.isArray(currentValue) && currentValue.length > 0;
+    } else {
+      return !!currentValue;
+    }
   };
 
   const renderStepComponent = () => {
@@ -160,7 +231,7 @@ export default function OnboardingPage() {
     const fieldKey = currentStepData.key.toLowerCase();
     const currentValue = formValues[fieldKey];
 
-    const mappedOptions = currentStepData.options.map((opt: any) => ({
+    const mappedOptions = currentStepData.options.map((opt) => ({
       value: opt.key,
       label: opt.label,
       icon: opt.icon,
@@ -177,6 +248,7 @@ export default function OnboardingPage() {
             onChange={(value) => setValue(fieldKey, value)}
             title={currentStepData.title}
             description={currentStepData.description}
+            isMultiple={currentStepData.type === "multiple"}
           />
         );
 
@@ -202,6 +274,7 @@ export default function OnboardingPage() {
             onChange={(value) => setValue(fieldKey, value)}
             title={currentStepData.title}
             description={currentStepData.description}
+            isMultiple={currentStepData.type === "multiple"}
           />
         );
 
@@ -214,6 +287,7 @@ export default function OnboardingPage() {
             onChange={(value) => setValue(fieldKey, value)}
             title={currentStepData.title}
             description={currentStepData.description}
+            isMultiple={currentStepData.type === "multiple"}
           />
         );
     }
@@ -224,7 +298,7 @@ export default function OnboardingPage() {
       <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading onboarding...</p>
+          <p className="text-gray-600">Đang tải câu hỏi...</p>
         </div>
       </div>
     );
@@ -237,26 +311,35 @@ export default function OnboardingPage() {
         {step > 0 && (
           <button
             onClick={() => {
-              if (confirm("Are you sure you want to skip onboarding?")) {
-                navigator.push("/learn");
+              if (confirm("Bạn có chắc chắn muốn bỏ qua onboarding?")) {
+                router.push("/learn");
               }
             }}
-            className="text-sm text-gray-600 hover:text-gray-900 flex items-center gap-1"
+            className="text-sm text-gray-600 hover:text-gray-900 flex items-center gap-1 transition-colors"
+            disabled={submitting}
           >
-            Skip onboarding <ArrowRight className="w-4 h-4" />
+            Bỏ qua <ArrowRight className="w-4 h-4" />
           </button>
         )}
       </header>
 
       <div className="px-6 mb-8">
-        <Progress value={progress} className="h-2" />
+        <div className="max-w-2xl mx-auto">
+          <Progress value={progress} className="h-2" />
+          <div className="flex justify-between mt-2 text-xs text-gray-500">
+            <span>
+              Bước {step + 1}/{totalSteps}
+            </span>
+            <span>{Math.round(progress)}%</span>
+          </div>
+        </div>
       </div>
 
       <div className="flex-1 flex items-center justify-center px-6 pb-20">
         <AnimatePresence mode="wait">{renderStepComponent()}</AnimatePresence>
       </div>
 
-      <div className="fixed bottom-0 left-0 right-0 p-6 bg-white border-t border-gray-200">
+      <div className="fixed bottom-0 left-0 right-0 p-6 bg-white border-t border-gray-200 shadow-lg">
         <div className="max-w-2xl mx-auto flex gap-4">
           {step > 0 && (
             <Button
@@ -264,17 +347,27 @@ export default function OnboardingPage() {
               size="lg"
               onClick={handlePrevious}
               className="px-8"
+              disabled={submitting}
             >
-              Previous
+              Quay lại
             </Button>
           )}
           <Button
             size="lg"
             onClick={handleNext}
-            disabled={!canContinue()}
-            className="flex-1 bg-blue-600 hover:bg-blue-700"
+            disabled={!canContinue() || submitting}
+            className="flex-1 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {step === totalSteps - 1 ? "Get Started" : "Continue"}
+            {submitting ? (
+              <>
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                Đang xử lý...
+              </>
+            ) : step === totalSteps - 1 ? (
+              "Hoàn tất"
+            ) : (
+              "Tiếp tục"
+            )}
           </Button>
         </div>
       </div>

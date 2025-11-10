@@ -1,35 +1,28 @@
 import { motion } from "framer-motion";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Label } from "@/components/ui/label";
+import { Check, Clock, TrendingUp, Target } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-interface DailyGoalOption {
-  value?: string;
-  key?: string;
-  label: string;
-  icon: string;
-  description: string;
-  words?: number;
-  duration?: number;
-  yearly?: number;
-  color?: string;
-  recommended?: boolean;
-}
-
-interface DailyGoalStepProps {
-  goals: DailyGoalOption[];
+interface DailyGoal {
   value: string;
-  onChange: (value: string) => void;
-  title?: string;
+  label: string;
+  icon?: string;
   description?: string;
 }
 
-export function DailyGoalStep({ 
-  goals, 
-  value, 
+interface DailyGoalStepProps {
+  goals: DailyGoal[];
+  value: string;
+  onChange: (value: string) => void;
+  title: string;
+  description?: string;
+}
+
+export function DailyGoalStep({
+  goals,
+  value,
   onChange,
-  title = "My daily goal",
-  description = "Let's make a small step toward your goal!"
+  title,
+  description,
 }: DailyGoalStepProps) {
   return (
     <motion.div
@@ -39,67 +32,96 @@ export function DailyGoalStep({
       className="w-full max-w-2xl"
     >
       <div className="text-center mb-8">
-        <h2 className="text-3xl font-bold mb-2">{title}</h2>
-        <p className="text-gray-600">{description}</p>
+        <h2 className="text-3xl font-bold mb-3">{title}</h2>
+        {description && <p className="text-gray-600 text-lg">{description}</p>}
       </div>
 
-      <RadioGroup value={value} onValueChange={onChange}>
-        <div className="space-y-4">
-          {goals.map((goal) => {
-            const goalValue = goal.value || goal.key;
-            const hasDetailedInfo = goal.words && goal.duration && goal.yearly;
-            
-            return (
-              <div key={goalValue} className="relative">
-                <RadioGroupItem
-                  value={goalValue}
-                  id={goalValue}
-                  className="peer sr-only"
-                />
-                <Label
-                  htmlFor={goalValue}
-                  className="flex items-center gap-4 rounded-2xl border-2 border-gray-200 bg-white p-6 hover:bg-gray-50 peer-data-[state=checked]:border-blue-600 peer-data-[state=checked]:bg-blue-50 cursor-pointer transition-all relative"
-                >
-                  <div className="text-4xl">{goal.icon}</div>
-                  <div className="flex-1">
-                    <div className={cn(
-                      "font-bold text-lg mb-1",
-                      goal.color || "text-gray-900"
-                    )}>
-                      {goal.label}
-                      {hasDetailedInfo && `: ${goal.words} new words`}
-                    </div>
-                    <div className="text-sm text-gray-600">
-                      {hasDetailedInfo ? (
-                        <>
-                          Learn {goal.duration} mins/day · Gain{" "}
-                          {goal.yearly?.toLocaleString()} words/year
-                        </>
-                      ) : (
-                        goal.description
-                      )}
-                    </div>
+      <div className="grid grid-cols-1 gap-4">
+        {goals.map((goal) => {
+          const isSelected = value === goal.value;
+
+          return (
+            <motion.button
+              key={goal.value}
+              onClick={() => onChange(goal.value)}
+              className={cn(
+                "relative p-6 rounded-2xl border-2 transition-all",
+                "hover:shadow-lg hover:scale-[1.02]",
+                isSelected
+                  ? "border-blue-600 bg-blue-50 shadow-md"
+                  : "border-gray-200 bg-white hover:border-blue-300"
+              )}
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+            >
+              <div className="flex items-center gap-6">
+                {goal.icon && (
+                  <div
+                    className={cn(
+                      "w-16 h-16 rounded-xl flex items-center justify-center text-3xl flex-shrink-0",
+                      isSelected ? "bg-blue-100" : "bg-gray-100"
+                    )}
+                  >
+                    {goal.icon}
                   </div>
-                  <div className="w-6 h-6 rounded-full border-2 border-gray-300 peer-data-[state=checked]:border-blue-600 peer-data-[state=checked]:bg-blue-600 flex items-center justify-center">
-                    {value === goalValue && (
-                      <div className="w-2 h-2 rounded-full bg-white" />
+                )}
+
+                <div className="flex-1 text-left">
+                  <div className="flex items-center gap-3 mb-2">
+                    <h3
+                      className={cn(
+                        "font-bold text-xl",
+                        isSelected ? "text-blue-900" : "text-gray-900"
+                      )}
+                    >
+                      {goal.label}
+                    </h3>
+                    {isSelected && (
+                      <motion.div
+                        initial={{ scale: 0 }}
+                        animate={{ scale: 1 }}
+                        className="w-6 h-6 bg-blue-600 rounded-full flex items-center justify-center"
+                      >
+                        <Check className="w-4 h-4 text-white" />
+                      </motion.div>
                     )}
                   </div>
-                  {goal.recommended && (
-                    <div className="absolute -top-3 right-4 bg-blue-600 text-white text-xs px-3 py-1 rounded-full font-medium flex items-center gap-1">
-                      👍 MOST RECOMMENDED
-                    </div>
+                  {goal.description && (
+                    <p
+                      className={cn(
+                        "text-sm",
+                        isSelected ? "text-blue-700" : "text-gray-600"
+                      )}
+                    >
+                      {goal.description}
+                    </p>
                   )}
-                </Label>
+                </div>
               </div>
-            );
-          })}
-        </div>
-      </RadioGroup>
+            </motion.button>
+          );
+        })}
+      </div>
 
-      <p className="text-center text-sm text-gray-500 mt-6">
-        Change this anytime in the settings
-      </p>
+      <div className="mt-8 p-6 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl border border-blue-200">
+        <div className="grid grid-cols-3 gap-4 text-center">
+          <div>
+            <Clock className="w-6 h-6 text-blue-600 mx-auto mb-2" />
+            <p className="text-xs text-gray-600">Thời gian</p>
+            <p className="text-sm font-semibold text-gray-900">Linh hoạt</p>
+          </div>
+          <div>
+            <Target className="w-6 h-6 text-blue-600 mx-auto mb-2" />
+            <p className="text-xs text-gray-600">Mục tiêu</p>
+            <p className="text-sm font-semibold text-gray-900">Tùy chỉnh</p>
+          </div>
+          <div>
+            <TrendingUp className="w-6 h-6 text-blue-600 mx-auto mb-2" />
+            <p className="text-xs text-gray-600">Tiến độ</p>
+            <p className="text-sm font-semibold text-gray-900">Đo lường</p>
+          </div>
+        </div>
+      </div>
     </motion.div>
   );
 }

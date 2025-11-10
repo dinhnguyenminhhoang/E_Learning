@@ -6,6 +6,10 @@ import TopicHeader from "@/components/topic/TopicHeader/TopicHeader";
 import TopicSidebar from "@/components/topic/TopicSidebar/TopicSidebar";
 import { TopicList } from "@/types/learning";
 import { useEffect, useRef, useState } from "react";
+import { learningPathService } from "@/services/learningPath.service";
+import { useSearchParams } from "next/navigation";
+import { toast } from "react-hot-toast";
+import { useUserProgress } from "@/hooks/useUserProgress";
 
 const TOPICS_DATA: TopicList[] = [
   {
@@ -60,194 +64,67 @@ const TOPICS_DATA: TopicList[] = [
       { id: "weather", name: "Weather", progress: 0, total: 29, icon: "🌤️" },
     ],
   },
-  {
-    id: 2,
-    name: "Family & Friends",
-    totalTopics: 7,
-    progressPercent: 0,
-    subTopics: [
-      {
-        id: "family-member",
-        name: "Family Member",
-        progress: 0,
-        total: 51,
-        icon: "👨‍👩‍👧‍👦",
-      },
-      {
-        id: "family-type",
-        name: "Family Type",
-        progress: 0,
-        total: 22,
-        icon: "👪",
-      },
-      {
-        id: "romantic",
-        name: "Romantic Relationship",
-        progress: 0,
-        total: 77,
-        icon: "💑",
-      },
-      {
-        id: "social",
-        name: "Social Relationship",
-        progress: 0,
-        total: 39,
-        icon: "🤝",
-      },
-      {
-        id: "describe-relationship",
-        name: "Describe Relationship",
-        progress: 0,
-        total: 44,
-        icon: "💭",
-      },
-      {
-        id: "celebration",
-        name: "Celebration & Party",
-        progress: 0,
-        total: 40,
-        icon: "🎉",
-      },
-      {
-        id: "wish",
-        name: "Wish & Congratulation",
-        progress: 0,
-        total: 33,
-        icon: "🎊",
-      },
-    ],
-  },
-  {
-    id: 3,
-    name: "Work & Career",
-    totalTopics: 6,
-    progressPercent: 0,
-    subTopics: [
-      {
-        id: "job-title",
-        name: "Job Title",
-        progress: 0,
-        total: 65,
-        icon: "💼",
-      },
-      {
-        id: "workplace",
-        name: "Workplace",
-        progress: 0,
-        total: 28,
-        icon: "🏢",
-      },
-      {
-        id: "work-activity",
-        name: "Work Activity",
-        progress: 0,
-        total: 42,
-        icon: "⚡",
-      },
-      { id: "business", name: "Business", progress: 0, total: 55, icon: "📊" },
-      {
-        id: "interview",
-        name: "Interview",
-        progress: 0,
-        total: 31,
-        icon: "🎤",
-      },
-      {
-        id: "career-development",
-        name: "Career Development",
-        progress: 0,
-        total: 38,
-        icon: "📈",
-      },
-    ],
-  },
-  {
-    id: 4,
-    name: "Education & Learning",
-    totalTopics: 5,
-    progressPercent: 0,
-    subTopics: [
-      { id: "school", name: "School", progress: 0, total: 48, icon: "🏫" },
-      { id: "subjects", name: "Subjects", progress: 0, total: 35, icon: "📚" },
-      {
-        id: "classroom",
-        name: "Classroom",
-        progress: 0,
-        total: 42,
-        icon: "🎓",
-      },
-      {
-        id: "study-activities",
-        name: "Study Activities",
-        progress: 0,
-        total: 39,
-        icon: "✏️",
-      },
-      {
-        id: "exams",
-        name: "Exams & Tests",
-        progress: 0,
-        total: 28,
-        icon: "📝",
-      },
-    ],
-  },
-  {
-    id: 5,
-    name: "Travel & Place",
-    totalTopics: 6,
-    progressPercent: 0,
-    subTopics: [
-      {
-        id: "destinations",
-        name: "Destinations",
-        progress: 0,
-        total: 52,
-        icon: "🗺️",
-      },
-      {
-        id: "transportation",
-        name: "Transportation",
-        progress: 0,
-        total: 44,
-        icon: "🚗",
-      },
-      {
-        id: "accommodation",
-        name: "Accommodation",
-        progress: 0,
-        total: 36,
-        icon: "🏨",
-      },
-      {
-        id: "tourist-activities",
-        name: "Tourist Activities",
-        progress: 0,
-        total: 41,
-        icon: "📸",
-      },
-      {
-        id: "geography",
-        name: "Geography",
-        progress: 0,
-        total: 48,
-        icon: "🌍",
-      },
-      {
-        id: "landmarks",
-        name: "Landmarks",
-        progress: 0,
-        total: 33,
-        icon: "🗿",
-      },
-    ],
-  },
 ];
+
 export default function TopicsPage() {
+  const searchParams = useSearchParams();
+  const pathId = searchParams.get("pathId");
+
+  const { progress } = useUserProgress();
+
   const [activeTopicId, setActiveTopicId] = useState(1);
+  const [topicsData, setTopicsData] = useState<TopicList[]>(TOPICS_DATA);
+  const [loading, setLoading] = useState(true);
+  const [isOpen, setIsOpen] = useState(false);
+
   const topicRefs = useRef<{ [key: number]: HTMLDivElement | null }>({});
   const containerRef = useRef<HTMLDivElement>(null);
-  const [isOpen, setIsOpen] = useState(true);
+
+  useEffect(() => {
+    fetchTopicsData();
+  }, [pathId, progress]);
+
+  const fetchTopicsData = async () => {
+    const learningPathId = pathId || progress?.learningPathId;
+
+    if (!learningPathId) {
+      setLoading(false);
+      return;
+    }
+
+    try {
+      setLoading(true);
+
+      const levelsResponse = await learningPathService.getLearningPathHierarchy(
+        {
+          learningPathId,
+          isLevel: true,
+        }
+      );
+
+      if (levelsResponse.code === 200 && levelsResponse.data) {
+        const transformedData: TopicList[] = levelsResponse.data.map(
+          (level: any, index: number) => ({
+            id: index + 1,
+            name: level.title || `Level ${level.order}`,
+            totalTopics: level.lessons?.length || 0,
+            progressPercent: 0,
+            subTopics: [],
+          })
+        );
+
+        if (transformedData.length > 0) {
+          setTopicsData(transformedData);
+        }
+      }
+    } catch (error: any) {
+      console.error("Error fetching topics:", error);
+      toast.error("Không thể tải danh sách chủ đề");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
     const handleScroll = () => {
       if (!containerRef.current) return;
@@ -255,7 +132,7 @@ export default function TopicsPage() {
       const scrollPosition = containerRef.current.scrollTop;
       const offset = 100;
 
-      for (const topic of TOPICS_DATA) {
+      for (const topic of topicsData) {
         const element = topicRefs.current[topic.id];
         if (element) {
           const rect = element.getBoundingClientRect();
@@ -277,7 +154,7 @@ export default function TopicsPage() {
       container.addEventListener("scroll", handleScroll);
       return () => container.removeEventListener("scroll", handleScroll);
     }
-  }, []);
+  }, [topicsData]);
 
   const handleTopicClick = (topicId: number) => {
     const element = topicRefs.current[topicId];
@@ -295,6 +172,17 @@ export default function TopicsPage() {
     }
   };
 
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Đang tải chủ đề...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-7xl mx-auto p-6">
@@ -304,7 +192,7 @@ export default function TopicsPage() {
             className="lg:col-span-3 space-y-8 overflow-y-auto max-h-screen pr-4 pb-20"
             style={{ scrollBehavior: "smooth" }}
           >
-            {TOPICS_DATA.map((topic) => (
+            {topicsData.map((topic) => (
               <div
                 key={topic.id}
                 ref={(el) => {
@@ -328,7 +216,7 @@ export default function TopicsPage() {
 
           <div className="lg:col-span-1">
             <TopicSidebar
-              topics={TOPICS_DATA}
+              topics={topicsData}
               activeTopicId={activeTopicId}
               onTopicClick={handleTopicClick}
             />

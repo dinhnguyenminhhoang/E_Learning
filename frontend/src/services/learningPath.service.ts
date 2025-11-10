@@ -16,6 +16,16 @@ export interface LearningPath {
     }>;
     finalQuiz?: string;
   }>;
+  status: string;
+}
+
+export interface LearningPathHierarchyParams {
+  learningPathId: string;
+  isLevel?: boolean;
+  isLesson?: boolean;
+  isBlock?: boolean;
+  levelOrder?: number;
+  lessonId?: string;
 }
 
 class LearningPathService {
@@ -77,17 +87,14 @@ class LearningPathService {
     return await apiClient.get("/v1/api/learning-path/");
   }
 
-  async getLearningPathHierarchy(query: {
-    learningPathId: string;
-    isLevel?: boolean;
-    isLesson?: boolean;
-    isBlock?: boolean;
-    levelOrder?: number;
-    lessonId?: string;
-  }) {
+  async getLearningPathHierarchy(params: LearningPathHierarchyParams) {
     return await apiClient.get("/v1/api/learning-path/hierarchy", {
-      params: query,
+      params,
     });
+  }
+
+  async getUserActivePath() {
+    return await apiClient.get("/v1/api/learning-path/user-active");
   }
 }
 
