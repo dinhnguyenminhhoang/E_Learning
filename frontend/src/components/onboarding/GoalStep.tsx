@@ -1,15 +1,44 @@
 import { motion } from "framer-motion";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Label } from "@/components/ui/label";
-import { LearningGoal } from "@/types/onboarding";
+import { Check } from "lucide-react";
+import { cn } from "@/lib/utils";
 
-interface GoalStepProps {
-  goals: LearningGoal[];
+interface Goal {
   value: string;
-  onChange: (value: string) => void;
+  label: string;
+  icon?: string;
+  description?: string;
 }
 
-export function GoalStep({ goals, value, onChange }: GoalStepProps) {
+interface GoalStepProps {
+  goals: Goal[];
+  value: string | string[];
+  onChange: (value: string | string[]) => void;
+  title: string;
+  description?: string;
+  isMultiple?: boolean;
+}
+
+export function GoalStep({
+  goals,
+  value,
+  onChange,
+  title,
+  description,
+  isMultiple = false,
+}: GoalStepProps) {
+  const selectedValues = Array.isArray(value) ? value : value ? [value] : [];
+
+  const handleSelect = (goalValue: string) => {
+    if (isMultiple) {
+      const newValues = selectedValues.includes(goalValue)
+        ? selectedValues.filter((v) => v !== goalValue)
+        : [...selectedValues, goalValue];
+      onChange(newValues);
+    } else {
+      onChange(goalValue);
+    }
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -18,39 +47,88 @@ export function GoalStep({ goals, value, onChange }: GoalStepProps) {
       className="w-full max-w-2xl"
     >
       <div className="text-center mb-8">
-        <img
-          src="data:image/svg+xml,%3Csvg width='120' height='120' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='60' cy='60' r='60' fill='%2306b6d4'/%3E%3Ctext x='60' y='75' text-anchor='middle' font-size='40' fill='white'%3E🐬%3C/text%3E%3C/svg%3E"
-          alt="Avatar"
-          className="w-24 h-24 mx-auto mb-6"
-        />
-        <div className="bg-white rounded-2xl p-6 inline-block mb-8 shadow-sm border-2 border-gray-900">
-          <h2 className="text-2xl font-semibold">
-            You would like to learn vocabulary to...
-          </h2>
-        </div>
+        <h2 className="text-3xl font-bold mb-3">{title}</h2>
+        {description && <p className="text-gray-600 text-lg">{description}</p>}
+        {isMultiple && (
+          <p className="text-sm text-blue-600 mt-2">
+            Bạn có thể chọn nhiều mục tiêu
+          </p>
+        )}
       </div>
 
-      <RadioGroup value={value} onValueChange={onChange}>
-        <div className="grid grid-cols-2 gap-4">
-          {goals.map((goal) => (
-            <div key={goal.value}>
-              <RadioGroupItem
-                value={goal.value}
-                id={goal.value}
-                className="peer sr-only"
-              />
-              <Label
-                htmlFor={goal.value}
-                className="flex items-center justify-center rounded-xl border-2 border-gray-200 bg-white px-6 py-5 hover:bg-gray-50 peer-data-[state=checked]:border-blue-600 peer-data-[state=checked]:bg-blue-50 cursor-pointer transition-all h-full"
-              >
-                <span className="text-sm font-medium text-center text-blue-900">
-                  {goal.label}
-                </span>
-              </Label>
-            </div>
-          ))}
-        </div>
-      </RadioGroup>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {goals.map((goal) => {
+          const isSelected = selectedValues.includes(goal.value);
+
+          return (
+            <motion.button
+              key={goal.value}
+              onClick={() => handleSelect(goal.value)}
+              className={cn(
+                "relative p-6 rounded-2xl border-2 transition-all text-left",
+                "hover:shadow-lg hover:scale-[1.02]",
+                isSelected
+                  ? "border-blue-600 bg-blue-50 shadow-md"
+                  : "border-gray-200 bg-white hover:border-blue-300"
+              )}
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+            >
+              {isSelected && (
+                <motion.div
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  className="absolute top-4 right-4 w-6 h-6 bg-blue-600 rounded-full flex items-center justify-center"
+                >
+                  <Check className="w-4 h-4 text-white" />
+                </motion.div>
+              )}
+
+              <div className="flex items-start gap-4">
+                {goal.icon && (
+                  <span className="text-3xl flex-shrink-0">{goal.icon}</span>
+                )}
+                <div className="flex-1">
+                  <h3
+                    className={cn(
+                      "font-semibold text-lg mb-1",
+                      isSelected ? "text-blue-900" : "text-gray-900"
+                    )}
+                  >
+                    {goal.label}
+                  </h3>
+                  {goal.description && (
+                    <p
+                      className={cn(
+                        "text-sm",
+                        isSelected ? "text-blue-700" : "text-gray-600"
+                      )}
+                    >
+                      {goal.description}
+                    </p>
+                  )}
+                </div>
+              </div>
+            </motion.button>
+          );
+        })}
+      </div>
+
+      {isMultiple && selectedValues.length > 0 && (
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mt-6 text-center"
+        >
+          <p className="text-sm text-gray-600">
+            Đã chọn:{" "}
+            <span className="font-semibold text-blue-600">
+              {selectedValues.length}
+            </span>{" "}
+            mục tiêu
+          </p>
+        </motion.div>
+      )}
     </motion.div>
   );
 }

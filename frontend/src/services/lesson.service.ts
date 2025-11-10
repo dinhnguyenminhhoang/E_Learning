@@ -15,6 +15,18 @@ export interface Lesson {
     exercise?: string;
     order: number;
   }>;
+  status: string;
+}
+
+export interface Block {
+  _id: string;
+  type: string;
+  title?: string;
+  description?: string;
+  skill: string;
+  difficulty: string;
+  lessonId?: string;
+  status: string;
 }
 
 class LessonService {
@@ -60,16 +72,20 @@ class LessonService {
     return await apiClient.post(`/v1/api/lesson/${lessonId}/blocks`, data);
   }
 
-  async createBlock(data: any) {
+  async createBlock(data: Partial<Block>) {
     return await apiClient.post("/v1/api/lesson/blocks", data);
   }
 
-  async updateBlock(blockId: string, data: any) {
+  async updateBlock(blockId: string, data: Partial<Block>) {
     return await apiClient.put(`/v1/api/lesson/blocks/${blockId}`, data);
   }
 
   async deleteBlock(blockId: string) {
     return await apiClient.delete(`/v1/api/lesson/blocks/${blockId}`);
+  }
+
+  async markLessonComplete(lessonId: string) {
+    return await apiClient.post(`/v1/api/lesson/${lessonId}/complete`);
   }
 }
 
