@@ -1,6 +1,7 @@
 "use strict";
 
 require('dotenv').config();
+
 const development = {
   db: {
     host: process.env.DEV_DB_HOST || 'localhost',
@@ -9,7 +10,7 @@ const development = {
   },
 };
 
-const pro = {
+const production = {  
   db: {
     host: process.env.PRO_DB_HOST || 'localhost',
     port: process.env.PRO_DB_PORT || 27017,
@@ -17,6 +18,9 @@ const pro = {
   },
 };
 
-const config = { development, pro };
+const config = { development, production }; 
 const env = process.env.NODE_ENV || "development";
+
+console.log(`🔧 Config loaded for environment: ${env}`);
+
 module.exports = config[env];
