@@ -90,6 +90,5 @@ const userLearningPathSchema = new Schema(
 userLearningPathSchema.index({ user: 1, learningPath: 1 }, { unique: true });
 userLearningPathSchema.index({ user: 1, status: 1 });
 userLearningPathSchema.index({ lastAccAt: -1 });
-userLearningPathSchema.index({ updatedAt: 1 }, { sparse: true });
 
 module.exports = model(DOCUMENT_NAME, userLearningPathSchema);

@@ -1,7 +1,7 @@
 "use strict";
 
 const { model, Schema } = require("mongoose");
-const { STATUS } = require("../constants/status.constans"); 
+const { STATUS } = require("../constants/status.constans");
 
 const DOCUMENT_NAME = "AnswerMap";
 const COLLECTION_NAME = "AnswerMaps";
@@ -11,7 +11,7 @@ const answerMapSchema = new Schema(
     questionKey: {
       type: String,
       required: true,
-      enum: ["GOALS", "LEVEL", "TIME_COMMITMENT", "LEARNING_STYLE"], 
+      enum: ["GOALS", "LEVEL", "TIME_COMMITMENT", "LEARNING_STYLE"],
       uppercase: true,
       index: true,
     },
@@ -35,7 +35,6 @@ const answerMapSchema = new Schema(
       type: Schema.Types.ObjectId,
       ref: "LearningPath",
       default: null,
-      index: true,
     },
 
     normalizedValue: {
@@ -57,7 +56,7 @@ const answerMapSchema = new Schema(
     },
   },
   {
-    timestamps: true, 
+    timestamps: true,
     collection: COLLECTION_NAME,
     minimize: false,
     versionKey: false,
@@ -66,7 +65,6 @@ const answerMapSchema = new Schema(
 
 answerMapSchema.index({ questionKey: 1, rawValue: 1 }, { unique: true });
 answerMapSchema.index({ mapType: 1, status: 1 });
-answerMapSchema.index({ target: 1 });
 answerMapSchema.index({ learningPath: 1 });
 
 module.exports = model(DOCUMENT_NAME, answerMapSchema);

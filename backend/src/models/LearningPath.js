@@ -30,7 +30,6 @@ const learningPathSchema = new Schema(
       type: Schema.Types.ObjectId,
       ref: "Target",
       required: true,
-      index: true,
     },
 
     // BẮT BUỘC – nhưng sẽ tự sinh nếu thiếu (xem middleware pre('validate') bên dưới)

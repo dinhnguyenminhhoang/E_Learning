@@ -73,7 +73,6 @@ const targetSchema = new Schema(
   }
 );
 
-targetSchema.index({ key: 1 });
 targetSchema.index({ name: "text", description: "text", tags: "text" });
 targetSchema.index({ createdAt: -1, status: 1 });
 

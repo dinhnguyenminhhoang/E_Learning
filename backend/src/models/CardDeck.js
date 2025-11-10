@@ -27,7 +27,6 @@ const cardDeckSchema = new Schema(
       type: Schema.Types.ObjectId,
       ref: "Target",
       required: true,
-      index: true,
     },
 
     level: {
