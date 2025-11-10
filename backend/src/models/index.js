@@ -20,7 +20,7 @@ require("./UserProgress");
 require("./Word");
 require("./Lessson");
 require("./subModel/contentBlock.schema");
-require("./subModel/vocabularyBlock.schema");
+require("./subModel/VocabularyBlock.schema");
 require("./subModel/grammarBlock.schema");
 require("./subModel/quizBlock.schema");
 require("./subModel/mediaBlock.schema");

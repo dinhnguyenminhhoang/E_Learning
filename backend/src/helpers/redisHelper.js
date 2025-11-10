@@ -8,21 +8,39 @@ class RedisHelper {
     this.isConnected = false;
     this.client = null;
 
-    // Config từ environment hoặc options
-    this.config = {
-      socket: {
-        host: options.host || process.env.REDIS_HOST || "localhost",
-        port: options.port || process.env.REDIS_PORT || 6379,
-      },
-      password: options.password || process.env.REDIS_PASSWORD || undefined,
-      database: options.database || process.env.REDIS_DB || 0,
-      ...options,
-    };
+    const redisUrl = process.env.REDIS_URL;
+    const isProduction = process.env.NODE_ENV === 'production';
 
-    console.log(`🔧 Redis Helper initialized with config:`);
-    console.log(`   - Host: ${this.config.socket.host}`);
-    console.log(`   - Port: ${this.config.socket.port}`);
-    console.log(`   - Database: ${this.config.database}`);
+    if (redisUrl) {
+      // Dùng connection string (cho Redis Cloud)
+      this.config = {
+        url: redisUrl,
+        socket: {
+          tls: true,
+          rejectUnauthorized: false
+        }
+      };
+    } else {
+      // Dùng từng biến riêng
+      this.config = {
+        socket: {
+          host: options.host || process.env.REDIS_HOST || "localhost",
+          port: parseInt(options.port || process.env.REDIS_PORT || 6379),
+          // Chỉ dùng TLS khi production VÀ có password (Redis Cloud)
+          ...(isProduction && process.env.REDIS_PASSWORD && {
+            tls: true,
+            rejectUnauthorized: false
+          })
+        },
+        password: options.password || process.env.REDIS_PASSWORD || undefined,
+        database: parseInt(options.database || process.env.REDIS_DB || 0),
+        ...options,
+      };
+    }
+
+    console.log(`🔧 Redis Helper initialized`);
+    console.log(`   - Host: ${this.config.socket?.host || 'URL mode'}`);
+    console.log(`   - TLS: ${this.config.socket?.tls || false}`);
   }
 
   /**
