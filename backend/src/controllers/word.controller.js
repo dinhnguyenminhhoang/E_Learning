@@ -11,6 +11,10 @@ class WordController {
       res.status(500).json(ResponseBuilder.error("Internal server error", 500));
     }
   }
+  async getAllWord(req, res) {
+    const result = await WordService.getAllWord(req);
+    res.status(result.code).json(result);
+  }
   async getWordsByCategory(req, res) {
     try {
       const result = await WordService.getWordsByCategory(req);
