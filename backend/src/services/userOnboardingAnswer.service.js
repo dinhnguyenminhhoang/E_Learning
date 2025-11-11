@@ -3,6 +3,7 @@ const UserOnboardingAnswerRepo = require("../repositories/userOnboardingAnswer.r
 const ResponseBuilder = require("../types/response/baseResponse");
 const RESPONSE_MESSAGES = require("../constants/responseMessage");
 const AnswerMapService = require("../services/answerMap.service");
+const userLearningPathRepo = require("../repositories/userLearningPath.repo");
 
 class UserOnboardingAnswerService {
   async handleSaveAnswers(userId, answers) {
@@ -23,12 +24,14 @@ class UserOnboardingAnswerService {
 
     const savedAnswers = await UserOnboardingAnswerRepo.insertMany(docs);
 
-    if (!savedAnswers)
-      return ResponseBuilder.badRequest();
+    if (!savedAnswers) return ResponseBuilder.badRequest();
 
     const mapResult = await AnswerMapService.mapAnswerToTarget(userId, answers);
+    const learningPath = await userLearningPathRepo.findByUserId(
+      toObjectId(userId)
+    );
 
-    return mapResult;
+    return { learningPathId: learningPath[0]._id ?? "", ...mapResult };
   }
 
   async getAnswers(UserId) {

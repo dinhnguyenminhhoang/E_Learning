@@ -12,6 +12,7 @@ const {
   dataSample,
 } = require("../constants/fileUpload");
 const { STATUS } = require("../constants/status.constans");
+const wordRepo = require("../repositories/word.repo");
 
 class WordService {
   async createWord(req) {
@@ -83,7 +84,7 @@ class WordService {
       201
     );
   }
-  
+
   async getWordsByCategory(req) {
     const { categoryId } = req.params;
     const existingCategory = await CategoryRepository.findById(categoryId, {});
@@ -137,6 +138,19 @@ class WordService {
       null,
       200
     );
+  }
+
+  async getAllWord(req) {
+    const { data, metadata } = await wordRepo.getAllWords(req);
+    return ResponseBuilder.successWithPagination({
+      message: "Lấy danh sách thành công",
+      data: data ?? [],
+      pagination: {
+        pageNum: metadata.pageNum,
+        pageSize: metadata.pageSize,
+        total: metadata.totalItems,
+      },
+    });
   }
 
   async importWords(req) {

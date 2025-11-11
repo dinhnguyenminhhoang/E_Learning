@@ -3,6 +3,7 @@
 const Word = require("../models/Word");
 const { NotFoundError } = require("../core/error.response");
 const { STATUS } = require("../constants/status.constans");
+const { default: AppError } = require("../utils/appError");
 
 /**
  * Word Repository
@@ -418,6 +419,75 @@ class WordRepository {
     } catch (error) {
       console.error("❌ Error in WordRepository.find:", error);
       throw error;
+    }
+  }
+
+  async getAllWords(req, res, next) {
+    try {
+      let {
+        pageNum = 1,
+        pageSize = 10,
+        search = "",
+        categories,
+        level,
+        status,
+        sortBy = "createdAt",
+        sortOrder = "desc",
+      } = req.query;
+
+      pageNum = parseInt(pageNum);
+      pageSize = parseInt(pageSize);
+
+      const filter = {};
+
+      if (search && search.trim()) {
+        filter.$text = { $search: search.trim() };
+      }
+
+      if (categories) {
+        const categoryList = Array.isArray(categories)
+          ? categories
+          : categories.split(",");
+        filter.categories = { $in: categoryList };
+      }
+
+      if (level) {
+        filter.level = level;
+      }
+
+      if (status) {
+        filter.status = status;
+      }
+
+      const totalItems = await Word.countDocuments(filter);
+
+      const skip = (pageNum - 1) * pageSize;
+
+      const words = await Word.find(filter)
+        .populate("categories", "name slug")
+        .sort({ [sortBy]: sortOrder === "asc" ? 1 : -1 })
+        .skip(skip)
+        .limit(pageSize)
+        .lean();
+
+      const totalPages = Math.ceil(totalItems / pageSize);
+
+      const metadata = {
+        pageNum,
+        pageSize,
+        totalItems,
+        totalPages,
+        hasNextPage: pageNum < totalPages,
+        hasPrevPage: pageNum > 1,
+      };
+
+      return {
+        metadata,
+        data: words,
+      };
+    } catch (error) {
+      console.error("Error in getAllWords:", error);
+      throw new AppError("Internal server error", 500);
     }
   }
 }
