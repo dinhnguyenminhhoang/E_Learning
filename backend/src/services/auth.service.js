@@ -10,6 +10,7 @@ const { NotFoundError } = require("../core/error.response");
 const jwtHelper = require("../helpers/jwtHelper");
 const sendEmail = require("../helpers/sendEmail");
 const { sendTemplatedEmail } = require("../extensions/email.extension");
+const userLearningPathRepo = require("../repositories/userLearningPath.repo");
 
 class AuthService {
   static signUp = async (userData) => {
@@ -98,7 +99,6 @@ class AuthService {
         includePassword: true,
         includeDeleted: false,
       });
-      console.log(user);
 
       if (!user) {
         console.warn(`🚨 Login attempt with non-existent email: ${email}`);
@@ -144,7 +144,10 @@ class AuthService {
         ipAddress,
         userAgent,
       });
-
+      const learningPath = await userLearningPathRepo.findByUserId(
+        user._id
+      );
+      console.log("learning path", learningPath)
       const existingToken = await keyTokenRepository.findByUserAndDevice(
         user._id,
         sessionData.deviceId
@@ -202,6 +205,7 @@ class AuthService {
           avatar: user.profile?.avatar,
           lastLoginAt: new Date(),
           portfolioCount: user.portfolios?.owned?.length || 0,
+          learningPathId: learningPath[0]._id ?? ""
         },
         tokens: {
           accessToken,
