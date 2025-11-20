@@ -4,7 +4,7 @@ const { model, Schema, Types } = require("mongoose");
 const bcrypt = require("bcrypt");
 const verificationSchema = require("./subModel/Verification.schema");
 const { urlValidator } = require("../utils");
-const { STATUS } = require("../constants/status.constans");
+const { STATUS, ONBOARDING_STATUS } = require("../constants/status.constans");
 const { StatusCodes } = require("../utils/httpStatusCode");
 const DOCUMENT_NAME = "User";
 const COLLECTION_NAME = "Users";
@@ -54,6 +54,11 @@ const userSchema = new Schema(
       },
       sparse: true,
       index: true,
+    },
+    onboardingStatus: {
+      type: String,
+      enum: Object.values(ONBOARDING_STATUS),
+      default: ONBOARDING_STATUS.NOT_STARTED,
     },
     status: {
       type: String,
