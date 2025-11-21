@@ -18,6 +18,11 @@ module.exports = {
     ABANDONED: "abandoned",
     INPROGRESS: "in_progress",
   },
+  ONBOARDING_STATUS: {
+    NOT_STARTED: "not_started",
+    STARTED: "started",
+    COMPLETED: "completed"
+  }
 };
 
 
