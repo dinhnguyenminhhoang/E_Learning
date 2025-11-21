@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { learningPathService } from "@/services/learningPath.service";
+import { userLearningPathService } from "@/services/userLearningPath.service";
 import { useAuth } from "@/contexts/AuthContext";
 
 export interface UserProgress {
@@ -24,7 +24,7 @@ export function useUserProgress() {
       setLoading(true);
       setError(null);
 
-      const response = await learningPathService.getUserActivePath();
+      const response = await userLearningPathService.getPathByUser();
 
       if (response.code === 200 && response.data) {
         setProgress(response.data);

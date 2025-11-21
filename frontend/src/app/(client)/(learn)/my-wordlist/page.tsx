@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { BookMarked, Trophy, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -17,6 +17,9 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
+import { wordService } from "@/services/word.service";
+import { toast } from "react-hot-toast";
+
 type WordItem = {
   id: string;
   word: string;
@@ -24,51 +27,6 @@ type WordItem = {
   level: 1 | 2 | 3 | 4 | "master";
   status: "new" | "learning" | "mastered";
 };
-
-const WORDS: WordItem[] = [
-  {
-    id: "1",
-    word: "Hello",
-    meaning: "Informal greeting",
-    level: 1,
-    status: "mastered",
-  },
-  {
-    id: "2",
-    word: "Good morning",
-    meaning: "Greeting before noon",
-    level: 1,
-    status: "learning",
-  },
-  {
-    id: "3",
-    word: "Good afternoon",
-    meaning: "Greeting in the afternoon",
-    level: 2,
-    status: "learning",
-  },
-  {
-    id: "4",
-    word: "Good evening",
-    meaning: "Greeting in the evening",
-    level: 2,
-    status: "new",
-  },
-  {
-    id: "5",
-    word: "Welcome",
-    meaning: "Friendly greeting",
-    level: 3,
-    status: "new",
-  },
-  {
-    id: "6",
-    word: "See you",
-    meaning: "Goodbye phrase",
-    level: "master",
-    status: "mastered",
-  },
-];
 
 const LEVEL_TABS = ["all", "1", "2", "3", "4", "master"] as const;
 type LevelTab = (typeof LEVEL_TABS)[number];
@@ -184,25 +142,85 @@ function OverviewCard({ data }: { data: WordItem[] }) {
 export default function MyWordListPage() {
   const [active, setActive] = useState<LevelTab>("all");
   const [q, setQ] = useState("");
+  const [words, setWords] = useState<WordItem[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchWords();
+  }, []);
+
+  const fetchWords = async () => {
+    try {
+      setLoading(true);
+      const response = await wordService.getAllWords() as any;
+
+      if (response?.code === 200 && response?.data) {
+        // Transform backend Word model to WordItem format
+        const transformedWords: WordItem[] = response.data.map((word: any) => ({
+          id: word._id || word.id,
+          word: word.word, // Backend already lowercase
+          meaning: word.definitions?.[0]?.meaningVi || word.definitions?.[0]?.meaning || "", // First definition
+          level: mapLevelToNumber(word.level),
+          status: "new", // TODO: Need user word progress to determine actual status
+        }));
+        setWords(transformedWords);
+      }
+    } catch (error: any) {
+      console.error("Error fetching words:", error);
+      toast.error("Không thể tải danh sách từ vựng");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const mapLevelToNumber = (level: any): 1 | 2 | 3 | 4 | "master" => {
+    // Backend uses: "beginner", "intermediate", "advanced"
+    // Frontend needs: 1, 2, 3, 4, "master"
+    if (typeof level === "string") {
+      const levelMap: Record<string, 1 | 2 | 3 | 4 | "master"> = {
+        beginner: 1,
+        intermediate: 2,
+        advanced: 3,
+        master: "master",
+      };
+      return levelMap[level.toLowerCase()] || 1;
+    }
+    if (typeof level === "number") {
+      if (level >= 1 && level <= 4) return level as 1 | 2 | 3 | 4;
+      if (level >= 5) return "master";
+    }
+    return 1; // default
+  };
 
   const filtered = useMemo(() => {
     const byLevel =
       active === "all"
-        ? WORDS
-        : WORDS.filter((w) =>
-            active === "master"
-              ? w.level === "master"
-              : String(w.level) === active
-          );
+        ? words
+        : words.filter((w) =>
+          active === "master"
+            ? w.level === "master"
+            : String(w.level) === active
+        );
     const byQuery = q.trim()
       ? byLevel.filter(
-          (w) =>
-            w.word.toLowerCase().includes(q.toLowerCase()) ||
-            w.meaning.toLowerCase().includes(q.toLowerCase())
-        )
+        (w) =>
+          w.word.toLowerCase().includes(q.toLowerCase()) ||
+          w.meaning.toLowerCase().includes(q.toLowerCase())
+      )
       : byLevel;
     return byQuery;
-  }, [active, q]);
+  }, [active, q, words]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Đang tải từ vựng...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-[radial-gradient(ellipse_at_bottom,_var(--tw-gradient-stops))] from-sky-50 to-white ">
@@ -251,7 +269,7 @@ export default function MyWordListPage() {
 
               <CardContent>
                 {filtered.length === 0 ? (
-                  <EmptyState onLearn={() => console.log("Go to learning")} />
+                  <EmptyState onLearn={() => (window.location.href = "/learn")} />
                 ) : (
                   <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
                     {filtered.map((item) => (
@@ -265,7 +283,7 @@ export default function MyWordListPage() {
 
           {/* Right: overview */}
           <div className="lg:col-span-4">
-            <OverviewCard data={WORDS} />
+            <OverviewCard data={words} />
           </div>
         </div>
       </div>

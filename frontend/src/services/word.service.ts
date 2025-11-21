@@ -28,6 +28,10 @@ class WordService {
     return await apiClient.post("/v1/api/word/create", data);
   }
 
+  async getAllWords(query?: any) {
+    return await apiClient.get("/v1/api/word/", { params: query });
+  }
+
   async getWordsByCategory(categoryId: string, query?: any) {
     return await apiClient.get(`/v1/api/word/category/${categoryId}`, {
       params: query,
