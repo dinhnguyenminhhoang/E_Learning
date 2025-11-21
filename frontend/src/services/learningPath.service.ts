@@ -92,10 +92,6 @@ class LearningPathService {
       params,
     });
   }
-
-  async getUserActivePath() {
-    return await apiClient.get("/v1/api/learning-path/user-active");
-  }
 }
 
 export const learningPathService = new LearningPathService();

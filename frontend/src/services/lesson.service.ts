@@ -83,10 +83,6 @@ class LessonService {
   async deleteBlock(blockId: string) {
     return await apiClient.delete(`/v1/api/lesson/blocks/${blockId}`);
   }
-
-  async markLessonComplete(lessonId: string) {
-    return await apiClient.post(`/v1/api/lesson/${lessonId}/complete`);
-  }
 }
 
 export const lessonService = new LessonService();

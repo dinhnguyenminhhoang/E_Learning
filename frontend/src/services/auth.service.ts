@@ -90,9 +90,6 @@ class AuthService {
   isAuthenticated(): boolean {
     return !!localStorage.getItem("accessToken");
   }
-  async resendVerification(email: string) {
-    return await apiClient.post("/v1/api/user/resend-verification", { email });
-  }
 }
 
 export const authService = new AuthService();

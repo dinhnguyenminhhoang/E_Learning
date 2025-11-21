@@ -4,6 +4,7 @@ const ResponseBuilder = require("../types/response/baseResponse");
 const RESPONSE_MESSAGES = require("../constants/responseMessage");
 const AnswerMapService = require("../services/answerMap.service");
 const userLearningPathRepo = require("../repositories/userLearningPath.repo");
+const { toObjectId } = require("../helpers/idHelper");
 
 class UserOnboardingAnswerService {
   async handleSaveAnswers(userId, answers) {
@@ -30,7 +31,7 @@ class UserOnboardingAnswerService {
     const learningPath = await userLearningPathRepo.findByUserId(
       toObjectId(userId)
     );
-
+    console.log("learningPath", learningPath)
     return { learningPathId: learningPath[0]._id ?? "", ...mapResult };
   }
 
