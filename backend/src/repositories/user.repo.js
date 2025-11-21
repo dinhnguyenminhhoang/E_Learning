@@ -456,6 +456,10 @@ class UserRepository {
     }
   }
 
+  async updateOnboardingStatus(userId, status) {
+    return await this.updateById(userId, { onboardingStatus: status });
+  }
+
   /**
    * Update user password
    * @param {string} userId - User ID
