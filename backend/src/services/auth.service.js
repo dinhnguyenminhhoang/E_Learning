@@ -205,7 +205,7 @@ class AuthService {
           avatar: user.profile?.avatar,
           lastLoginAt: new Date(),
           portfolioCount: user.portfolios?.owned?.length || 0,
-          learningPathId: learningPath[0]._id ?? ""
+          learningPathId: learningPath && learningPath.length > 0 ? learningPath[0]._id : ""
         },
         tokens: {
           accessToken,
