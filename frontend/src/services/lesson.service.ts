@@ -1,87 +1,132 @@
-import { apiClient } from "@/config/api.config";
+import { Lesson, CreateLessonInput } from "@/types/admin";
 
-export interface Lesson {
-  _id: string;
-  title: string;
-  description?: string;
-  skill: string;
-  topic: string;
-  level: string;
-  duration_minutes?: number;
-  thumbnail?: string;
-  categoryId: string;
-  blocks: Array<{
-    block: string;
-    exercise?: string;
-    order: number;
-  }>;
-  status: string;
-}
-
-export interface Block {
-  _id: string;
-  type: string;
-  title?: string;
-  description?: string;
-  skill: string;
-  difficulty: string;
-  lessonId?: string;
-  status: string;
-}
+// Mock data
+const MOCK_LESSONS: Lesson[] = [
+  {
+    _id: "lesson-1",
+    title: "Irregular Plural Nouns #1",
+    description: "Learn about irregular plural forms in English",
+    topic: "Grammar",
+    skill: "reading",
+    difficulty: "beginner",
+    order: 1,
+    blocks: [
+      { _id: "block-1", type: "media", title: "Introduction Video", order: 1 },
+      { _id: "block-2", type: "grammar", title: "Grammar Explanation", order: 2 },
+      { _id: "block-3", type: "vocabulary", title: "Key Vocabulary", order: 3 },
+      { _id: "block-4", type: "quiz", title: "Practice Quiz", order: 4 },
+    ],
+    status: "published",
+    createdAt: new Date("2024-01-10"),
+    updatedAt: new Date("2024-01-15"),
+  },
+  {
+    _id: "lesson-2",
+    title: "Daily Greetings",
+    description: "Common phrases for greeting people",
+    topic: "Communication",
+    skill: "speaking",
+    difficulty: "beginner",
+    order: 2,
+    blocks: [
+      { _id: "block-5", type: "media", title: "Greeting Scenarios", order: 1 },
+      { _id: "block-6", type: "vocabulary", title: "Common Greetings", order: 2 },
+    ],
+    status: "published",
+    createdAt: new Date("2024-01-12"),
+    updatedAt: new Date("2024-01-12"),
+  },
+  {
+    _id: "lesson-3",
+    title: "Business Email Writing",
+    description: "Professional email communication",
+    topic: "Writing",
+    skill: "writing",
+    difficulty: "intermediate",
+    order: 3,
+    blocks: [
+      { _id: "block-7", type: "grammar", title: "Formal Writing Structure", order: 1 },
+      { _id: "block-8", type: "vocabulary", title: "Business Vocabulary", order: 2 },
+    ],
+    status: "draft",
+    createdAt: new Date("2024-02-01"),
+    updatedAt: new Date("2024-02-05"),
+  },
+];
 
 class LessonService {
-  async attachQuizToLesson(data: {
-    lessonId: string;
-    quizId: string;
-    blockId?: string;
-  }) {
-    return await apiClient.post("/v1/api/lesson/attach-quiz", data);
+  private lessons: Lesson[] = [...MOCK_LESSONS];
+
+  async getAll(): Promise<{ code: number; data: Lesson[] }> {
+    await new Promise((resolve) => setTimeout(resolve, 300));
+    return {
+      code: 200,
+      data: this.lessons,
+    };
   }
 
-  async detachQuizFromLesson(data: { lessonId: string; quizId: string }) {
-    return await apiClient.post("/v1/api/lesson/detach-quiz", data);
+  async getById(id: string): Promise<{ code: number; data: Lesson | null }> {
+    await new Promise((resolve) => setTimeout(resolve, 200));
+    const lesson = this.lessons.find((l) => l._id === id);
+    return {
+      code: lesson ? 200 : 404,
+      data: lesson || null,
+    };
   }
 
-  async getAllLessons(query?: any) {
-    return await apiClient.get("/v1/api/lesson/", { params: query });
+  async create(
+    input: CreateLessonInput
+  ): Promise<{ code: number; data: Lesson }> {
+    await new Promise((resolve) => setTimeout(resolve, 300));
+    const newLesson: Lesson = {
+      _id: `lesson-${Date.now()}`,
+      ...input,
+      order: this.lessons.length + 1,
+      blocks: [],
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    this.lessons.push(newLesson);
+    return {
+      code: 201,
+      data: newLesson,
+    };
   }
 
-  async createLesson(data: Partial<Lesson>) {
-    return await apiClient.post("/v1/api/lesson/", data);
-  }
-
-  async getLessonById(lessonId: string, userId: string) {
-    return await apiClient.get(`/v1/api/lesson/${lessonId}/user/${userId}`);
-  }
-
-  async deleteLesson(lessonId: string) {
-    return await apiClient.delete(`/v1/api/lesson/${lessonId}`);
-  }
-
-  async updateLesson(lessonId: string, data: Partial<Lesson>) {
-    return await apiClient.put(`/v1/api/lesson/${lessonId}`, data);
-  }
-
-  async assignBlockToLesson(
-    lessonId: string,
-    data: {
-      blockId: string;
-      order: number;
+  async update(
+    id: string,
+    input: Partial<CreateLessonInput>
+  ): Promise<{ code: number; data: Lesson | null }> {
+    await new Promise((resolve) => setTimeout(resolve, 300));
+    const index = this.lessons.findIndex((l) => l._id === id);
+    if (index === -1) {
+      return { code: 404, data: null };
     }
-  ) {
-    return await apiClient.post(`/v1/api/lesson/${lessonId}/blocks`, data);
+
+    this.lessons[index] = {
+      ...this.lessons[index],
+      ...input,
+      updatedAt: new Date(),
+    };
+
+    return {
+      code: 200,
+      data: this.lessons[index],
+    };
   }
 
-  async createBlock(data: Partial<Block>) {
-    return await apiClient.post("/v1/api/lesson/blocks", data);
-  }
+  async delete(id: string): Promise<{ code: number; message: string }> {
+    await new Promise((resolve) => setTimeout(resolve, 300));
+    const index = this.lessons.findIndex((l) => l._id === id);
+    if (index === -1) {
+      return { code: 404, message: "Lesson not found" };
+    }
 
-  async updateBlock(blockId: string, data: Partial<Block>) {
-    return await apiClient.put(`/v1/api/lesson/blocks/${blockId}`, data);
-  }
-
-  async deleteBlock(blockId: string) {
-    return await apiClient.delete(`/v1/api/lesson/blocks/${blockId}`);
+    this.lessons.splice(index, 1);
+    return {
+      code: 200,
+      message: "Lesson deleted successfully",
+    };
   }
 }
 

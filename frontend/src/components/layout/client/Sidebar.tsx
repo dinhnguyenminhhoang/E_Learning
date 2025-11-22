@@ -9,6 +9,8 @@ import {
   Settings,
   ChevronLeft,
   ChevronRight,
+  Trophy,
+  User,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -29,6 +31,7 @@ const items: Item[] = [
   { id: "home", label: "Home", href: "/learn", icon: Home },
   { id: "learning", label: "Learning", href: "/topic-list", icon: GraduationCap },
   { id: "wordlist", label: "Word list", href: "/my-wordlist", icon: BookOpen },
+  { id: "leaderboard", label: "Leaderboard", href: "/leaderboard", icon: Trophy },
 ];
 export default function Sidebar() {
   const [collapsed, setCollapsed] = useState(false);
@@ -125,22 +128,22 @@ export default function Sidebar() {
               </div>
             )}
             <Link
-              href="/settings"
+              href="/profile"
               className={cn(
                 "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-600 hover:bg-gray-50",
-                pathname?.startsWith("/settings") &&
-                  "bg-blue-50 text-blue-600 font-medium"
+                pathname?.startsWith("/profile") &&
+                "bg-blue-50 text-blue-600 font-medium"
               )}
             >
-              <Settings className="w-5 h-5 shrink-0" />
-              {!collapsed && <span>Settings</span>}
+              <User className="w-5 h-5 shrink-0" />
+              {!collapsed && <span>Profile</span>}
             </Link>
           </div>
         </nav>
       </TooltipProvider>
 
       {/* Footer user */}
-      <div className="p-4 border-t border-gray-200">
+      <Link href="/profile" className="block p-4 border-t border-gray-200 hover:bg-gray-50 transition-colors">
         {collapsed ? (
           <div className="w-10 h-10 bg-gradient-to-br from-orange-400 to-pink-500 rounded-full flex items-center justify-center text-white font-semibold mx-auto">
             MH
@@ -158,7 +161,7 @@ export default function Sidebar() {
             </div>
           </div>
         )}
-      </div>
+      </Link>
     </aside>
   );
 }

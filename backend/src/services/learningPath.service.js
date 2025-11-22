@@ -6,6 +6,7 @@ const { toObjectId } = require("../helpers/idHelper");
 const { STATUS } = require("../constants/status.constans");
 const RESPONSE_MESSAGES = require("../constants/responseMessage");
 const userLearningPathRepo = require("../repositories/userLearningPath.repo");
+const blockRepo = require("../repositories/block.repo");
 
 class LearningPathService {
   _findLevel(learningPath, titleLevel) {
@@ -204,10 +205,9 @@ class LearningPathService {
   async getLearningPathHierarchy(req) {
     const { learningPathId, isLevel, isLesson, isBlock, levelOrder, lessonId } =
       req.query;
-
     if (isLevel === "true") {
       const path =
-        await LearningPathRepository.findLevelsByPath(learningPathId);
+        await LearningPathRepository.findLevelsByPath(toObjectId(learningPathId));
       if (!path)
         return ResponseBuilder.notFoundError("Không tìm thấy lộ trình.");
       return ResponseBuilder.success(
@@ -221,7 +221,6 @@ class LearningPathService {
         learningPathId,
         Number(levelOrder)
       );
-      console.log("path", path.levels[0].lessons);
       if (!path || !path.levels.length)
         return ResponseBuilder.notFoundError("Không tìm thấy cấp độ.");
 
@@ -229,8 +228,6 @@ class LearningPathService {
         req.user._id,
         toObjectId(learningPathId)
       );
-
-      console.log("userLearningPath", userLearningPath);
 
       const lessons = path.levels[0].lessons
         .filter((module) => module.lesson)
@@ -244,13 +241,9 @@ class LearningPathService {
     }
 
     if (isBlock === "true" && lessonId) {
-      const blocks = await LearningPathRepository.findBlocksByLesson(
-        learningPathId,
-        Number(levelOrder),
+      const blocks = await blockRepo.getBlocksByLesson(
         lessonId
       );
-
-      console.log("blocks", blocks);
       if (!blocks || !blocks.length)
         return ResponseBuilder.notFoundError("Không tìm thấy blocks.");
 
