@@ -10,7 +10,7 @@ import { learningPathService } from "@/services/learningPath.service";
 import { toast } from "react-hot-toast";
 import { useUserProgress } from "@/hooks/useUserProgress";
 
-export const MISSIONS_DATA: Mission[] = [
+const MISSIONS_DATA: Mission[] = [
   {
     id: "daily-words",
     type: "daily",
@@ -33,7 +33,7 @@ export const MISSIONS_DATA: Mission[] = [
   },
 ];
 
-export const SUGGESTED_TOPICS: Topic[] = [
+const SUGGESTED_TOPICS: Topic[] = [
   {
     id: "music-instrument",
     name: "Music Instrument",
@@ -57,7 +57,7 @@ export const SUGGESTED_TOPICS: Topic[] = [
   },
 ];
 
-export const WORD_LEVELS: WordLevel[] = [
+const WORD_LEVELS: WordLevel[] = [
   { level: "Lv.1", count: 0, label: "Beginner" },
   { level: "Lv.2", count: 0, label: "Elementary" },
   { level: "Lv.3", count: 0, label: "Intermediate" },

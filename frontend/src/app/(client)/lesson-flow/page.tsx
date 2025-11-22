@@ -88,7 +88,8 @@ export default function LessonFlow() {
     if (!lessonId) return;
 
     try {
-      await lessonService.markLessonComplete(lessonId);
+      // TODO: Backend does not have markLessonComplete endpoint yet
+      // await lessonService.markLessonComplete(lessonId);
       toast.success("Hoàn thành bài học!");
       router.push("/learn");
     } catch (error: any) {

@@ -88,8 +88,8 @@ export default function VerifyEmailPage() {
       setStatus("error");
       toast.error(
         error?.response?.data?.message ||
-          error.message ||
-          "Xác thực email thất bại"
+        error.message ||
+        "Xác thực email thất bại"
       );
     }
   };
@@ -98,24 +98,29 @@ export default function VerifyEmailPage() {
     if (!email || countdown > 0) return;
     try {
       setIsResending(true);
-      await authService.resendVerification(email);
-      toast.success("Email xác thực đã được gửi lại!");
-      setCountdown(60);
-      const timer = setInterval(() => {
-        setCountdown((prev) => {
-          if (prev <= 1) {
-            clearInterval(timer);
-            return 0;
-          }
-          return prev - 1;
-        });
-      }, 1000);
+      // TODO: Backend does not have resendVerification endpoint yet
+      // await authService.resendVerification(email);
+      toast.error("Tính năng gửi lại email chưa được hỗ trợ. Vui lòng liên hệ quản trị viên.");
+      return;
+
+      // Uncomment when backend implements /v1/api/user/resend-verification
+      // toast.success("Email xác thực đã được gửi lại!");
+      // setCountdown(60);
+      // const timer = setInterval(() => {
+      //   setCountdown((prev) => {
+      //     if (prev <= 1) {
+      //       clearInterval(timer);
+      //       return 0;
+      //     }
+      //     return prev - 1;
+      //   });
+      // }, 1000);
     } catch (error: any) {
       console.error("❌ Resend verification error:", error);
       toast.error(
         error?.response?.data?.message ||
-          error.message ||
-          "Gửi lại email thất bại"
+        error.message ||
+        "Gửi lại email thất bại"
       );
     } finally {
       setIsResending(false);
