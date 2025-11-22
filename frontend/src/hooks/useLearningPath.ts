@@ -1,8 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
-import {
-  learningPathService,
-  LearningPathHierarchyParams,
-} from "@/services/learningPath.service";
+import { learningPathService } from "@/services/learningPath.service";
+import { LearningPathHierarchyParams } from "@/types/learning";
 
 export function useLearningPath() {
   const [paths, setPaths] = useState<any[]>([]);
@@ -14,7 +12,7 @@ export function useLearningPath() {
       setLoading(true);
       setError(null);
 
-      const response = await learningPathService.getAllPath();
+      const response = (await learningPathService.getAllPath()) as any;
 
       if (response.code === 200 && response.data) {
         setPaths(response.data);
@@ -34,7 +32,7 @@ export function useLearningPath() {
         setError(null);
 
         const response =
-          await learningPathService.getLearningPathHierarchy(params);
+          (await learningPathService.getLearningPathHierarchy(params)) as any;
 
         if (response.code === 200) {
           return response.data;

@@ -23,12 +23,33 @@ export interface WordLevel {
   count: number;
   label: string;
 }
+export interface Block {
+  _id: string;
+  type: "vocabulary" | "grammar" | "quiz" | "media";
+  title?: string;
+  description?: string;
+  skill: string;
+  difficulty?: string;
+  lessonId?: string;
+  status?: string;
+  mediaType?: string;
+  sourceType?: string;
+  sourceUrl?: string;
+  transcript?: string;
+  tasks?: any[];
+  topic?: string;
+  explanation?: string;
+  examples?: string[];
+  videoUrl?: string;
+}
+
 export interface SubTopic {
   id: string;
   name: string;
   progress: number;
   total: number;
   icon: string;
+  blocks?: Block[];
 }
 
 export interface TopicList {
@@ -66,11 +87,44 @@ export type LessonWord = {
   example?: string;
   image?: string;
 };
-export type LessonWord = {
-  id: string;
-  word: string;
-  ipa: string;
-  meaning: string;
-  example?: string;
-  image?: string;
-};
+
+export interface LearningPath {
+  _id: string;
+  target: string;
+  key: string;
+  title: string;
+  description?: string;
+  level: string;
+  levels: Array<{
+    order: number;
+    title: string;
+    lessons: Array<{
+      lesson: string;
+      order: number;
+    }>;
+    finalQuiz?: string;
+  }>;
+  status: string;
+}
+
+export interface LearningPathHierarchyParams {
+  learningPathId: string;
+  isLevel?: boolean;
+  isLesson?: boolean;
+  isBlock?: boolean;
+  levelOrder?: number;
+  lessonId?: string;
+}
+
+export interface UserLearningPath {
+  _id: string;
+  userId: string;
+  learningPathId: string;
+  currentLevel: number;
+  completedLessons: string[];
+  progress: number;
+  startedAt: Date;
+  lastAccessedAt: Date;
+  status: string;
+}
+

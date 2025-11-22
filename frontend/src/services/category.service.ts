@@ -1,32 +1,29 @@
+import { Category, CreateCategoryInput } from "@/types/admin";
 import { apiClient } from "@/config/api.config";
 
-export interface Category {
-  _id: string;
-  name: string;
-  nameVi: string;
-  slug: string;
-  description?: string;
-  status: string;
-}
-
 class CategoryService {
-  async createCategory(data: Partial<Category>) {
-    return await apiClient.post("/v1/api/category/create", data);
+  async getAll(): Promise<{ code: number; data: Category[] }> {
+    return await apiClient.get("/v1/api/category/");
   }
 
-  async listCategories(query?: any) {
-    return await apiClient.get("/v1/api/category/", { params: query });
-  }
-
-  async getCategoryById(id: string) {
+  async getById(id: string): Promise<{ code: number; data: Category | null }> {
     return await apiClient.get(`/v1/api/category/getById/${id}`);
   }
 
-  async updateCategory(id: string, data: Partial<Category>) {
-    return await apiClient.put(`/v1/api/category/${id}`, data);
+  async create(
+    input: CreateCategoryInput
+  ): Promise<{ code: number; data: Category }> {
+    return await apiClient.post("/v1/api/category/create", input);
   }
 
-  async deleteCategory(id: string) {
+  async update(
+    id: string,
+    input: Partial<CreateCategoryInput>
+  ): Promise<{ code: number; data: Category | null }> {
+    return await apiClient.put(`/v1/api/category/${id}`, input);
+  }
+
+  async delete(id: string): Promise<{ code: number; message: string }> {
     return await apiClient.delete(`/v1/api/category/delete/${id}`);
   }
 }
