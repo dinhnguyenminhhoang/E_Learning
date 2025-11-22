@@ -4,9 +4,15 @@ const RESPONSE_MESSAGES = require("../constants/responseMessage");
 const categoryRepository = require("../repositories/category.repo");
 const ResponseBuilder = require("../types/response/baseResponse");
 const { STATUS } = require("../constants/status.constans");
+const { generateUniqueSlug } = require("../helpers/slugHelper");
+const Category = require("../models/Category");
 
 class CategoryService {
   async createCategory(data) {
+    if (!data.slug) {
+      data.slug = await generateUniqueSlug(data.name, Category);
+    }
+
     const existingCategory = await categoryRepository.findByNameOrSlug(
       data.name,
       data.slug
@@ -37,16 +43,22 @@ class CategoryService {
   async updateCategory(categoryId, data) {
     try {
       const existingCategory = await categoryRepository.findById(categoryId);
-      const existingCategoryBySlug = await categoryRepository.findByNameOrSlug(
-        "",
-        data.slug
-      );
-      console.log("slug by cate", existingCategoryBySlug);
       if (!existingCategory) {
         return ResponseBuilder.notFoundError();
       }
-      if (existingCategoryBySlug && existingCategoryBySlug.slug === existingCategory.slug) {
-        return ResponseBuilder.duplicateError();
+
+      if (data.name && data.name !== existingCategory.name && !data.slug) {
+        data.slug = await generateUniqueSlug(data.name, Category, categoryId);
+      }
+
+      if (data.slug) {
+        const existingCategoryBySlug = await categoryRepository.findByNameOrSlug(
+          "",
+          data.slug
+        );
+        if (existingCategoryBySlug && existingCategoryBySlug._id.toString() !== categoryId) {
+          return ResponseBuilder.duplicateError();
+        }
       }
 
       if (data.name && data.name !== existingCategory.name) {
@@ -61,6 +73,7 @@ class CategoryService {
           }
         }
       }
+
       const updateCategory = await categoryRepository.updateById(
         categoryId,
         data
