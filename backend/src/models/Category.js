@@ -1,7 +1,6 @@
 "use strict";
 
 const { model, Schema } = require("mongoose");
-const { urlValidator } = require("../utils");
 const { STATUS } = require("../constants/status.constans");
 
 const DOCUMENT_NAME = "Category";
@@ -27,7 +26,7 @@ const categorySchema = new Schema(
 
     slug: {
       type: String,
-      required: [true, "Slug is required"],
+      required: false,
       unique: true,
       lowercase: true,
       trim: true,
