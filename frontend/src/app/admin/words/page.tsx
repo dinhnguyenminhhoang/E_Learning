@@ -58,24 +58,19 @@ export default function WordsListPage() {
   // Fetch categories for filter
   const { data: categoriesData } = useQuery({
     queryKey: ["categories"],
-    queryFn: () => categoryService.listCategories(),
+    queryFn: () => categoryService.getAll(),
   });
 
-  // Fetch words (cần implement API search/filter ở backend)
+  // Fetch words
   const { data: wordsData, isLoading } = useQuery({
     queryKey: ["words", searchQuery, categoryFilter, levelFilter],
     queryFn: async () => {
-      // Tạm thời call API get all, sau này backend cần implement search/filter
-      const response = await fetch("/api/admin/words/search", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          search: searchQuery,
-          category: categoryFilter !== "all" ? categoryFilter : undefined,
-          level: levelFilter !== "all" ? levelFilter : undefined,
-        }),
-      });
-      return response.json();
+      const params: any = {};
+      if (searchQuery) params.search = searchQuery;
+      if (categoryFilter !== "all") params.category = categoryFilter;
+      if (levelFilter !== "all") params.level = levelFilter;
+
+      return await wordService.getAllWords(params);
     },
   });
 

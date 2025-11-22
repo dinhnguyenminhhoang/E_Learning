@@ -88,16 +88,80 @@ export default function LearnPage() {
     try {
       setLoading(true);
       setLearningPathId(progress.learningPathId);
-
-      const levelsResponse = await learningPathService.getLearningPathHierarchy(
+      const hierarchyResponse = (await learningPathService.getLearningPathHierarchy(
         {
           learningPathId: progress.learningPathId,
           isLevel: true,
         }
-      );
+      )) as any;
 
-      if (levelsResponse.code === 200 && levelsResponse.data) {
-        console.log("Levels data:", levelsResponse.data);
+      if (hierarchyResponse.code === 200 && hierarchyResponse.data) {
+        const pathData = hierarchyResponse.data;
+        const updatedMissions = [...MISSIONS_DATA];
+
+        const dailyGoal = progress.dailyGoal || 10;
+        const wordsLearnedToday = progress.completedLessons?.length || 0;
+
+        updatedMissions[0] = {
+          ...updatedMissions[0],
+          progress: Math.min(wordsLearnedToday, dailyGoal),
+          total: dailyGoal,
+        };
+
+        const hasLearnedWords = wordsLearnedToday > 0;
+        updatedMissions[1] = {
+          ...updatedMissions[1],
+          locked: !hasLearnedWords,
+          total: hasLearnedWords ? Math.floor(wordsLearnedToday / 2) : 0,
+          requirement: hasLearnedWords
+            ? ""
+            : "Start learning to unlock review",
+        };
+
+        setMissions(updatedMissions);
+
+        if (pathData.levels && pathData.levels.length > 0) {
+          const currentLevelIndex = (progress.currentLevel || 1) - 1;
+          const currentLevel = pathData.levels[currentLevelIndex];
+
+          if (currentLevel && currentLevel.lessons) {
+            const suggestedTopics: Topic[] = currentLevel.lessons
+              .slice(0, 3) // Take first 3 lessons as suggested topics
+              .map((lessonData: any, index: number) => {
+                const lesson = lessonData.lesson;
+                const isCompleted = progress.completedLessons?.includes(
+                  lesson._id
+                );
+
+                return {
+                  id: lesson._id || `topic-${index}`,
+                  name: lesson.title || lesson.topic || `Topic ${index + 1}`,
+                  progress: isCompleted ? 1 : 0,
+                  total: 1,
+                  icon: getTopicIcon(lesson.topic || lesson.skill),
+                };
+              });
+
+            if (suggestedTopics.length > 0) {
+              setTopics(suggestedTopics);
+            }
+          }
+        }
+
+        // Update word levels based on user's statistics
+        // For now, use static data until we have word stats API
+        // TODO: Fetch from user word statistics API when available
+        const updatedWordLevels = [...WORD_LEVELS];
+        if (progress.totalWordsLearned) {
+          // Distribute words across levels (example distribution)
+          const total = progress.totalWordsLearned;
+          updatedWordLevels[0].count = Math.floor(total * 0.4);
+          updatedWordLevels[1].count = Math.floor(total * 0.3);
+          updatedWordLevels[2].count = Math.floor(total * 0.2);
+          updatedWordLevels[3].count = Math.floor(total * 0.08);
+          updatedWordLevels[4].count = Math.floor(total * 0.02);
+        }
+        setWordLevels(updatedWordLevels);
       }
     } catch (error: any) {
       console.error("Error fetching learning data:", error);
@@ -107,18 +171,35 @@ export default function LearnPage() {
     }
   };
 
+  // Helper function to get topic icon based on topic name
+  const getTopicIcon = (topic: string): string => {
+    const topicLower = topic?.toLowerCase() || "";
+    if (topicLower.includes("music")) return "🎵";
+    if (topicLower.includes("animal")) return "🐾";
+    if (topicLower.includes("food")) return "🍕";
+    if (topicLower.includes("travel")) return "✈️";
+    if (topicLower.includes("work") || topicLower.includes("business"))
+      return "💼";
+    if (topicLower.includes("sport")) return "⚽";
+    if (topicLower.includes("read")) return "📖";
+    if (topicLower.includes("listen")) return "🎧";
+    if (topicLower.includes("speak")) return "💬";
+    if (topicLower.includes("writ")) return "✍️";
+    return "📚"; // default icon
+  };
+
   const totalWords = wordLevels.reduce((acc, level) => acc + level.count, 0);
 
   const handleStartMission = (missionId: string) => {
     if (missionId === "daily-words" && learningPathId) {
       window.location.href = `/topic-list?pathId=${learningPathId}`;
     } else {
-      toast.info("Tính năng đang phát triển");
+      toast.success("Tính năng đang phát triển");
     }
   };
 
   const handleStartTopic = (topicId: string) => {
-    toast.info("Tính năng đang phát triển");
+    toast.success("Tính năng đang phát triển");
   };
 
   if (loading || progressLoading) {

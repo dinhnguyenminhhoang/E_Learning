@@ -1,32 +1,5 @@
 import { apiClient } from "@/config/api.config";
-
-export interface LearningPath {
-  _id: string;
-  target: string;
-  key: string;
-  title: string;
-  description?: string;
-  level: string;
-  levels: Array<{
-    order: number;
-    title: string;
-    lessons: Array<{
-      lesson: string;
-      order: number;
-    }>;
-    finalQuiz?: string;
-  }>;
-  status: string;
-}
-
-export interface LearningPathHierarchyParams {
-  learningPathId: string;
-  isLevel?: boolean;
-  isLesson?: boolean;
-  isBlock?: boolean;
-  levelOrder?: number;
-  lessonId?: string;
-}
+import { LearningPath, LearningPathHierarchyParams } from "@/types/learning";
 
 class LearningPathService {
   async createNewPath(data: Partial<LearningPath>) {
