@@ -54,6 +54,10 @@ class BlockRepository {
   async hardDelete(blockId) {
     return ContentBlock.findByIdAndDelete(blockId);
   }
+  async getBlocksByLesson(lessonId) {
+    const blocks = await ContentBlock.find({ lessonId: lessonId }).where("status").ne(STATUS.DELETED).sort({ order: 1 });
+    return blocks;
+  }
 }
 
 module.exports = new BlockRepository();

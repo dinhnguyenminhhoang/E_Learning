@@ -95,21 +95,54 @@ export default function TopicsPage() {
     try {
       setLoading(true);
 
-      const levelsResponse = await learningPathService.getLearningPathHierarchy(
-        {
-          learningPathId,
-          isLevel: true,
-        }
-      );
+      // 1. Gọi API lấy danh sách Levels
+      const levelsResponse = await learningPathService.getLearningPathHierarchy({
+        learningPathId,
+        isLevel: true,
+      });
 
       if (levelsResponse.code === 200 && levelsResponse.data) {
-        const transformedData: TopicList[] = levelsResponse.data.map(
+        const levels = levelsResponse.data;
+
+        // 2. Gọi API lấy danh sách Lessons cho từng Level
+        const levelsWithLessons = await Promise.all(
+          levels.map(async (level: any) => {
+            try {
+              const lessonsResponse =
+                await learningPathService.getLearningPathHierarchy({
+                  learningPathId,
+                  isLesson: true,
+                  levelOrder: level.order,
+                });
+
+              // Lấy dữ liệu lessons trực tiếp, KHÔNG gọi thêm API lấy blocks nữa
+              const lessons =
+                lessonsResponse.code === 200 ? lessonsResponse.data : [];
+
+              return { ...level, lessons: lessons };
+            } catch (error) {
+              return { ...level, lessons: [] };
+            }
+          })
+        );
+
+        // 3. Chuyển đổi dữ liệu sang định dạng TopicList
+        const transformedData: TopicList[] = levelsWithLessons.map(
           (level: any, index: number) => ({
             id: index + 1,
             name: level.title || `Level ${level.order}`,
             totalTopics: level.lessons?.length || 0,
             progressPercent: 0,
-            subTopics: [],
+            subTopics: level.lessons.map((lesson: any) => ({
+              id: lesson.lesson,
+              name: lesson.title,
+              progress: 0,
+              // Vì không load blocks nên total tạm thời để 0 hoặc lấy từ lesson nếu có
+              total: 0,
+              icon: "📚",
+              // Gán mảng rỗng vì không còn fetch blocks
+              blocks: []
+            })),
           })
         );
 
@@ -124,7 +157,6 @@ export default function TopicsPage() {
       setLoading(false);
     }
   };
-
   useEffect(() => {
     const handleScroll = () => {
       if (!containerRef.current) return;
@@ -207,7 +239,11 @@ export default function TopicsPage() {
 
                 <div className="space-y-4">
                   {topic.subTopics.map((subTopic) => (
-                    <SubTopicCard key={subTopic.id} subTopic={subTopic} />
+                    <SubTopicCard
+                      key={subTopic.id}
+                      subTopic={subTopic}
+                      learningPathId={pathId || progress?.learningPathId}
+                    />
                   ))}
                 </div>
               </div>
