@@ -48,7 +48,6 @@ router.post(
   asynchandler(lessonController.assignBlockToLesson)
 );
 
-//Block routes
 router.post(
   "/blocks",
   auth.authenticate,
