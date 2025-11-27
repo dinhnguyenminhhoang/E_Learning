@@ -13,5 +13,6 @@ router.use(`/v1/api/userOnboardingAnswer`, require("./onboardingAnswer.route"));
 router.use(`/v1/api/lesson`, require("./lesson.route"));
 router.use(`/v1/api/quiz`, require("./quiz.route"));
 router.use(`/v1/api/user-learning-path`, require("./userLearningPath.route"));
+router.use(`/v1/api/target`, require("./target.route"));
 
 module.exports = router;
