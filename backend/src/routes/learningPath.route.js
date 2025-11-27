@@ -5,6 +5,9 @@ const router = express.Router();
 const LearningPathController = require("../controllers/learningPath.controller");
 const { asynchandler } = require("../helpers/asyncHandler");
 const auth = require("../middlewares/auth");
+const {
+  validateAssignTargetToPath,
+} = require("../middlewares/learningPath");
 
 router.post(
   "/",
@@ -50,6 +53,13 @@ router.get(
   "/hierarchy",
   auth.authenticate,
   asynchandler(LearningPathController.getLearningPathHierarchy)
+);
+
+router.put(
+  "/:learningPathId/target",
+  auth.authenticate,
+  validateAssignTargetToPath,
+  asynchandler(LearningPathController.assignTargetToPath)
 );
 
 module.exports = router;

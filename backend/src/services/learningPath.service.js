@@ -124,8 +124,7 @@ class LearningPathService {
   async createNewPath(req) {
     const data = req.body;
     const existingTarget = await TargetRepository.findById(
-      toObjectId(data.targetId),
-      true
+      toObjectId(data.targetId)
     );
 
     if (!existingTarget) {
@@ -288,6 +287,51 @@ class LearningPathService {
     );
 
     return ResponseBuilder.success("Thêm cấp độ thành công", updatedPath);
+  }
+
+  async assignTargetToLearningPath(req) {
+    const { learningPathId } = req.params;
+    const { targetId } = req.body;
+
+    if (!learningPathId) {
+      return ResponseBuilder.badRequest("Thiếu learningPathId.");
+    }
+
+    const learningPath = await LearningPathRepository.findById(
+      toObjectId(learningPathId)
+    );
+    if (!learningPath) {
+      return ResponseBuilder.notFoundError("Không tìm thấy lộ trình học.");
+    }
+
+    const target = await TargetRepository.findById(toObjectId(targetId));
+    if (!target) {
+      return ResponseBuilder.notFoundError("Không tìm thấy mục tiêu.");
+    }
+
+    const existingPathForTarget =
+      await LearningPathRepository.findByTargetId(toObjectId(targetId));
+
+    if (
+      existingPathForTarget &&
+      existingPathForTarget._id.toString() !== learningPathId
+    ) {
+      return ResponseBuilder.badRequest(
+        "Mục tiêu này đã được gán cho một lộ trình khác."
+      );
+    }
+
+    learningPath.target = toObjectId(targetId);
+    await learningPath.save();
+
+    const updatedPath = await LearningPathRepository.findById(
+      learningPath._id
+    );
+
+    return ResponseBuilder.success(
+      "Gán mục tiêu cho lộ trình thành công.",
+      updatedPath
+    );
   }
 }
 

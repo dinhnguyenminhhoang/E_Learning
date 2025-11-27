@@ -36,7 +36,8 @@ class LearningPathRepository {
 
   async findByTargetId(targetId) {
     return await LearningPathModel.findOne({
-      target: targetId,
+      target: toObjectId(targetId),
+      status: { $ne: STATUS.DELETED },
     });
   }
 
