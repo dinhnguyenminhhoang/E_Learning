@@ -1,4 +1,3 @@
-const { toObjectId } = require("../helpers/idHelper");
 const targetRepo = require("../repositories/target.repo");
 const ResponseBuilder = require("../types/response/baseResponse");
 class TartgetService {
@@ -65,7 +64,7 @@ class TartgetService {
 
     const normalizedPayload = this._normalizePayload(req.body);
 
-    const target = await targetRepo.findById(toObjectId(targetId));
+    const target = await targetRepo.findById(targetId);
     if (!target) {
       return ResponseBuilder.notFoundError("Không tìm thấy mục tiêu.");
     }
@@ -102,12 +101,12 @@ class TartgetService {
       return ResponseBuilder.badRequest("Thiếu targetId.");
     }
 
-    const target = await targetRepo.findById(toObjectId(targetId));
+    const target = await targetRepo.findById(targetId);
     if (!target) {
       return ResponseBuilder.notFoundError("Không tìm thấy mục tiêu.");
     }
 
-    await targetRepo.softDelete(toObjectId(targetId));
+    await targetRepo.softDelete(targetId);
 
     return ResponseBuilder.success("Xóa mục tiêu thành công.", {
       id: targetId,
