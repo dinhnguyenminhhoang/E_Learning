@@ -16,4 +16,7 @@ router.use(`/v1/api/user-learning-path`, require("./userLearningPath.route"));
 router.use(`/v1/api/target`, require("./target.route"));
 router.use(`/v1/api/block`, require("./block.route"));
 router.use(`/v1/api/user-progress`, require("./userProgress.route"));
+router.use(`/v1/api/users/me`, require("./userBlockProgress.route"));
+router.use(`/v1/api`, require("./quizAttemptForBlock.route"));
+
 module.exports = router;
