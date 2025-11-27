@@ -1,13 +1,13 @@
 "use strict";
 const { STATUS } = require("../constants/status.constans");
+const { toObjectId } = require("../helpers/idHelper");
 const TargetModel = require("../models/Target");
 class TargetRepository {
   async findById(targetId) {
-    const target = await TargetModel.findOne({
-      _id: targetId,
+    return await TargetModel.findOne({
+      _id: toObjectId(targetId),
       status: { $ne: STATUS.DELETED },
     });
-    return target;
   }
 
   async findAllTargets(req) {
@@ -42,7 +42,7 @@ class TargetRepository {
   async updateById(id, payload = {}) {
     return await TargetModel.findOneAndUpdate(
       {
-        _id: id,
+        _id: toObjectId(id),
         status: { $ne: STATUS.DELETED },
       },
       payload,
@@ -56,7 +56,7 @@ class TargetRepository {
   async softDelete(id) {
     return await TargetModel.findOneAndUpdate(
       {
-        _id: id,
+        _id: toObjectId(id),
         status: { $ne: STATUS.DELETED },
       },
       {
