@@ -2,6 +2,7 @@
 const { STATUS } = require("../constants/status.constans");
 const { toObjectId } = require("../helpers/idHelper");
 const TargetModel = require("../models/Target");
+const LearningPathModel = require("../models/LearningPath");
 class TargetRepository {
   async findById(targetId) {
     return await TargetModel.findOne({
@@ -65,6 +66,19 @@ class TargetRepository {
       },
       { new: true }
     );
+  }
+
+  async findTargetsWithoutLearningPath() {
+    const usedTargetIds = await LearningPathModel.distinct("target", {
+      target: { $ne: null },
+      status: { $ne: STATUS.DELETED },
+    });
+    return await TargetModel.find({
+      status: { $ne: STATUS.DELETED },
+      _id: { $nin: usedTargetIds },
+    })
+      .select("_id name")
+      .lean();
   }
 }
 module.exports = new TargetRepository();

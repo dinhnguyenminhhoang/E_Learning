@@ -6,6 +6,11 @@ class TargetController {
     return res.status(response.code).json(response);
   }
 
+  async getUnassignedTargets(req, res) {
+    const response = await targetService.getUnassignedTargets();
+    return res.status(response.code).json(response);
+  }
+
   async createTarget(req, res) {
     const response = await targetService.createTarget(req);
     return res.status(response.code).json(response);

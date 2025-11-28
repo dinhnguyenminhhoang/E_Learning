@@ -37,6 +37,17 @@ class TartgetService {
     );
   }
 
+  async getUnassignedTargets() {
+    const targets = await targetRepo.findTargetsWithoutLearningPath();
+    return ResponseBuilder.success(
+      "Lấy danh sách mục tiêu chưa gán thành công.",
+      targets.map((target) => ({
+        key: target._id,
+        value: target.name,
+      }))
+    );
+  }
+
   async createTarget(req) {
     const normalizedPayload = this._normalizePayload(req.body);
 
