@@ -31,7 +31,10 @@ class UserOnboardingAnswerService {
         (!Array.isArray(answers) || answers.length < TOTAL_QUESTIONS)
       ) {
         mapResult = await this.assignDefaultPath(userId);
-        await UserRepository.updateOnboardingStatus(userId, ONBOARDING_STATUS.COMPLETED);
+        await UserRepository.updateOnboardingStatus(
+          userId,
+          ONBOARDING_STATUS.COMPLETED
+        );
       } else if (Array.isArray(answers) && answers.length === TOTAL_QUESTIONS) {
         const existingAnswers =
           await UserOnboardingAnswerRepo.getByUser(userId);
@@ -51,8 +54,12 @@ class UserOnboardingAnswerService {
           return ResponseBuilder.badRequest("Lưu câu trả lời thất bại.");
 
         mapResult = await AnswerMapService.mapAnswerToTarget(userId, answers);
+        console.log("mapResult", mapResult);
 
-        await UserRepository.updateOnboardingStatus(userId, ONBOARDING_STATUS.COMPLETED);
+        await UserRepository.updateOnboardingStatus(
+          userId,
+          ONBOARDING_STATUS.COMPLETED
+        );
       } else {
         return ResponseBuilder.badRequest(
           "Câu trả lời không hợp lệ hoặc user chưa nhấn start."
@@ -60,7 +67,8 @@ class UserOnboardingAnswerService {
       }
 
       const learningPath = await userLearningPathRepo.findByUserId(userId);
-      const pathId = (learningPath && learningPath.length > 0) ? learningPath[0]._id : "";
+      const pathId =
+        learningPath && learningPath.length > 0 ? learningPath[0]._id : "";
       if (!learningPath || learningPath.length === 0)
         return ResponseBuilder.notFoundError();
 
@@ -94,9 +102,12 @@ class UserOnboardingAnswerService {
         return ResponseBuilder.notFoundError("Không tìm thấy người dùng.");
 
       if (user.onboardingStatus === ONBOARDING_STATUS.NOT_STARTED) {
-        await UserRepository.updateOnboardingStatus(userId, ONBOARDING_STATUS.STARTED);
+        await UserRepository.updateOnboardingStatus(
+          userId,
+          ONBOARDING_STATUS.STARTED
+        );
       } else if (user.onboardingStatus === ONBOARDING_STATUS.COMPLETED) {
-         return ResponseBuilder.badRequest("User đã hoàn thành onboarding");
+        return ResponseBuilder.badRequest("User đã hoàn thành onboarding");
       }
 
       return ResponseBuilder.success("Onboarding started", {
@@ -116,7 +127,11 @@ class UserOnboardingAnswerService {
       const existingPaths = await userLearningPathRepo.findByUserId(userId);
 
       if (existingPaths && existingPaths.length > 0) {
-        return { success: true, status: "existing", pathId: existingPaths[0]._id };
+        return {
+          success: true,
+          status: "existing",
+          pathId: existingPaths[0]._id,
+        };
       }
 
       const newDefaultPath = {
