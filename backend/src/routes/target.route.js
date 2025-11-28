@@ -9,6 +9,8 @@ const router = Router();
 
 router.get("/get-all-targets", targetController.getAllTargets);
 
+router.get("/unassigned", targetController.getUnassignedTargets);
+
 router.post("/", validateCreateTarget, targetController.createTarget);
 
 router.put(
