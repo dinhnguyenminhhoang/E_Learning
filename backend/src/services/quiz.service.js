@@ -9,15 +9,27 @@ const HTTP_STATUS = require("../constants/httpStatus");
 class QuizService {
 
   async createQuiz(req) {
+    const { title, attachedTo, questions, xpReward, thumbnail, audio, tags, skill } =
+      req.body || {};
+
+    if (!title || !attachedTo?.kind || !attachedTo?.item || !skill) {
+      return ResponseBuilder.badRequest(
+        "Thiếu thông tin bắt buộc: title, attachedTo.kind, attachedTo.item, skill."
+      );
+    }
+
+    const normalizedSkill = String(skill).toLowerCase();
+
     const quizData = {
-      title: req.body.title,
-      attachedTo: req.body.attachedTo, 
-      questions: req.body.questions || [],
-      xpReward: req.body.xpReward || 50,
+      title: title.trim(),
+      skill: normalizedSkill,
+      attachedTo,
+      questions: questions || [],
+      xpReward: xpReward || 50,
       status: STATUS.DRAFT,
-      thumbnail: req.body.thumbnail || "",
-      audio: req.body.audio || "",
-      tags: req.body.tags || "",
+      thumbnail: thumbnail || "",
+      audio: audio || "",
+      tags: tags || "",
       updatedBy: req.user?.id || null,
     };
 
@@ -44,6 +56,26 @@ class QuizService {
     return ResponseBuilder.success({
       message: "Tạo quiz thành công!",
       data: added,
+    });
+  }
+
+  async addQuestions(req) {
+    const quizId = req.params.id;
+    const { questions } = req.body || {};
+
+    const existingQuiz = await QuizRepository.getQuizById(toObjectId(quizId));
+    if (!existingQuiz) {
+      return ResponseBuilder.error(
+        "Không tìm thấy quiz.",
+        HTTP_STATUS.NOT_FOUND
+      );
+    }
+
+    const updatedQuiz = await QuizRepository.addQuestions(quizId, questions);
+
+    return ResponseBuilder.success({
+      message: "Thêm câu hỏi vào quiz thành công",
+      data: updatedQuiz,
     });
   }
 

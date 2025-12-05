@@ -19,16 +19,18 @@ const questionSchema = new Schema(
     sourceType: {
       type: String,
       enum: ["Word", "Flashcard", "CardDeck"],
-      required: true,
+      required: false,
+      default: null,
     },
     sourceId: {
       type: Schema.Types.ObjectId,
-      required: true,
+      required: false,
+      default: null,
     },
 
     type: {
       type: String,
-      enum: ["multiple_choice", "fill_blank", "matching", "true_false"],
+      enum: ["multiple_choice", "fill_blank", "matching", "true_false", "writing", "speaking"],
       required: true,
     },
 
@@ -86,6 +88,14 @@ const quizSchema = new Schema(
     title: {
       type: String,
       required: true,
+      trim: true,
+      index: true,
+    },
+    skill: {
+      type: String,
+      enum: ["reading", "listening", "writing", "speaking", "grammar", "vocabulary"],
+      required: true,
+      lowercase: true,
       trim: true,
       index: true,
     },

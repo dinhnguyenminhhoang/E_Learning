@@ -25,5 +25,10 @@ class QuizController {
     const quiz = await quizService.deleteQuiz(req);
     return res.status(quiz.code).json(quiz);
   }
+
+  async addQuestions(req, res) {
+    const quiz = await quizService.addQuestions(req);
+    return res.status(quiz.code).json(quiz);
+  }
 }
 module.exports = new QuizController();
