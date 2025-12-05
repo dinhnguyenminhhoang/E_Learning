@@ -11,10 +11,16 @@ class TartgetService {
   }
 
   _buildTargetDocument(payload) {
+    // Split tags by comma, trim each, convert to lowercase, and filter empty
+    const tagsArray = payload.tag
+      .split(",")
+      .map((tag) => tag.trim().toLowerCase())
+      .filter((tag) => tag.length > 0);
+
     const doc = {
       name: payload.name,
       key: payload.key,
-      tags: [payload.tag.toLowerCase()],
+      tags: tagsArray,
     };
 
     if (payload.description) {

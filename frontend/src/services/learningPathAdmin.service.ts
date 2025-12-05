@@ -1,96 +1,109 @@
+import { apiClient } from "@/config/api.config";
 import { LearningPath, CreateLearningPathInput } from "@/types/admin";
 
-const MOCK_PATHS: LearningPath[] = [
-    {
-        _id: "path-1",
-        title: "English for Beginners",
-        description: "Complete beginner course for English learners",
-        target: "new-learners",
-        key: "beginner-path",
-        level: "beginner",
-        levels: [
-            {
-                order: 1,
-                title: "Foundation",
-                lessons: [
-                    { lesson: "lesson-1", order: 1 },
-                    { lesson: "lesson-2", order: 2 },
-                ],
-            },
-        ],
-        status: "active",
-        createdAt: new Date("2024-01-01"),
-        updatedAt: new Date("2024-01-15"),
-    },
-    {
-        _id: "path-2",
-        title: "Business English Mastery",
-        description: "Professional English for business communication",
-        target: "business-professionals",
-        key: "business-path",
-        level: "intermediate",
-        levels: [
-            {
-                order: 1,
-                title: "Business Communication",
-                lessons: [{ lesson: "lesson-3", order: 1 }],
-            },
-        ],
-        status: "active",
-        createdAt: new Date("2024-01-10"),
-        updatedAt: new Date("2024-02-01"),
-    },
-];
-
-class LearningPathService {
-    private paths: LearningPath[] = [...MOCK_PATHS];
-
-    async getAll(): Promise<{ code: number; data: LearningPath[] }> {
-        await new Promise((resolve) => setTimeout(resolve, 300));
-        return { code: 200, data: this.paths };
+class LearningPathAdminService {
+    /**
+     * Get all learning paths
+     */
+    async getAll(): Promise<{ code: number; message: string; data: LearningPath[] }> {
+        return await apiClient.get("/v1/api/learning-path/");
     }
 
+    /**
+     * Get a single learning path by ID
+     */
     async getById(id: string): Promise<{ code: number; data: LearningPath | null }> {
-        await new Promise((resolve) => setTimeout(resolve, 200));
-        const path = this.paths.find((p) => p._id === id);
-        return { code: path ? 200 : 404, data: path || null };
+        try {
+            const response = await this.getAll();
+            if (response.code === 200) {
+                const path = response.data.find((p: LearningPath) => p._id === id);
+                return { code: path ? 200 : 404, data: path || null };
+            }
+            return { code: response.code, data: null };
+        } catch (error) {
+            return { code: 500, data: null };
+        }
     }
 
-    async create(input: CreateLearningPathInput): Promise<{ code: number; data: LearningPath }> {
-        await new Promise((resolve) => setTimeout(resolve, 300));
-        const newPath: LearningPath = {
-            _id: `path-${Date.now()}`,
-            ...input,
-            levels: [],
-            createdAt: new Date(),
-            updatedAt: new Date(),
-        };
-        this.paths.push(newPath);
-        return { code: 201, data: newPath };
+    /**
+     * Create a new learning path
+     * Note: Backend requires targetId, not target string
+     */
+    async create(input: CreateLearningPathInput & { targetId?: string }): Promise<{
+        code: number;
+        message: string;
+        data: LearningPath
+    }> {
+        return await apiClient.post("/v1/api/learning-path/", input);
     }
 
-    async update(id: string, input: Partial<CreateLearningPathInput>): Promise<{ code: number; data: LearningPath | null }> {
-        await new Promise((resolve) => setTimeout(resolve, 300));
-        const index = this.paths.findIndex((p) => p._id === id);
-        if (index === -1) return { code: 404, data: null };
-
-        this.paths[index] = {
-            ...this.paths[index],
-            ...input,
-            updatedAt: new Date(),
-        };
-
-        return { code: 200, data: this.paths[index] };
+    /**
+     * Update a learning path
+     */
+    async update(
+        id: string,
+        input: Partial<CreateLearningPathInput>
+    ): Promise<{ code: number; data: LearningPath | null }> {
+        try {
+            const response = await apiClient.put<{ data: LearningPath }>(
+                `/v1/api/learning-path/${id}`,
+                input
+            );
+            return { code: 200, data: response.data };
+        } catch (error) {
+            return { code: 500, data: null };
+        }
     }
 
+    /**
+     * Delete a learning path (soft delete)
+     */
     async delete(id: string): Promise<{ code: number; message: string }> {
-        await new Promise((resolve) => setTimeout(resolve, 300));
-        const index = this.paths.findIndex((p) => p._id === id);
-        if (index === -1) return { code: 404, message: "Path not found" };
+        try {
+            await apiClient.delete(`/v1/api/learning-path/${id}`);
+            return { code: 200, message: "Path deleted successfully" };
+        } catch (error) {
+            return { code: 500, message: "Failed to delete path" };
+        }
+    }
 
-        this.paths.splice(index, 1);
-        return { code: 200, message: "Path deleted successfully" };
+    /**
+     * Assign a target to a learning path
+     */
+    async assignTarget(learningPathId: string, targetId: string): Promise<{
+        code: number;
+        message: string;
+        data?: LearningPath;
+    }> {
+        return await apiClient.put(
+            `/v1/api/learning-path/${learningPathId}/target`,
+            { targetId }
+        );
+    }
+
+    /**
+     * Attach a quiz to a level
+     */
+    async attachQuizToLevel(data: {
+        learningPathId: string;
+        levelOrder: number;
+        quizId: string;
+    }): Promise<{ code: number; message: string; data?: any }> {
+        return await apiClient.post("/v1/api/learning-path/attach-quiz", data);
+    }
+
+    /**
+     * Remove quiz from a level
+     */
+    async removeQuizFromLevel(data: {
+        learningPathId: string;
+        levelOrder: number;
+    }): Promise<{ code: number; message: string }> {
+        return await apiClient.delete(
+            "/v1/api/learning-path/remove-quiz-from-level",
+            { data }
+        );
     }
 }
 
-export const learningPathAdminService = new LearningPathService();
+export const learningPathAdminService = new LearningPathAdminService();

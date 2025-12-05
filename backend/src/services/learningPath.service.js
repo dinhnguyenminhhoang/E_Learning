@@ -1,12 +1,12 @@
-const LearningPathRepository = require("../repositories/learningPath.repo");
+const learningPathRepo = require("../repositories/learningPath.repo");
 const QuizRepository = require("../repositories/quiz.repo");
 const TargetRepository = require("../repositories/target.repo");
 const ResponseBuilder = require("../types/response/baseResponse");
 const { toObjectId } = require("../helpers/idHelper");
 const { STATUS } = require("../constants/status.constans");
 const RESPONSE_MESSAGES = require("../constants/responseMessage");
-const userLearningPathRepo = require("../repositories/userLearningPath.repo");
 const blockRepo = require("../repositories/block.repo");
+const userLearningPathRepo = require("../repositories/userLearningPath.repo");
 
 class LearningPathService {
   _findLevel(learningPath, titleLevel) {
@@ -18,14 +18,14 @@ class LearningPathService {
   }
 
   static async getPathsByTargets(targetIds) {
-    const paths = LearningPathRepo.findByTargetIds(targetIds);
+    const paths = learningPathRepo.findByTargetIds(targetIds);
     return ResponseBuilder.success(RESPONSE_MESSAGES.SUCCESS.FETCHED, paths);
   }
 
   async attachQuizToLevel(req) {
     const { learningPathId, levelOrder, quizId } = req.body;
 
-    const learningPath = await LearningPathRepository.findById(
+    const learningPath = await learningPathRepo.findById(
       toObjectId(learningPathId)
     );
     if (!learningPath) {
@@ -60,7 +60,7 @@ class LearningPathService {
   async updateQuizInLevel(req) {
     const { learningPathId, levelOrder, newQuizId } = req.body;
 
-    const learningPath = await LearningPathRepository.findById(
+    const learningPath = await learningPathRepo.findById(
       toObjectId(learningPathId)
     );
     if (!learningPath) {
@@ -94,7 +94,7 @@ class LearningPathService {
 
   async removeQuizFromLevel(req) {
     const { learningPathId, levelOrder } = req.body;
-    const learningPath = await LearningPathRepository.findById(
+    const learningPath = await learningPathRepo.findById(
       toObjectId(learningPathId)
     );
     if (!learningPath) {
@@ -131,13 +131,13 @@ class LearningPathService {
       return ResponseBuilder.notFoundError("Không tìm thấy mục tiêu.");
     }
 
-    const existingPath = await LearningPathRepository.findByTargetId(
+    const existingPath = await learningPathRepo.findByTargetId(
       toObjectId(data.targetId)
     );
     if (existingPath) {
       if (existingPath.status === STATUS.DELETED) {
-        await LearningPathRepository.clearLevels(existingPath._id);
-        const restored = await LearningPathRepository.restoreLearningPath(
+        await learningPathRepo.clearLevels(existingPath._id);
+        const restored = await learningPathRepo.restoreLearningPath(
           data,
           existingPath._id
         );
@@ -149,7 +149,7 @@ class LearningPathService {
       return ResponseBuilder.duplicateError();
     }
 
-    const added = await LearningPathRepository.createLearningPath(data);
+    const added = await learningPathRepo.createLearningPath(data);
 
     return ResponseBuilder.success("Tao lộ trình học thành công!", added);
   }
@@ -160,7 +160,7 @@ class LearningPathService {
     lessonId,
     order,
   }) {
-    const learningPath = await LearningPathRepository.findById(learningPathId);
+    const learningPath = await learningPathRepo.findById(learningPathId);
     if (!learningPath)
       return ResponseBuilder.notFoundError("Không tìm thấy lộ trình học.");
 
@@ -180,7 +180,7 @@ class LearningPathService {
       order: order ?? 0,
     };
     level.lessons.push(addingLesson);
-    const updatedPath = await LearningPathRepository.save(learningPath);
+    const updatedPath = await learningPathRepo.save(learningPath);
 
     return ResponseBuilder.success("Gắn bài học thành công", updatedPath);
   }
@@ -197,7 +197,7 @@ class LearningPathService {
   }
 
   async getAllPath() {
-    const paths = await LearningPathRepository.getAllPath();
+    const paths = await learningPathRepo.getAllPath();
     return ResponseBuilder.success("Lấy danh sách lộ trình thành công", paths);
   }
 
@@ -206,7 +206,7 @@ class LearningPathService {
       req.query;
     if (isLevel === "true") {
       const path =
-        await LearningPathRepository.findLevelsByPath(toObjectId(learningPathId));
+        await learningPathRepo.findLevelsByPath(toObjectId(learningPathId));
       if (!path)
         return ResponseBuilder.notFoundError("Không tìm thấy lộ trình.");
       return ResponseBuilder.success(
@@ -216,7 +216,7 @@ class LearningPathService {
     }
 
     if (isLesson === "true" && levelOrder) {
-      const path = await LearningPathRepository.findLessonsByLevel(
+      const path = await learningPathRepo.findLessonsByLevel(
         learningPathId,
         Number(levelOrder)
       );
@@ -255,7 +255,7 @@ class LearningPathService {
   async addNewLevelToPath(req) {
     const { learningPathId } = req.params;
     const { title } = req.body;
-    const existingPath = await LearningPathRepository.findById(
+    const existingPath = await learningPathRepo.findById(
       toObjectId(learningPathId)
     );
 
@@ -281,7 +281,7 @@ class LearningPathService {
       title: title?.trim() || `Level ${lastOrder + 1}`,
       categories: [],
     };
-    const updatedPath = await LearningPathRepository.createLevel(
+    const updatedPath = await learningPathRepo.createLevel(
       learningPathId,
       newLevel
     );
@@ -297,7 +297,7 @@ class LearningPathService {
       return ResponseBuilder.badRequest("Thiếu learningPathId.");
     }
 
-    const learningPath = await LearningPathRepository.findById(
+    const learningPath = await learningPathRepo.findById(
       toObjectId(learningPathId)
     );
     if (!learningPath) {
@@ -310,7 +310,7 @@ class LearningPathService {
     }
 
     const existingPathForTarget =
-      await LearningPathRepository.findByTargetId(toObjectId(targetId));
+      await learningPathRepo.findByTargetId(toObjectId(targetId));
 
     if (
       existingPathForTarget &&
@@ -324,7 +324,7 @@ class LearningPathService {
     learningPath.target = toObjectId(targetId);
     await learningPath.save();
 
-    const updatedPath = await LearningPathRepository.findById(
+    const updatedPath = await learningPathRepo.findById(
       learningPath._id
     );
 

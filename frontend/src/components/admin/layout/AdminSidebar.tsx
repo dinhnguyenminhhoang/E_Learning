@@ -15,6 +15,7 @@ import {
   Layers,
   ChevronDown,
   ChevronRight,
+  Target,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -43,6 +44,12 @@ const menuItems: MenuItem[] = [
         label: "Learning Paths",
         href: "/admin/learning-paths",
         icon: GraduationCap,
+      },
+      {
+        id: "targets",
+        label: "Targets",
+        href: "/admin/targets",
+        icon: Target,
       },
       {
         id: "lessons",
