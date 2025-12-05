@@ -9,6 +9,7 @@ const blockRepo = require("../repositories/block.repo");
 const userLearningPathRepo = require("../repositories/userLearningPath.repo");
 const UserProgressRepository = require("../repositories/userProgress.repo");
 
+const ExamRepository = require("../repositories/exam.repo");
 class LearningPathService {
   _findLevel(learningPath, titleLevel) {
     return learningPath.levels.find((l) => l.title === titleLevel);
@@ -40,15 +41,12 @@ class LearningPathService {
       return ResponseBuilder.notFoundError("Không tìm thấy cấp độ.");
     }
 
-    const quiz = await QuizRepository.getQuizById(toObjectId(quizId));
-    if (!quiz) {
-      return ResponseBuilder.notFoundError("Không tìm thấy quiz.");
+    const exam = await ExamRepository.findExamById(toObjectId(quizId));
+    if (!exam) {
+      return ResponseBuilder.notFoundError("Không tìm thấy exam.");
     }
 
-    level.finalQuiz = quiz._id;
-
-    quiz.attachedTo = { kind: "LearningPath", item: learningPath._id };
-    await quiz.save();
+    level.finalQuiz = exam._id;
 
     await learningPath.save();
 

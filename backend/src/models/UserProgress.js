@@ -244,7 +244,8 @@ userProgressSchema.methods.updateBlockProgress = function (
   if (
     !blockProgress.isCompleted &&
     blockProgress.videoDuration > 0 &&
-    blockProgress.maxWatchedTime / blockProgress.videoDuration >= COMPLETION_RATE
+    blockProgress.maxWatchedTime / blockProgress.videoDuration >=
+      COMPLETION_RATE
   ) {
     blockProgress.isCompleted = true;
     blockProgress.completedAt = new Date();

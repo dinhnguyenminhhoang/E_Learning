@@ -66,6 +66,16 @@ class QuizRepository {
     return await Quiz.findByIdAndUpdate(id, updates, { new: true });
   }
 
+  async addQuestions(quizId, questions) {
+    return await Quiz.findByIdAndUpdate(
+      quizId,
+      {
+        $push: { questions: { $each: questions } },
+      },
+      { new: true }
+    );
+  }
+
   async deleteSoftQuiz(id) {
     return await Quiz.findByIdAndUpdate(
       id,
