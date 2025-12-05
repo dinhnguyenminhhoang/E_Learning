@@ -4,7 +4,9 @@ const { STATUS } = require("../../constants/status.constans");
 
 const objectIdValidator = (value, helpers) => {
   if (!mongoose.Types.ObjectId.isValid(value)) {
-    return helpers.message(`"${helpers.state.path.join(".")}" must be a valid ObjectId`);
+    return helpers.message(
+      `"${helpers.state.path.join(".")}" must be a valid ObjectId`
+    );
   }
   return value;
 };
@@ -12,16 +14,14 @@ const objectIdValidator = (value, helpers) => {
 const optionSchema = Joi.object({
   text: Joi.string().trim().required(),
   isCorrect: Joi.boolean().default(false),
-});
+}); 
 
 const questionSchema = Joi.object({
-  sourceType: Joi.string()
-    .valid("Word", "Flashcard", "CardDeck")
-    .optional(),
+  sourceType: Joi.string().valid("Word", "Flashcard", "CardDeck").optional(),
   sourceId: Joi.string().custom(objectIdValidator).optional(),
 
   type: Joi.string()
-    .valid("multiple_choice", "fill_blank", "matching", "true_false")
+    .valid("multiple_choice", "fill_blank", "matching", "true_false", "writing", "speaking")
     .required(),
 
   questionText: Joi.string().trim().required(),
@@ -44,14 +44,21 @@ const questionSchema = Joi.object({
 const createQuizSchema = Joi.object({
   title: Joi.string().trim().required(),
 
-  difficulty: Joi.string()
-    .valid("EASY", "MEDIUM", "HARD")
-    .default("EASY"),
+  skill: Joi.string()
+    .valid(
+      "reading",
+      "listening",
+      "writing",
+      "speaking",
+      "grammar",
+      "vocabulary"
+    )
+    .required(),
+
+  difficulty: Joi.string().valid("EASY", "MEDIUM", "HARD").default("EASY"),
 
   attachedTo: Joi.object({
-    kind: Joi.string()
-      .valid("Lesson", "Module", "LearningPath")
-      .required(),
+    kind: Joi.string().valid("Lesson", "Module", "LearningPath").required(),
     item: Joi.string().custom(objectIdValidator).required(),
   }).required(),
 
@@ -66,19 +73,24 @@ const createQuizSchema = Joi.object({
   tags: Joi.array().items(Joi.string()).optional(),
   thumbnail: Joi.string().allow(null, "").optional(),
   audio: Joi.string().allow(null, "").optional(),
+});
 
+const addQuestionsSchema = Joi.object({
+  questions: Joi.array().items(questionSchema).min(1).required(),
 });
 
 const updateQuizSchema = Joi.object({
   title: Joi.string().trim().optional(),
-  difficulty: Joi.string().valid("EASY","MEDIUM","HARD").optional(),
+  difficulty: Joi.string().valid("EASY", "MEDIUM", "HARD").optional(),
   attachedTo: Joi.object({
-    kind: Joi.string().valid("Lesson","Module","LearningPath").optional(),
+    kind: Joi.string().valid("Lesson", "Module", "LearningPath").optional(),
     item: Joi.string().custom(objectIdValidator).optional(),
   }).optional(),
   questions: Joi.array().items(questionSchema).optional(),
   xpReward: Joi.number().min(0).optional(),
-  status: Joi.string().valid(...Object.values(STATUS)).optional(),
+  status: Joi.string()
+    .valid(...Object.values(STATUS))
+    .optional(),
 });
 
-module.exports = { createQuizSchema, updateQuizSchema };
+module.exports = { createQuizSchema, updateQuizSchema, addQuestionsSchema };

@@ -20,7 +20,7 @@ const levelSchema = new Schema({
       order: { type: Number, required: true },
     },
   ],
-  finalQuiz: { type: Schema.Types.ObjectId, ref: "Quiz" },
+  finalQuiz: { type: Schema.Types.ObjectId, ref: "Exam" }, // final exam of the level
 });
 
 /** LearningPath Schema */

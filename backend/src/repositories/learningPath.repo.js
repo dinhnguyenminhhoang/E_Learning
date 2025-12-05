@@ -88,6 +88,13 @@ class LearningPathRepository {
     }).select("_id title description status");
   }
 
+  async findByFinalExam(examId) {
+    return await LearningPathModel.findOne({
+      "levels.finalQuiz": toObjectId(examId),
+      status: { $ne: STATUS.DELETED },
+    }).lean();
+  }
+
   async findLevelsByPath(learningPathId) {
     return await LearningPath.findById(toObjectId(learningPathId))
       .select("levels.order levels.title levels._id")

@@ -1,7 +1,7 @@
 "use strict";
 
 const { model, Schema } = require("mongoose");
-const { QUIZ_STATUS } = require("../constants/status.constans");
+const { QUIZ_STATUS, STATUS } = require("../constants/status.constans");
 
 const DOCUMENT_NAME = "QuizAttempt";
 const COLLECTION_NAME = "QuizAttempts";
@@ -29,6 +29,15 @@ const answerSchema = new Schema(
       type: Number,
       min: 0,
       default: 0, // tính theo giây hoặc ms
+    },
+    writingAnswer: {
+      text: String,
+      wordCount: Number,
+    },
+
+    speakingAnswer: {
+      audioUrl: String,
+      duration: Number,
     },
   },
   { _id: false }

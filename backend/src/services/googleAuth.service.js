@@ -29,7 +29,6 @@ class GoogleAuthService {
       });
     }
 
-    console.log("Google user:", user);
     const existingToken = await keyTokenRepository.findByUserAndDevice(
       user._id,
       sessionData.deviceId
