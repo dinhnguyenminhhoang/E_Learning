@@ -36,6 +36,8 @@ class UserBlockProgressController {
   }
 
   async startBlock(req, res) {
+    console.log("startBlock");
+
     const { blockId } = req.params;
     const userId = req.user._id;
 

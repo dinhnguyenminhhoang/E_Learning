@@ -54,7 +54,6 @@ class UserOnboardingAnswerService {
           return ResponseBuilder.badRequest("Lưu câu trả lời thất bại.");
 
         mapResult = await AnswerMapService.mapAnswerToTarget(userId, answers);
-        console.log("mapResult", mapResult);
 
         await UserRepository.updateOnboardingStatus(
           userId,

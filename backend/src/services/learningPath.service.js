@@ -7,6 +7,7 @@ const { STATUS } = require("../constants/status.constans");
 const RESPONSE_MESSAGES = require("../constants/responseMessage");
 const blockRepo = require("../repositories/block.repo");
 const userLearningPathRepo = require("../repositories/userLearningPath.repo");
+const UserProgressRepository = require("../repositories/userProgress.repo");
 
 class LearningPathService {
   _findLevel(learningPath, titleLevel) {
@@ -205,8 +206,9 @@ class LearningPathService {
     const { learningPathId, isLevel, isLesson, isBlock, levelOrder, lessonId } =
       req.query;
     if (isLevel === "true") {
-      const path =
-        await learningPathRepo.findLevelsByPath(toObjectId(learningPathId));
+      const path = await learningPathRepo.findLevelsByPath(
+        toObjectId(learningPathId)
+      );
       if (!path)
         return ResponseBuilder.notFoundError("Không tìm thấy lộ trình.");
       return ResponseBuilder.success(
@@ -223,30 +225,136 @@ class LearningPathService {
       if (!path || !path.levels.length)
         return ResponseBuilder.notFoundError("Không tìm thấy cấp độ.");
 
-      const userLearningPath = await userLearningPathRepo.findByUserAndPath(
+      // Lấy user progress để kiểm tra bài nào đã học
+      const userProgress = await UserProgressRepository.findByUserAndPath(
         req.user._id,
         toObjectId(learningPathId)
       );
 
+      // Tạo Map để tra cứu nhanh lesson progress (lessonId -> isCompleted)
+      const lessonProgressMap = new Map();
+      if (userProgress && userProgress.lessonProgress) {
+        userProgress.lessonProgress.forEach((lp) => {
+          const lessonIdStr = lp.lessonId.toString();
+          lessonProgressMap.set(lessonIdStr, {
+            isCompleted: lp.isCompleted || false,
+            lastAccessedAt: lp.lastAccessedAt || null,
+            completedAt: lp.completedAt || null,
+          });
+        });
+      }
+
       const lessons = path.levels[0].lessons
         .filter((module) => module.lesson)
-        .map((module) => ({
-          lesson: module.lesson._id,
-          order: module.order ?? 0,
-          title: module.lesson.title ?? "",
-        }));
+        .map((module) => {
+          const lessonIdStr = module.lesson._id.toString();
+          const progress = lessonProgressMap.get(lessonIdStr);
+          
+          return {
+            lesson: module.lesson._id,
+            order: module.order ?? 0,
+            title: module.lesson.title ?? "",
+            isCompleted: progress?.isCompleted || false,
+            isLearned: progress?.isCompleted || false, // Alias cho dễ hiểu
+            lastAccessedAt: progress?.lastAccessedAt || null,
+            completedAt: progress?.completedAt || null,
+          };
+        });
 
-      return ResponseBuilder.success("Lấy dữ liệu bài học thành công", lessons);
+      // Đếm số lesson đã hoàn thành
+      const completedLessonsCount = lessons.filter(
+        (lesson) => lesson.isCompleted === true
+      ).length;
+
+      return ResponseBuilder.success("Lấy dữ liệu bài học thành công", {
+        lessons: lessons,
+        totalLessons: lessons.length,
+        completedLessons: completedLessonsCount,
+      });
     }
 
     if (isBlock === "true" && lessonId) {
-      const blocks = await blockRepo.getBlocksByLesson(
-        lessonId
-      );
+      const blocks = await blockRepo.getBlocksByLesson(lessonId);
       if (!blocks || !blocks.length)
         return ResponseBuilder.notFoundError("Không tìm thấy blocks.");
 
-      return ResponseBuilder.success("Lấy blocks thành công", blocks);
+      // Lấy learningPathId (từ query hoặc từ userLearningPath đầu tiên)
+      let pathId = learningPathId;
+      if (!pathId) {
+        const userPaths = await userLearningPathRepo.findByUserId(
+          toObjectId(req.user._id)
+        );
+        if (userPaths && userPaths.length > 0) {
+          pathId = userPaths[0].learningPath.toString();
+        }
+      }
+
+      // Lấy user progress để kiểm tra block nào đã học
+      let userProgress = null;
+      if (pathId) {
+        userProgress = await UserProgressRepository.findByUserAndPath(
+          req.user._id,
+          toObjectId(pathId)
+        );
+      }
+
+      // Lấy lesson progress cho lesson này
+      let lessonProgress = null;
+      if (userProgress) {
+        lessonProgress = userProgress.getLessonProgress(toObjectId(lessonId));
+      }
+
+      // Tạo Map để tra cứu nhanh block progress (blockId -> progress info)
+      const blockProgressMap = new Map();
+      if (lessonProgress && lessonProgress.blockProgress) {
+        lessonProgress.blockProgress.forEach((bp) => {
+          const blockIdStr = bp.blockId.toString();
+          blockProgressMap.set(blockIdStr, {
+            isCompleted: bp.isCompleted || false,
+            maxWatchedTime: bp.maxWatchedTime || 0,
+            videoDuration: bp.videoDuration || 0,
+            completedAt: bp.completedAt || null,
+            lastUpdatedAt: bp.lastUpdatedAt || null,
+          });
+        });
+      }
+
+      // Map blocks với progress
+      const blocksWithProgress = blocks.map((block) => {
+        // Block từ ContentBlock sẽ có _id
+        const blockId = block._id?.toString();
+        const progress = blockId ? blockProgressMap.get(blockId) : null;
+
+        // Tính progress percentage cho block (nếu là video)
+        let progressPercentage = 0;
+        if (progress && progress.videoDuration > 0) {
+          progressPercentage = Math.round(
+            (progress.maxWatchedTime / progress.videoDuration) * 100
+          );
+        }
+
+        return {
+          ...block.toObject ? block.toObject() : block, // Convert Mongoose document to plain object
+          isCompleted: progress?.isCompleted || false,
+          isLearned: progress?.isCompleted || false, // Alias cho dễ hiểu
+          maxWatchedTime: progress?.maxWatchedTime || 0,
+          videoDuration: progress?.videoDuration || 0,
+          progressPercentage: progressPercentage,
+          completedAt: progress?.completedAt || null,
+          lastUpdatedAt: progress?.lastUpdatedAt || null,
+        };
+      });
+
+      // Đếm số block đã hoàn thành
+      const completedBlocksCount = blocksWithProgress.filter(
+        (block) => block.isCompleted === true
+      ).length;
+
+      return ResponseBuilder.success("Lấy blocks thành công", {
+        blocks: blocksWithProgress,
+        totalBlocks: blocksWithProgress.length,
+        completedBlocks: completedBlocksCount,
+      });
     }
 
     return ResponseBuilder.badRequest("Invalid query parameters");
@@ -309,8 +417,9 @@ class LearningPathService {
       return ResponseBuilder.notFoundError("Không tìm thấy mục tiêu.");
     }
 
-    const existingPathForTarget =
-      await learningPathRepo.findByTargetId(toObjectId(targetId));
+    const existingPathForTarget = await learningPathRepo.findByTargetId(
+      toObjectId(targetId)
+    );
 
     if (
       existingPathForTarget &&
@@ -324,9 +433,7 @@ class LearningPathService {
     learningPath.target = toObjectId(targetId);
     await learningPath.save();
 
-    const updatedPath = await learningPathRepo.findById(
-      learningPath._id
-    );
+    const updatedPath = await learningPathRepo.findById(learningPath._id);
 
     return ResponseBuilder.success(
       "Gán mục tiêu cho lộ trình thành công.",
