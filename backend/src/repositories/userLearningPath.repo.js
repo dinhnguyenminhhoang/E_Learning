@@ -1,33 +1,33 @@
 "use strict";
 
-const UserLearningPathModel = require("../models/UserLearningPath");
+const UserLearningPath = require("../models/UserLearningPath");
 
 class UserLearningPathRepository {
   // Tìm UserLearningPath theo user
   async findByUserId(userId) {
-    return await UserLearningPathModel.find({ user: userId })
+    return await UserLearningPath.find({ user: userId })
       .populate("learningPath")
       .populate("target");
   }
 
   async findByUserAndPath(userId, learningPathId) {
-    return await UserLearningPathModel.findOne({
+    return await UserLearningPath.findOne({
       user: userId,
       learningPath: learningPathId,
     }).lean();
   }
 
   async findByUserId(userId) {
-    return await UserLearningPathModel.find({ user: userId }).lean();
+    return await UserLearningPath.find({ user: userId }).lean();
   }
   // Tạo mới UserLearningPath
   async create(data) {
-    return await UserLearningPathModel.create(data);
+    return await UserLearningPath.create(data);
   }
 
   // Cập nhật UserLearningPath
   async update(id, updateData) {
-    return await UserLearningPathModel.findByIdAndUpdate(id, updateData, {
+    return await UserLearningPath.findByIdAndUpdate(id, updateData, {
       new: true,
     });
   }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -13,6 +13,7 @@ import MysticBackground from "@/components/MysticBackground/MysticBackground";
 export default function SignInPage() {
   const router = useRouter();
   const { signIn, isLoading } = useAuth();
+  const [isMounted, setIsMounted] = useState(false);
 
   const [formData, setFormData] = useState({
     email: "",
@@ -21,6 +22,11 @@ export default function SignInPage() {
   });
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
+
+  // Fix hydration error: only render particles on client
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value, type, checked } = e.target;
@@ -46,8 +52,8 @@ export default function SignInPage() {
       console.error("Sign in error:", err);
       setError(
         err?.response?.data?.message ||
-          err?.message ||
-          "Đăng nhập thất bại. Vui lòng kiểm tra lại thông tin."
+        err?.message ||
+        "Đăng nhập thất bại. Vui lòng kiểm tra lại thông tin."
       );
     }
   };
@@ -56,20 +62,23 @@ export default function SignInPage() {
     <div className="relative min-h-screen overflow-hidden bg-gradient-to-br from-sky-950 via-slate-950 to-emerald-950">
       <MysticBackground />
 
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        {[...Array(20)].map((_, i) => (
-          <div
-            key={i}
-            className="absolute w-1 h-1 bg-sky-400/20 rounded-full animate-pulse"
-            style={{
-              left: `${Math.random() * 100}%`,
-              top: `${Math.random() * 100}%`,
-              animationDelay: `${Math.random() * 3}s`,
-              animationDuration: `${3 + Math.random() * 2}s`,
-            }}
-          />
-        ))}
-      </div>
+      {/* Only render particles after mount to avoid hydration error */}
+      {isMounted && (
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          {[...Array(20)].map((_, i) => (
+            <div
+              key={i}
+              className="absolute w-1 h-1 bg-sky-400/20 rounded-full animate-pulse"
+              style={{
+                left: `${Math.random() * 100}%`,
+                top: `${Math.random() * 100}%`,
+                animationDelay: `${Math.random() * 3}s`,
+                animationDuration: `${3 + Math.random() * 2}s`,
+              }}
+            />
+          ))}
+        </div>
+      )}
 
       <div className="relative z-10 flex min-h-screen items-center justify-center px-4 py-12">
         <div className="w-full max-w-md">

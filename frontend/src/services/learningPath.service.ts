@@ -65,6 +65,25 @@ class LearningPathService {
       params,
     });
   }
+
+  /**
+   * Assign a target to a learning path
+   */
+  async assignTargetToPath(learningPathId: string, targetId: string) {
+    return await apiClient.put(
+      `/v1/api/learning-path/${learningPathId}/target`,
+      { targetId }
+    );
+  }
+
+  /**
+   * Get learning paths by target IDs
+   */
+  async getByTarget(targetIds: string[]) {
+    return await apiClient.post("/v1/api/learning-path/by-target", {
+      targetIds,
+    });
+  }
 }
 
 export const learningPathService = new LearningPathService();

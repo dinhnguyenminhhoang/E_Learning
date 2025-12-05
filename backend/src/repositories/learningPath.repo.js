@@ -1,6 +1,6 @@
 const { STATUS } = require("../constants/status.constans");
 const { toObjectId } = require("../helpers/idHelper");
-const LearningPathModel = require("../models/LearningPath");
+const LearningPath = require("../models/LearningPath");
 class LearningPathRepository {
   async findById(id, isFindAll = false) {
     const query = { _id: id };
@@ -9,13 +9,13 @@ class LearningPathRepository {
       query.status = { $ne: STATUS.DELETED };
     }
     console.log("query", query);
-    const path = await LearningPathModel.findOne(query).populate("target");
+    const path = await LearningPath.findOne(query).populate("target");
     console.log("path", path);
     return path;
   }
 
   async addLesson(learningPathId, updatedLevels) {
-    return await LearningPathModel.findByIdAndUpdate(
+    return await LearningPath.findByIdAndUpdate(
       learningPathId,
       { $set: { levels: updatedLevels, updatedAt: new Date() } },
       { new: true }
@@ -23,7 +23,7 @@ class LearningPathRepository {
   }
 
   async createLevel(learningPathId, newLevel) {
-    return await LearningPathModel.findByIdAndUpdate(
+    return await LearningPath.findByIdAndUpdate(
       learningPathId,
       { $push: { levels: newLevel }, updatedAt: new Date() },
       { new: true }
@@ -35,20 +35,20 @@ class LearningPathRepository {
   }
 
   async findByTargetId(targetId) {
-    return await LearningPathModel.findOne({
+    return await LearningPath.findOne({
       target: toObjectId(targetId),
       status: { $ne: STATUS.DELETED },
     });
   }
 
   async findByTitle(title) {
-    return await LearningPathModel.findOne({
+    return await LearningPath.findOne({
       title: title,
     }).lean();
   }
 
   async clearLevels(learningPathId) {
-    return await LearningPathModel.findByIdAndUpdate(
+    return await LearningPath.findByIdAndUpdate(
       learningPathId,
       { $set: { levels: [] } },
       { new: true }
@@ -56,7 +56,7 @@ class LearningPathRepository {
   }
 
   async restoreLearningPath(data, learningPathId) {
-    return await LearningPathModel.findByIdAndUpdate(
+    return await LearningPath.findByIdAndUpdate(
       learningPathId,
       {
         $set: {
@@ -73,7 +73,7 @@ class LearningPathRepository {
   }
 
   async createLearningPath(data) {
-    return await LearningPathModel.create({
+    return await LearningPath.create({
       target: toObjectId(data.targetId),
       title: data.title,
       description: data.description ?? "",
@@ -83,19 +83,19 @@ class LearningPathRepository {
   }
 
   async getAllPath() {
-    return await LearningPathModel.find({
+    return await LearningPath.find({
       status: { $ne: STATUS.DELETED },
     }).select("_id title description status");
   }
 
   async findLevelsByPath(learningPathId) {
-    return await LearningPathModel.findById(toObjectId(learningPathId))
+    return await LearningPath.findById(toObjectId(learningPathId))
       .select("levels.order levels.title levels._id")
       .lean();
   }
 
   async findLessonsByLevel(learningPathId, levelOrder) {
-    return await LearningPathModel.findOne(
+    return await LearningPath.findOne(
       { _id: toObjectId(learningPathId), "levels.order": levelOrder },
       { "levels.$": 1 }
     )
@@ -104,7 +104,7 @@ class LearningPathRepository {
   }
 
   async findBlocksByLesson(learningPathId, levelOrder, lessonId) {
-    const path = await LearningPathModel.findOne(
+    const path = await LearningPath.findOne(
       {
         _id: toObjectId(learningPathId),
         "levels.order": levelOrder,

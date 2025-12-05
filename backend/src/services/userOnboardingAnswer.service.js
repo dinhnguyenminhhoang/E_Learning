@@ -3,10 +3,10 @@ const UserOnboardingAnswerRepo = require("../repositories/userOnboardingAnswer.r
 const ResponseBuilder = require("../types/response/baseResponse");
 const RESPONSE_MESSAGES = require("../constants/responseMessage");
 const AnswerMapService = require("../services/answerMap.service");
-const userLearningPathRepo = require("../repositories/userLearningPath.repo");
 const DEFAULT_LEARNING_PATH_KEY = "DAILY_CONVERSATION_PATH";
 const UserRepository = require("../repositories/user.repo");
 const { ONBOARDING_STATUS } = require("../constants/status.constans");
+const userLearningPathRepo = require("../repositories/userLearningPath.repo");
 const TOTAL_QUESTIONS = 4;
 
 class UserOnboardingAnswerService {
