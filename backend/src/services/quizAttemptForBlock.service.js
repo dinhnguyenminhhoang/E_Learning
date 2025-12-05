@@ -7,69 +7,148 @@ const ResponseBuilder = require("../types/response/baseResponse");
 const { toObjectId } = require("../helpers/idHelper");
 const { HTTP_STATUS } = require("../constants/httpStatus");
 const LessonRepository = require("../repositories/lesson.repo");
-const UserBlockProgressRepo = require("../repositories/userBlockProgress.repo");
+const UserProgressRepository = require("../repositories/userProgress.repo");
+const UserLearningPathRepository = require("../repositories/userLearningPath.repo");
+const BlockRepository = require("../repositories/block.repo");
 
 class QuizAttemptForBlockService {
+  /**
+   * Bắt đầu làm quiz cho một block
+   * - Kiểm tra xem đã có quizAttemptForBlock chưa
+   * - Nếu có → return attempt đó kèm thông tin quiz
+   * - Nếu chưa có → tạo mới và return kèm thông tin quiz
+   * @param {String} userId - ID của user
+   * @param {String} blockId - ID của block
+   * @returns {Object} Response object với quiz attempt và quiz info
+   */
   async startQuizAttempt(userId, blockId) {
-    const blockProgress = await UserBlockProgressRepo.findByUserAndBlock(
-      userId,
-      blockId
-    );
+    try {
+      // Validate block tồn tại
+      const block = await BlockRepository.getBlockById(toObjectId(blockId));
+      if (!block) {
+        return ResponseBuilder.notFoundError("Block not found");
+      }
 
-    if (!blockProgress) {
-      return ResponseBuilder.notFoundError();
-    }
+      // Lấy lessonId từ block
+      let lessonId = block.lessonId;
+      if (!lessonId) {
+        // Nếu block không có lessonId, tìm từ Lesson
+        const lessons = await LessonRepository.getLessonsByBlockId(blockId);
+        if (lessons && lessons.length > 0) {
+          lessonId = lessons[0]._id;
+        }
+      }
 
-    if (blockProgress.isLocked) {
-      return ResponseBuilder.forbiddenError();
-    }
+      if (!lessonId) {
+        return ResponseBuilder.notFoundError("Lesson not found for this block");
+      }
 
-    const lesson = await LessonRepository.getLessonById(blockProgress.lesson);
-    if (!lesson) {
-      return ResponseBuilder.notFoundError();
-    }
+      // Lấy lesson để kiểm tra block có quiz không
+      const lesson = await LessonRepository.getLessonById(toObjectId(lessonId));
+      if (!lesson) {
+        return ResponseBuilder.notFoundError("Lesson not found");
+      }
 
-    const blockInLesson = lesson.blocks.find(
-      (b) => b.block.toString() === blockId.toString()
-    );
+      // Tìm block trong lesson để lấy exercise (quiz)
+      const blockInLesson = lesson.blocks.find(
+        (b) => {
+          const blockIdStr = b.block?.toString() || b.block?._id?.toString();
+          return blockIdStr === blockId.toString();
+        }
+      );
 
-    if (!blockInLesson || !blockInLesson.exercise) {
-      return ResponseBuilder.badRequest("Block này không có bài tập.");
-    }
+      if (!blockInLesson || !blockInLesson.exercise) {
+        return ResponseBuilder.badRequest("Block này không có bài tập.");
+      }
 
-    const quizId = blockInLesson.exercise;
+      const quizId = blockInLesson.exercise;
 
-    const quiz = await QuizRepository.getQuizById(toObjectId(quizId));
-    if (!quiz) {
-      return ResponseBuilder.notFoundError();
-    }
+      // Lấy thông tin quiz
+      const quiz = await QuizRepository.getQuizById(toObjectId(quizId));
+      if (!quiz) {
+        return ResponseBuilder.notFoundError("Quiz not found");
+      }
 
-    const existingAttempt = await QuizAttemptForBlockRepo.findOne({
-      user: userId,
-      block: blockId,
-      quiz: quizId,
-      status: "in_progress",
-    });
+      // Kiểm tra xem đã có quizAttemptForBlock cho block này chưa
+      const existingAttempt = await QuizAttemptForBlockRepo.findLatestAttempt(
+        toObjectId(userId),
+        toObjectId(blockId)
+      );
 
-    if (existingAttempt && existingAttempt.answers.length === 0) {
-      return ResponseBuilder.success(
-        "Bạn đang có quiz đang làm dở.",
-        existingAttempt
+      // Nếu đã có attempt, populate quiz và return
+      if (existingAttempt) {
+        const attemptWithQuiz = await QuizAttemptForBlockRepo.findById(
+          existingAttempt._id
+        );
+
+        // Sanitize quiz để bỏ isCorrect từ options
+        const sanitizedQuiz = this._sanitizeQuizForUser(quiz);
+        
+        // Convert attempt to plain object và sanitize quiz trong attempt
+        const attemptObj = attemptWithQuiz.toObject
+          ? attemptWithQuiz.toObject()
+          : { ...attemptWithQuiz };
+        
+        if (attemptObj.quiz) {
+          attemptObj.quiz = this._sanitizeQuizForUser(attemptObj.quiz);
+        }
+
+        return ResponseBuilder.success(
+          "Lấy quiz attempt thành công",
+          {
+            attempt: attemptObj,
+            quiz: sanitizedQuiz,
+          }
+        );
+      }
+
+      // Nếu chưa có attempt, tạo mới
+      // Note: userBlockProgress field vẫn required trong model QuizAttemptForBlock
+      // nhưng không sử dụng nữa (đã chuyển sang UserProgress)
+      // Temporary: sử dụng userId làm placeholder cho đến khi update model
+      const attemptData = {
+        user: toObjectId(userId),
+        quiz: toObjectId(quizId),
+        block: toObjectId(blockId),
+        userBlockProgress: toObjectId(userId), // Placeholder - không sử dụng
+        totalQuestions: quiz.questions?.length || 0,
+        status: "in_progress",
+      };
+
+      const newAttempt = await QuizAttemptForBlockRepo.create(attemptData);
+
+      // Populate quiz cho attempt mới tạo
+      const attemptWithQuiz = await QuizAttemptForBlockRepo.findById(
+        newAttempt._id
+      );
+
+      // Sanitize quiz để bỏ isCorrect từ options
+      const sanitizedQuiz = this._sanitizeQuizForUser(quiz);
+      
+      // Convert attempt to plain object và sanitize quiz trong attempt
+      const attemptObj = attemptWithQuiz.toObject
+        ? attemptWithQuiz.toObject()
+        : { ...attemptWithQuiz };
+      
+      if (attemptObj.quiz) {
+        attemptObj.quiz = this._sanitizeQuizForUser(attemptObj.quiz);
+      }
+
+      return ResponseBuilder.success("Bắt đầu làm quiz thành công!", {
+        attempt: attemptObj,
+        quiz: sanitizedQuiz,
+      });
+    } catch (error) {
+      console.error(
+        `[QuizAttemptForBlockService] Error starting quiz attempt for user ${userId}, block ${blockId}:`,
+        error
+      );
+      return ResponseBuilder.error(
+        "Failed to start quiz attempt",
+        500,
+        error.message
       );
     }
-
-    const attemptData = {
-      user: userId,
-      quiz: quizId,
-      block: blockId,
-      userBlockProgress: blockProgress._id,
-      totalQuestions: quiz.questions.length,
-      status: "in_progress",
-    };
-
-    const newAttempt = await QuizAttemptForBlockRepo.create(attemptData);
-
-    return ResponseBuilder.success("Bắt đầu làm quiz thành công!", newAttempt);
   }
 
   async submitQuiz(userId, attemptId, answers) {
@@ -152,6 +231,48 @@ class QuizAttemptForBlockService {
         timeSpent: userAnswer?.timeSpent || 0,
       };
     });
+  }
+
+  /**
+   * Sanitize quiz để bỏ field isCorrect từ options khi trả về cho user
+   * Chỉ áp dụng cho type "multiple_choice" và "fill_blank"
+   * @private
+   * @param {Object} quiz - Quiz object (có thể là Mongoose document hoặc plain object)
+   * @returns {Object} Sanitized quiz object
+   */
+  _sanitizeQuizForUser(quiz) {
+    if (!quiz) {
+      return quiz;
+    }
+
+    // Convert Mongoose document to plain object nếu cần
+    const quizObj = quiz.toObject ? quiz.toObject() : quiz;
+
+    // Clone quiz để không modify original
+    const sanitizedQuiz = JSON.parse(JSON.stringify(quizObj));
+
+    // Sanitize questions
+    if (sanitizedQuiz.questions && Array.isArray(sanitizedQuiz.questions)) {
+      sanitizedQuiz.questions = sanitizedQuiz.questions.map((question) => {
+        // Chỉ sanitize cho multiple_choice và fill_blank
+        if (
+          (question.type === "multiple_choice" ||
+            question.type === "fill_blank") &&
+          question.options &&
+          Array.isArray(question.options)
+        ) {
+          // Loại bỏ isCorrect từ mỗi option
+          question.options = question.options.map((option) => {
+            const { isCorrect, ...optionWithoutIsCorrect } = option;
+            return optionWithoutIsCorrect;
+          });
+        }
+
+        return question;
+      });
+    }
+
+    return sanitizedQuiz;
   }
 
   async getAttemptHistory(userId, blockId) {

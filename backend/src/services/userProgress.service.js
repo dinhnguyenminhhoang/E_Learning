@@ -311,60 +311,79 @@ class UserProgressService {
   /**
    * Đánh dấu block là "đang xem" (cho phép học lại block cũ)
    * Khi user chọn xem một block (kể cả block đã completed), cập nhật lastAccessedBlockId
+   * @param {Object} req - Express request object
+   * @param {String} req.params.lessonId - ID của lesson
+   * @param {String} req.params.blockId - ID của block
+   * @param {String} req.query.learningPathId - ID của learning path (optional)
+   * @param {Object} req.user - User object từ authentication middleware
+   * @returns {Object} Response object
    */
   async markBlockAsAccessing(req) {
-    const { lessonId, blockId } = req.params;
-    const userId = req.user._id;
-    const { learningPathId } = req.query;
+    try {
+      const { lessonId, blockId } = req.params;
+      const userId = req.user._id;
+      const { learningPathId } = req.query;
 
-    // Lấy learningPathId
-    let pathId = learningPathId;
-    if (!pathId) {
-      const UserLearningPathRepository = require("../repositories/userLearningPath.repo");
-      const userPaths = await UserLearningPathRepository.findByUserId(
-        toObjectId(userId)
-      );
-      if (userPaths && userPaths.length > 0) {
-        pathId = userPaths[0].learningPath.toString();
+      // Lấy learningPathId (từ query hoặc từ userLearningPath đầu tiên)
+      let pathId = learningPathId;
+      if (!pathId) {
+        const UserLearningPathRepository = require("../repositories/userLearningPath.repo");
+        const userPaths = await UserLearningPathRepository.findByUserId(
+          toObjectId(userId)
+        );
+        if (userPaths && userPaths.length > 0) {
+          pathId = userPaths[0].learningPath.toString();
+        }
       }
-    }
 
-    if (!pathId) {
-      return ResponseBuilder.error("Learning path not found", 404);
-    }
+      if (!pathId) {
+        return ResponseBuilder.notFoundError("Learning path not found");
+      }
 
-    // Validate block thuộc lesson
-    const lesson = await LessonRepository.getLessonById(toObjectId(lessonId));
-    if (!lesson) {
-      return ResponseBuilder.notFoundError("Lesson not found");
-    }
+      // Validate lesson tồn tại
+      const lesson = await LessonRepository.getLessonById(toObjectId(lessonId));
+      if (!lesson) {
+        return ResponseBuilder.notFoundError("Lesson not found");
+      }
 
-    const blockExists = lesson.blocks.some(
-      (b) =>
-        (b.block?.toString() || b.block) === blockId ||
-        b.block?.toString() === blockId
-    );
+      // Validate block thuộc lesson
+      const blockExists = lesson.blocks.some((b) => {
+        const blockIdStr = b.block?.toString() || b.block;
+        return blockIdStr === blockId || blockIdStr === blockId?.toString();
+      });
 
-    if (!blockExists) {
-      return ResponseBuilder.error("Block not found in this lesson", 404);
-    }
+      if (!blockExists) {
+        return ResponseBuilder.notFoundError("Block not found in this lesson");
+      }
 
-    // Cập nhật lastAccessedBlockId
-    await UserProgressRepository.updateLastAccessedBlock(
-      userId,
-      pathId,
-      lessonId,
-      blockId
-    );
-
-    return ResponseBuilder.success({
-      message: "Block marked as accessing successfully",
-      data: {
+      // Cập nhật lastAccessedBlockId
+      await UserProgressRepository.updateLastAccessedBlock(
+        userId,
+        pathId,
         lessonId,
-        blockId,
-        lastAccessedAt: new Date(),
-      },
-    });
+        blockId
+      );
+
+      return ResponseBuilder.success({
+        message: "Block marked as accessing successfully",
+        data: {
+          lessonId,
+          blockId,
+          learningPathId: pathId,
+          lastAccessedAt: new Date(),
+        },
+      });
+    } catch (error) {
+      console.error(
+        `[UserProgressService] Error marking block as accessing:`,
+        error
+      );
+      return ResponseBuilder.error(
+        "Failed to mark block as accessing",
+        500,
+        error.message
+      );
+    }
   }
 }
 
