@@ -17,6 +17,14 @@ class QuizAttemptForBlockController {
     const { answers } = req.body;
     const userId = req.user._id;
 
+    // Debug: Log để kiểm tra body
+    if (!answers) {
+      console.warn(
+        `[QuizAttemptForBlockController] submitQuiz - answers is missing. Body:`,
+        JSON.stringify(req.body)
+      );
+    }
+
     const result = await quizAttemptForBlockService.submitQuiz(
       userId,
       attemptId,
