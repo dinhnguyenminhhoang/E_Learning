@@ -94,7 +94,7 @@ const quizAttemptForBlockSchema = new Schema(
       default: 0,
     },
 
-    // User must get 100% to pass
+    // User must get >= 65% to pass
     isPassed: {
       type: Boolean,
       default: false,
@@ -162,7 +162,9 @@ quizAttemptForBlockSchema.methods.finishAttempt = function (
   this.totalQuestions = totalCount;
   this.percentage = totalCount > 0 ? (correctCount / totalCount) * 100 : 0;
 
-  this.isPassed = this.percentage === 100;
+  // Pass quiz nếu đạt >= 65%
+  const PASS_THRESHOLD = 65;
+  this.isPassed = this.percentage >= PASS_THRESHOLD;
 
   this.status = this.isPassed ? "completed" : "in_progress";
   this.completedAt = this.isPassed ? new Date() : null;
