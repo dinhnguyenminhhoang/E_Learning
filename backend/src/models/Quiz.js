@@ -46,7 +46,7 @@ const questionSchema = new Schema(
     },
 
     correctAnswer: {
-      type: String, 
+      type: String,
       trim: true,
       default: null,
     },

@@ -20,12 +20,27 @@ router.get(
   auth.authenticate,
   asynchandler(lessonController.getAllLessons)
 );
+
+router.get(
+  "/blocks/all",
+  auth.authenticate,
+  asynchandler(lessonController.getAllBlocks)
+);
+
 router.post(
   "/",
   auth.authenticate,
   validateCreateLesson,
   asynchandler(lessonController.createLesson)
 );
+
+// Admin: get lesson with full block details for editing
+router.get(
+  "/:lessonId/edit",
+  auth.authenticate,
+  asynchandler(lessonController.getDetailForEdit)
+);
+
 router.get(
   "/:lessonId/user/:userId",
   auth.authenticate,

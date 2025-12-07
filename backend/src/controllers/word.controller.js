@@ -15,6 +15,11 @@ class WordController {
     const result = await WordService.getAllWord(req);
     res.status(result.code).json(result);
   }
+
+  async getWordById(req, res) {
+    const result = await WordService.getWordById(req.params.wordId);
+    res.status(result.code).json(result);
+  }
   async getWordsByCategory(req, res) {
     try {
       const result = await WordService.getWordsByCategory(req);

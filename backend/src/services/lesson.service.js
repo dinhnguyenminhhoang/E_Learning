@@ -8,7 +8,7 @@ const { toObjectId } = require("../helpers/idHelper");
 const lessonRepo = require("../repositories/lesson.repo");
 const { default: AppError } = require("../utils/appError");
 const lessonBlockHelper = require("../helpers/lessonBlock.helper");
-const { HTTP_STATUS } = require("../constants/httpStatus");
+const HTTP_STATUS = require("../constants/httpStatus");
 const blockRepo = require("../repositories/block.repo");
 class LessonService {
   _existingSkillInLesson(lesson, skill) {
@@ -55,7 +55,19 @@ class LessonService {
       );
 
     if (blockId) {
-      const block = lesson.blocks.find((b) => b._id?.toString() === blockId);
+      // Find block - handle both populated (b.block._id) and unpopulated (b.block) cases
+      const block = lesson.blocks.find((b) => {
+        // If b.block is populated object
+        if (b.block && typeof b.block === 'object' && b.block._id) {
+          return b.block._id.toString() === blockId;
+        }
+        // If b.block is just ObjectId
+        if (b.block) {
+          return b.block.toString() === blockId;
+        }
+        // Check subdocument _id as fallback
+        return b._id?.toString() === blockId;
+      });
       if (!block)
         return ResponseBuilder.error(
           "Không tìm thấy khối trong bài học.",
@@ -64,15 +76,16 @@ class LessonService {
       block.exercise = quiz._id;
     }
 
-    quiz.attachedTo = {
-      kind: "Lesson",
-      item: lesson._id,
-    };
-    quiz.status = STATUS.ACTIVE;
-    quiz.updatedAt = new Date();
-
-    await quiz.save();
-    await lesson.save();
+    // Use findByIdAndUpdate to avoid validation errors on legacy data
+    await QuizRepository.updateQuiz(quiz._id, {
+      attachedTo: {
+        kind: "Lesson",
+        item: lesson._id,
+      },
+      status: STATUS.ACTIVE,
+      updatedAt: new Date(),
+    });
+    await LessonRepository.updateLesson(lessonId, { blocks: lesson.blocks });
 
     return ResponseBuilder.success(
       "Quiz được đính kèm vào bài học thành công!",
@@ -106,11 +119,12 @@ class LessonService {
 
     block.exercise = null;
 
-    quiz.status = STATUS.DRAFT;
-    quiz.updatedAt = new Date();
-
-    await quiz.save();
-    await lesson.save();
+    // Use findByIdAndUpdate to avoid validation errors on legacy data
+    await QuizRepository.updateQuiz(quiz._id, {
+      status: STATUS.DRAFT,
+      updatedAt: new Date(),
+    });
+    await LessonRepository.updateLesson(lessonId, { blocks: lesson.blocks });
 
     return ResponseBuilder.success("Gỡ quiz khỏi bài học thành công!", {
       lesson,
@@ -263,6 +277,28 @@ class LessonService {
     return ResponseBuilder.success({
       message: "Block assigned to lesson successfully",
       data: assigned,
+    });
+  }
+
+  async getDetailForEdit(req) {
+    const { lessonId } = req.params;
+    const lesson = await LessonRepository.findByIdWithFullDetails(toObjectId(lessonId));
+
+    if (!lesson) {
+      return ResponseBuilder.notFoundError("Không tìm thấy bài học.");
+    }
+
+    // Transform blocks for easier frontend consumption
+    const transformedBlocks = lesson.blocks?.map((b, index) => ({
+      ...b.block,
+      order: b.order ?? index + 1,
+      exercise: b.exercise || null,
+    })) || [];
+
+    return ResponseBuilder.success("Lấy chi tiết bài học thành công", {
+      ...lesson,
+      blocks: transformedBlocks,
+      blockCount: transformedBlocks.length,
     });
   }
 }

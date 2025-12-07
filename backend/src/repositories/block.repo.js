@@ -58,6 +58,48 @@ class BlockRepository {
     const blocks = await ContentBlock.find({ lessonId: lessonId }).where("status").ne(STATUS.DELETED).sort({ order: 1 });
     return blocks;
   }
+
+  async getAllBlocks(filters = {}, pagination = {}) {
+    const { type, skill, difficulty, status, lessonId, search } = filters;
+    const { pageNum = 1, pageSize = 20 } = pagination;
+
+    const query = { status: { $ne: STATUS.DELETED } };
+
+    if (type) query.type = type;
+    if (skill) query.skill = skill;
+    if (difficulty) query.difficulty = difficulty;
+    if (status) query.status = status;
+    if (lessonId) query.lessonId = lessonId;
+    if (search) {
+      query.$or = [
+        { title: { $regex: search, $options: "i" } },
+        { description: { $regex: search, $options: "i" } },
+      ];
+    }
+
+    const skip = (pageNum - 1) * pageSize;
+
+    const [blocks, total] = await Promise.all([
+      ContentBlock.find(query)
+        .populate("lessonId", "title skill")
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(pageSize)
+        .lean(),
+      ContentBlock.countDocuments(query),
+    ]);
+
+    return { blocks, total, pageNum, pageSize };
+  }
+
+  async countBlocks(filters = {}) {
+    const query = { status: { $ne: STATUS.DELETED } };
+    if (filters.type) query.type = filters.type;
+    if (filters.skill) query.skill = filters.skill;
+    if (filters.status) query.status = filters.status;
+
+    return await ContentBlock.countDocuments(query);
+  }
 }
 
 module.exports = new BlockRepository();

@@ -54,6 +54,8 @@ export default function WordsListPage() {
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
   const [levelFilter, setLevelFilter] = useState<string>("all");
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 10;
 
   // Fetch categories for filter
   const { data: categoriesData } = useQuery({
@@ -63,9 +65,12 @@ export default function WordsListPage() {
 
   // Fetch words
   const { data: wordsData, isLoading } = useQuery({
-    queryKey: ["words", searchQuery, categoryFilter, levelFilter],
+    queryKey: ["words", searchQuery, categoryFilter, levelFilter, currentPage],
     queryFn: async () => {
-      const params: any = {};
+      const params: any = {
+        pageNum: currentPage,
+        pageSize: pageSize,
+      };
       if (searchQuery) params.search = searchQuery;
       if (categoryFilter !== "all") params.category = categoryFilter;
       if (levelFilter !== "all") params.level = levelFilter;
@@ -105,6 +110,8 @@ export default function WordsListPage() {
   const levels = ["beginner", "intermediate", "advanced"];
   const categories = categoriesData?.data || [];
   const words = wordsData?.data || [];
+  const pagination = wordsData?.pagination || { total: 0, pageNum: 1, pageSize: 10, totalPages: 0 };
+  const totalPages = pagination.totalPages || Math.ceil(pagination.total / pageSize);
 
   return (
     <div className="space-y-6">
@@ -291,6 +298,36 @@ export default function WordsListPage() {
             )}
           </TableBody>
         </Table>
+
+        {/* Pagination */}
+        {totalPages > 0 && (
+          <div className="flex items-center justify-between px-6 py-4 border-t">
+            <div className="text-sm text-gray-500">
+              Showing {((currentPage - 1) * pageSize) + 1} - {Math.min(currentPage * pageSize, pagination.total)} of {pagination.total} words
+            </div>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                disabled={currentPage <= 1}
+              >
+                Previous
+              </Button>
+              <span className="text-sm px-3">
+                Page {currentPage} of {totalPages}
+              </span>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                disabled={currentPage >= totalPages}
+              >
+                Next
+              </Button>
+            </div>
+          </div>
+        )}
       </Card>
 
       {/* Delete Confirmation Dialog */}

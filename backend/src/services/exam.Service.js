@@ -13,6 +13,78 @@ const QuizAttemptRepository = require("../repositories/quizAttempt.repo");
 const GrammarNlpService = require("./grammarNlp.service");
 
 class ExamService {
+  // ===== ADMIN METHODS =====
+
+  /**
+   * Lấy tất cả exams (cho admin)
+   * Query params:
+   * - page: số trang (default: 1)
+   * - limit: số items per page (default: 20)
+   * - status: filter theo status
+   * - search: tìm kiếm theo title
+   */
+  async getAllExams(req) {
+    const {
+      page = 1,
+      limit = 20,
+      status,
+      search,
+    } = req.query || {};
+
+    const filter = {};
+    if (status) {
+      filter.status = status;
+    }
+    if (search) {
+      filter.title = { $regex: search, $options: "i" };
+    }
+
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+
+    const [exams, total] = await Promise.all([
+      ExamRepository.findExams(filter, {
+        skip,
+        limit: parseInt(limit),
+        sort: { createdAt: -1 },
+      }),
+      ExamRepository.countExams(filter),
+    ]);
+
+    return ResponseBuilder.success(
+      "Lấy danh sách exams thành công.",
+      {
+        exams,
+        pagination: {
+          page: parseInt(page),
+          limit: parseInt(limit),
+          total,
+          totalPages: Math.ceil(total / parseInt(limit)),
+        },
+      }
+    );
+  }
+
+  /**
+   * Lấy exam theo ID (cho admin edit)
+   * Populate sections với quiz details
+   */
+  async getExamById(req) {
+    const { examId } = req.params;
+
+    const exam = await ExamRepository.findExamById(toObjectId(examId), {
+      populateSections: true,
+    });
+
+    if (!exam) {
+      return ResponseBuilder.notFoundError("Exam không tồn tại.");
+    }
+
+    return ResponseBuilder.success(
+      "Lấy exam thành công.",
+      exam
+    );
+  }
+
   /**
    * Admin tạo Exam
    * Body:
@@ -89,6 +161,102 @@ class ExamService {
       HTTP_STATUS.CREATED
     );
   }
+
+  /**
+   * Cập nhật exam (admin)
+   * Body: Có thể cập nhật title, description, totalTimeLimit, sections, status
+   */
+  async updateExam(req) {
+    const { examId } = req.params;
+    const updateData = req.body || {};
+
+    // Kiểm tra exam tồn tại
+    const exam = await ExamRepository.findExamById(toObjectId(examId));
+    if (!exam) {
+      return ResponseBuilder.notFoundError("Exam không tồn tại.");
+    }
+
+    // Nếu cập nhật sections, validate quizzes
+    if (updateData.sections && Array.isArray(updateData.sections)) {
+      const quizIds = updateData.sections.map((sec) => sec.quiz).filter(Boolean);
+
+      if (quizIds.length > 0) {
+        const quizzes = await ExamRepository.findQuizzesByIds(quizIds);
+        const existingQuizIdSet = new Set(quizzes.map((q) => q._id.toString()));
+
+        const invalidSections = updateData.sections.filter(
+          (sec) => sec.quiz && !existingQuizIdSet.has(String(sec.quiz))
+        );
+
+        if (invalidSections.length > 0) {
+          return ResponseBuilder.badRequest(
+            "Một hoặc nhiều quiz không tồn tại.",
+            invalidSections.map((sec) => ({
+              title: sec.title,
+              quiz: sec.quiz,
+            }))
+          );
+        }
+
+        // Normalize sections
+        updateData.sections = updateData.sections
+          .map((sec, index) => ({
+            title: sec.title,
+            skill: sec.skill,
+            order: sec.order ?? index + 1,
+            quiz: toObjectId(sec.quiz),
+            timeLimit: sec.timeLimit ?? null,
+          }))
+          .sort((a, b) => a.order - b.order);
+      }
+    }
+
+    // Add metadata
+    updateData.updatedBy = req.user?.id || null;
+    updateData.updatedAt = new Date();
+
+    const updatedExam = await ExamRepository.updateExam(examId, updateData);
+
+    return ResponseBuilder.success(
+      "Cập nhật exam thành công.",
+      updatedExam
+    );
+  }
+
+  /**
+   * Xóa exam (admin) - Soft delete
+   * Cập nhật status = 'deleted' thay vì xóa hẳn
+   */
+  async deleteExam(req) {
+    const { examId } = req.params;
+
+    const exam = await ExamRepository.findExamById(toObjectId(examId));
+    if (!exam) {
+      return ResponseBuilder.notFoundError("Exam không tồn tại.");
+    }
+
+    // Kiểm tra xem có exam attempt nào đang in_progress không
+    const activeAttempts = await ExamRepository.countActiveAttempts(examId);
+    if (activeAttempts > 0) {
+      return ResponseBuilder.badRequest(
+        `Không thể xóa exam vì có ${activeAttempts} người đang làm bài.`
+      );
+    }
+
+    // Soft delete - cập nhật status
+    await ExamRepository.updateExam(examId, {
+      status: "deleted",
+      updatedBy: req.user?.id || null,
+      updatedAt: new Date(),
+    });
+
+    return ResponseBuilder.success(
+      "Xóa exam thành công.",
+      { examId }
+    );
+  }
+
+  // ===== USER METHODS =====
 
   /**
    * Kiểm tra user đã hoàn thành level chứa exam này chưa
@@ -442,17 +610,17 @@ class ExamService {
         selectedAnswer: answer.selectedAnswer || "",
         timeSpent: answer.timeSpent || 0,
       };
-      
+
       // Chỉ thêm writingAnswer nếu có giá trị (không set null)
       if (answer.writingAnswer && (answer.writingAnswer.text || answer.writingAnswer.wordCount !== undefined)) {
         answerObj.writingAnswer = answer.writingAnswer;
       }
-      
+
       // Chỉ thêm speakingAnswer nếu có giá trị (không set null)
       if (answer.speakingAnswer && (answer.speakingAnswer.audioUrl || answer.speakingAnswer.duration !== undefined)) {
         answerObj.speakingAnswer = answer.speakingAnswer;
       }
-      
+
       return answerObj;
     });
 
@@ -583,7 +751,7 @@ class ExamService {
         0
       );
       const sectionScore = earnedPoints;
-      
+
       // Tính percentage: với writing, dùng score từ API; với các loại khác, dùng tỷ lệ đúng/sai
       let sectionPercentage = 0;
       const writingQuestions = quiz.questions.filter((q) => q.type === "writing");
@@ -597,14 +765,14 @@ class ExamService {
             const apiScore = a.writingGrading?.grading?.score || 0;
             return sum + apiScore;
           }, 0) / writingAnswers.length;
-          
+
           // Tính percentage cho toàn bộ section (kết hợp writing và các câu khác)
           const nonWritingCount = totalCount - writingAnswers.length;
           const nonWritingCorrect = correctCount - writingAnswers.filter((a) => a.isCorrect).length;
-          const nonWritingPercentage = nonWritingCount > 0 
-            ? Math.round((nonWritingCorrect / nonWritingCount) * 100) 
+          const nonWritingPercentage = nonWritingCount > 0
+            ? Math.round((nonWritingCorrect / nonWritingCount) * 100)
             : 0;
-          
+
           sectionPercentage = Math.round(
             (avgWritingScore * writingAnswers.length + nonWritingPercentage * nonWritingCount) / totalCount
           );
@@ -654,7 +822,7 @@ class ExamService {
             grading: a.writingGrading.grading,
             grammarErrors: a.writingGrading.grammar_errors || [],
           }));
-        
+
         // Chỉ thêm vào response nếu có writing gradings
         if (writingGradings.length === 0) {
           writingGradings = undefined;
@@ -843,7 +1011,7 @@ class ExamService {
       } else if (question.type === "writing") {
         // Chấm điểm writing bằng API
         const writingText = userAnswer?.writingAnswer?.text || userAnswer?.selectedAnswer || "";
-        
+
         if (writingText && writingText.trim().length > 0) {
           const gradingResult = await this._gradeWritingText(writingText);
           writingGrading = gradingResult.data;
@@ -854,7 +1022,7 @@ class ExamService {
           // Ví dụ: question.points = 10, apiScore = 80 => pointsEarned = 8
           const maxPoints = question.points || 10;
           pointsEarned = Math.round((apiScore / 100) * maxPoints);
-          
+
           // Coi là đúng nếu điểm >= 60% (có thể điều chỉnh)
           isCorrect = apiScore >= 60;
         } else {
@@ -880,22 +1048,22 @@ class ExamService {
         pointsEarned,
         timeSpent: userAnswer?.timeSpent || 0,
       };
-      
+
       // Chỉ thêm writingAnswer nếu có giá trị (không set null)
       if (userAnswer?.writingAnswer && (userAnswer.writingAnswer.text || userAnswer.writingAnswer.wordCount !== undefined)) {
         gradedAnswer.writingAnswer = userAnswer.writingAnswer;
       }
-      
+
       // Chỉ thêm speakingAnswer nếu có giá trị (không set null)
       if (userAnswer?.speakingAnswer && (userAnswer.speakingAnswer.audioUrl || userAnswer.speakingAnswer.duration !== undefined)) {
         gradedAnswer.speakingAnswer = userAnswer.speakingAnswer;
       }
-      
+
       // Lưu kết quả chấm điểm writing (nếu có)
       if (writingGrading) {
         gradedAnswer.writingGrading = writingGrading;
       }
-      
+
       gradedAnswers.push(gradedAnswer);
     }
 

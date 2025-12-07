@@ -1,4 +1,3 @@
-// src/app/admin/words/import/page.tsx
 "use client";
 
 import { useState } from "react";
@@ -38,7 +37,6 @@ export default function ImportWordsPage() {
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
     if (selectedFile) {
-      // Validate file type
       const validTypes = [
         "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         "application/vnd.ms-excel",

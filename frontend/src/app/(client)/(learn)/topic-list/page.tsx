@@ -95,7 +95,6 @@ export default function TopicsPage() {
     try {
       setLoading(true);
 
-      // 1. Gọi API lấy danh sách Levels
       const levelsResponse = await learningPathService.getLearningPathHierarchy({
         learningPathId,
         isLevel: true,
@@ -104,46 +103,77 @@ export default function TopicsPage() {
       if (levelsResponse.code === 200 && levelsResponse.data) {
         const levels = levelsResponse.data;
 
-        // 2. Gọi API lấy danh sách Lessons cho từng Level
         const levelsWithLessons = await Promise.all(
           levels.map(async (level: any) => {
             try {
-              const lessonsResponse =
+              const lessonsResponse: any =
                 await learningPathService.getLearningPathHierarchy({
                   learningPathId,
                   isLesson: true,
                   levelOrder: level.order,
                 });
 
-              // Lấy dữ liệu lessons trực tiếp, KHÔNG gọi thêm API lấy blocks nữa
-              const lessons =
-                lessonsResponse.code === 200 ? lessonsResponse.data : [];
+              let lessonsData = [];
+              if (lessonsResponse.code === 200 && lessonsResponse.data) {
+                if (lessonsResponse.data.lessons) {
+                  lessonsData = lessonsResponse.data.lessons;
+                } else {
+                  lessonsData = Array.isArray(lessonsResponse.data)
+                    ? lessonsResponse.data
+                    : [];
+                }
+              }
 
-              return { ...level, lessons: lessons };
+              return {
+                ...level,
+                lessons: lessonsData,
+                totalLessons: lessonsResponse.data?.totalLessons || lessonsData.length,
+                completedLessons: lessonsResponse.data?.completedLessons || 0
+              };
             } catch (error) {
-              return { ...level, lessons: [] };
+              return {
+                ...level,
+                lessons: [],
+                totalLessons: 0,
+                completedLessons: 0
+              };
             }
           })
         );
 
-        // 3. Chuyển đổi dữ liệu sang định dạng TopicList
         const transformedData: TopicList[] = levelsWithLessons.map(
-          (level: any, index: number) => ({
-            id: index + 1,
-            name: level.title || `Level ${level.order}`,
-            totalTopics: level.lessons?.length || 0,
-            progressPercent: 0,
-            subTopics: level.lessons.map((lesson: any) => ({
-              id: lesson.lesson,
-              name: lesson.title,
-              progress: 0,
-              // Vì không load blocks nên total tạm thời để 0 hoặc lấy từ lesson nếu có
-              total: 0,
-              icon: "📚",
-              // Gán mảng rỗng vì không còn fetch blocks
-              blocks: []
-            })),
-          })
+          (level: any, index: number) => {
+            const totalLessons = level.totalLessons || level.lessons?.length || 0;
+            const completedLessons = level.completedLessons || 0;
+            const progressPercent = totalLessons > 0
+              ? Math.round((completedLessons / totalLessons) * 100)
+              : 0;
+
+            return {
+              id: index + 1,
+              name: level.title || `Level ${level.order}`,
+              totalTopics: totalLessons,
+              progressPercent: progressPercent,
+              subTopics: level.lessons.map((lesson: any, lessonIndex: number) => {
+                const previousLesson = lessonIndex > 0 ? level.lessons[lessonIndex - 1] : null;
+                const isLocked = lessonIndex > 0 && previousLesson && !previousLesson.isCompleted;
+
+                return {
+                  id: lesson.lesson,
+                  name: lesson.title,
+                  progress: lesson.isCompleted ? 100 : 0,
+                  total: 100,
+                  icon: lesson.isCompleted ? "✅" : "📚",
+                  isCompleted: lesson.isCompleted || false,
+                  isLearned: lesson.isLearned || false,
+                  lastAccessedAt: lesson.lastAccessedAt,
+                  completedAt: lesson.completedAt,
+                  isLocked: isLocked,
+                  blocks: []
+                };
+              }),
+            };
+          }
         );
 
         if (transformedData.length > 0) {
@@ -157,6 +187,7 @@ export default function TopicsPage() {
       setLoading(false);
     }
   };
+
   useEffect(() => {
     const handleScroll = () => {
       if (!containerRef.current) return;
@@ -243,6 +274,7 @@ export default function TopicsPage() {
                       key={subTopic.id}
                       subTopic={subTopic}
                       learningPathId={pathId || progress?.learningPathId}
+                      isLocked={subTopic.isLocked}
                     />
                   ))}
                 </div>
@@ -263,3 +295,4 @@ export default function TopicsPage() {
     </div>
   );
 }
+

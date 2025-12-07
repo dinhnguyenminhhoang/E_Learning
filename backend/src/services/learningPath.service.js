@@ -16,7 +16,11 @@ class LearningPathService {
   }
 
   _findLesson(level, lessonId) {
-    return level.lessons.find((c) => c.lesson.toString() === lessonId);
+    return level.lessons.find((c) => {
+      if (!c.lesson) return false;
+      const id = c.lesson._id ? c.lesson._id.toString() : c.lesson.toString();
+      return id === lessonId;
+    });
   }
 
   static async getPathsByTargets(targetIds) {
@@ -156,6 +160,7 @@ class LearningPathService {
   async addLessonToLearningPath({
     learningPathId,
     titleLevel,
+    levelOrder,
     lessonId,
     order,
   }) {
@@ -163,7 +168,13 @@ class LearningPathService {
     if (!learningPath)
       return ResponseBuilder.notFoundError("Không tìm thấy lộ trình học.");
 
-    let level = this._findLevel(learningPath, titleLevel);
+    let level;
+    if (levelOrder !== undefined) {
+      level = learningPath.levels.find((l) => l.order === Number(levelOrder));
+    } else if (titleLevel) {
+      level = this._findLevel(learningPath, titleLevel);
+    }
+
     if (!level) {
       return ResponseBuilder.notFoundError("Không tìm thấy cấp độ.");
     }
@@ -185,19 +196,94 @@ class LearningPathService {
   }
 
   async assignLessonToPath(req) {
-    const { learningPathId } = req.params;
-    const { titleLevel, lessonId, order } = req.body;
+    const { learningPathId, titleLevel, levelOrder, lessonId, order } = req.body;
     return await this.addLessonToLearningPath({
       learningPathId,
       titleLevel,
+      levelOrder,
       lessonId,
       order,
     });
   }
 
+  async removeLessonFromPath(req) {
+    const { learningPathId, levelOrder, lessonId } = req.body;
+
+    const learningPath = await learningPathRepo.findById(learningPathId);
+    if (!learningPath) {
+      return ResponseBuilder.notFoundError("Không tìm thấy lộ trình học.");
+    }
+
+    const level = learningPath.levels.find((l) => l.order === Number(levelOrder));
+    if (!level) {
+      return ResponseBuilder.notFoundError("Không tìm thấy cấp độ.");
+    }
+
+    const lessonIndex = level.lessons.findIndex((l) => {
+      if (!l.lesson) return false;
+      const id = l.lesson._id ? l.lesson._id.toString() : l.lesson.toString();
+      return id === lessonId;
+    });
+
+    if (lessonIndex === -1) {
+      return ResponseBuilder.notFoundError("Không tìm thấy bài học trong cấp độ này.");
+    }
+
+    level.lessons.splice(lessonIndex, 1);
+    await learningPathRepo.save(learningPath);
+
+    return ResponseBuilder.success("Xóa bài học khỏi lộ trình thành công");
+  }
+
   async getAllPath() {
     const paths = await learningPathRepo.getAllPath();
     return ResponseBuilder.success("Lấy danh sách lộ trình thành công", paths);
+  }
+
+  async getById(req) {
+    const { id } = req.params;
+    const path = await learningPathRepo.findById(id);
+    if (!path) {
+      return ResponseBuilder.notFoundError("Không tìm thấy lộ trình học.");
+    }
+    return ResponseBuilder.success("Lấy thông tin lộ trình thành công", path);
+  }
+
+  /**
+   * Get Learning Path with full details for editing
+   * Includes: target, levels with lessons (with blocks), finalQuiz
+   */
+  async getDetailForEdit(req) {
+    const { id } = req.params;
+    const path = await learningPathRepo.findByIdWithFullDetails(id);
+
+    if (!path) {
+      return ResponseBuilder.notFoundError("Không tìm thấy lộ trình học.");
+    }
+
+    // Transform data để dễ sử dụng phía frontend
+    const transformedPath = {
+      ...path,
+      levels: path.levels.map((level) => ({
+        ...level,
+        lessonCount: level.lessons?.length || 0,
+        lessons: level.lessons.map((lessonInfo) => ({
+          ...lessonInfo,
+          lesson: lessonInfo.lesson
+            ? {
+              ...lessonInfo.lesson,
+              blockCount: lessonInfo.lesson.blocks?.length || 0,
+            }
+            : null,
+        })),
+      })),
+      levelCount: path.levels?.length || 0,
+    };
+
+    return ResponseBuilder.success(
+      "Lấy chi tiết lộ trình thành công",
+      transformedPath
+    );
   }
 
   async getLearningPathHierarchy(req) {
@@ -247,7 +333,7 @@ class LearningPathService {
         .map((module) => {
           const lessonIdStr = module.lesson._id.toString();
           const progress = lessonProgressMap.get(lessonIdStr);
-          
+
           return {
             lesson: module.lesson._id,
             order: module.order ?? 0,
@@ -395,6 +481,94 @@ class LearningPathService {
     return ResponseBuilder.success("Thêm cấp độ thành công", updatedPath);
   }
 
+  async updateLevel(req) {
+    const { pathId, levelOrder } = req.params;
+    const { title } = req.body;
+
+    const learningPath = await learningPathRepo.findById(toObjectId(pathId));
+    if (!learningPath) {
+      return ResponseBuilder.notFoundError("Không tìm thấy lộ trình học.");
+    }
+
+    const level = learningPath.levels.find(
+      (lvl) => lvl.order === Number(levelOrder)
+    );
+    if (!level) {
+      return ResponseBuilder.notFoundError("Không tìm thấy cấp độ.");
+    }
+
+    const isDuplicate = learningPath.levels.some(
+      (lvl) =>
+        lvl.order !== Number(levelOrder) &&
+        lvl.title.toLowerCase().trim() === title.toLowerCase().trim()
+    );
+    if (isDuplicate) {
+      return ResponseBuilder.badRequest("Tên cấp độ đã tồn tại.");
+    }
+
+    level.title = title.trim();
+    await learningPath.save();
+
+    return ResponseBuilder.success("Cập nhật cấp độ thành công", learningPath);
+  }
+
+  async deleteLevel(req) {
+    const { pathId, levelOrder } = req.params;
+
+    const learningPath = await learningPathRepo.findById(toObjectId(pathId));
+    if (!learningPath) {
+      return ResponseBuilder.notFoundError("Không tìm thấy lộ trình học.");
+    }
+
+    const levelIndex = learningPath.levels.findIndex(
+      (lvl) => lvl.order === Number(levelOrder)
+    );
+    if (levelIndex === -1) {
+      return ResponseBuilder.notFoundError("Không tìm thấy cấp độ.");
+    }
+
+    learningPath.levels.splice(levelIndex, 1);
+
+    learningPath.levels = learningPath.levels.map((lvl, index) => ({
+      ...lvl,
+      order: index + 1,
+    }));
+
+    await learningPath.save();
+
+    return ResponseBuilder.success("Xóa cấp độ thành công", learningPath);
+  }
+
+  async reorderLevels(req) {
+    const { pathId } = req.params;
+    const { levelOrders } = req.body;
+
+    const learningPath = await learningPathRepo.findById(toObjectId(pathId));
+    if (!learningPath) {
+      return ResponseBuilder.notFoundError("Không tìm thấy lộ trình học.");
+    }
+
+    if (!Array.isArray(levelOrders) || levelOrders.length !== learningPath.levels.length) {
+      return ResponseBuilder.badRequest("Dữ liệu sắp xếp không hợp lệ.");
+    }
+
+    const reorderedLevels = levelOrders.map((oldOrder, newIndex) => {
+      const level = learningPath.levels.find((lvl) => lvl.order === oldOrder);
+      if (!level) {
+        throw new Error(`Level with order ${oldOrder} not found`);
+      }
+      return {
+        ...level.toObject(),
+        order: newIndex + 1,
+      };
+    });
+
+    learningPath.levels = reorderedLevels;
+    await learningPath.save();
+
+    return ResponseBuilder.success("Sắp xếp cấp độ thành công", learningPath);
+  }
+
   async assignTargetToLearningPath(req) {
     const { learningPathId } = req.params;
     const { targetId } = req.body;
@@ -437,6 +611,51 @@ class LearningPathService {
       "Gán mục tiêu cho lộ trình thành công.",
       updatedPath
     );
+  }
+
+  async updateLearningPath(req) {
+    const { id } = req.params;
+    const updateData = req.body;
+
+    const learningPath = await learningPathRepo.findById(toObjectId(id));
+    if (!learningPath) {
+      return ResponseBuilder.notFoundError("Không tìm thấy lộ trình học.");
+    }
+
+    // If updating target, check if it exists and not already in use
+    if (updateData.targetId) {
+      const target = await TargetRepository.findById(toObjectId(updateData.targetId));
+      if (!target) {
+        return ResponseBuilder.notFoundError("Không tìm thấy mục tiêu.");
+      }
+
+      const existingPathForTarget = await learningPathRepo.findByTargetId(
+        toObjectId(updateData.targetId)
+      );
+      if (
+        existingPathForTarget &&
+        existingPathForTarget._id.toString() !== id
+      ) {
+        return ResponseBuilder.badRequest(
+          "Mục tiêu này đã được gán cho một lộ trình khác."
+        );
+      }
+    }
+
+    const updated = await learningPathRepo.updateLearningPath(id, updateData);
+    return ResponseBuilder.success("Cập nhật lộ trình thành công.", updated);
+  }
+
+  async deleteLearningPath(req) {
+    const { id } = req.params;
+
+    const learningPath = await learningPathRepo.findById(toObjectId(id));
+    if (!learningPath) {
+      return ResponseBuilder.notFoundError("Không tìm thấy lộ trình học.");
+    }
+
+    await learningPathRepo.softDelete(id);
+    return ResponseBuilder.success("Xóa lộ trình thành công.");
   }
 }
 

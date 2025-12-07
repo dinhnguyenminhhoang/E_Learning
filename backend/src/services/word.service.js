@@ -142,15 +142,23 @@ class WordService {
 
   async getAllWord(req) {
     const { data, metadata } = await wordRepo.getAllWords(req);
-    return ResponseBuilder.successWithPagination({
-      message: "Lấy danh sách thành công",
-      data: data ?? [],
-      pagination: {
+    return ResponseBuilder.successWithPagination(
+      "Lấy danh sách thành công",
+      data ?? [],
+      {
         pageNum: metadata.pageNum,
         pageSize: metadata.pageSize,
         total: metadata.totalItems,
-      },
-    });
+      }
+    );
+  }
+
+  async getWordById(wordId) {
+    const word = await WordRepository.findById(wordId);
+    if (!word) {
+      return ResponseBuilder.notFoundError("Word not found");
+    }
+    return ResponseBuilder.success(RESPONSE_MESSAGES.SUCCESS.FETCHED, word);
   }
 
   async importWords(req) {

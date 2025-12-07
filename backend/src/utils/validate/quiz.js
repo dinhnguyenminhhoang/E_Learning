@@ -14,7 +14,7 @@ const objectIdValidator = (value, helpers) => {
 const optionSchema = Joi.object({
   text: Joi.string().trim().required(),
   isCorrect: Joi.boolean().default(false),
-}); 
+});
 
 const questionSchema = Joi.object({
   sourceType: Joi.string().valid("Word", "Flashcard", "CardDeck").optional(),
@@ -60,7 +60,7 @@ const createQuizSchema = Joi.object({
   attachedTo: Joi.object({
     kind: Joi.string().valid("Lesson", "Module", "LearningPath").required(),
     item: Joi.string().custom(objectIdValidator).required(),
-  }).required(),
+  }).optional(),
 
   questions: Joi.array().items(questionSchema).default([]),
 
@@ -81,6 +81,16 @@ const addQuestionsSchema = Joi.object({
 
 const updateQuizSchema = Joi.object({
   title: Joi.string().trim().optional(),
+  skill: Joi.string()
+    .valid(
+      "reading",
+      "listening",
+      "writing",
+      "speaking",
+      "grammar",
+      "vocabulary"
+    )
+    .optional(),
   difficulty: Joi.string().valid("EASY", "MEDIUM", "HARD").optional(),
   attachedTo: Joi.object({
     kind: Joi.string().valid("Lesson", "Module", "LearningPath").optional(),

@@ -30,11 +30,13 @@ export const createWordSchema = Joi.object({
   definitions: Joi.array()
     .items(
       Joi.object({
+        _id: Joi.string().optional(), // Allow _id for existing definitions
         meaning: Joi.string().required(),
         meaningVi: Joi.string().required(),
         examples: Joi.array()
           .items(
             Joi.object({
+              _id: Joi.string().optional(), // Allow _id for existing examples
               sentence: Joi.string().required(),
               translation: Joi.string().optional(),
             })
@@ -47,7 +49,7 @@ export const createWordSchema = Joi.object({
   synonyms: Joi.array().items(Joi.string()),
   antonyms: Joi.array().items(Joi.string()),
   relatedWords: Joi.array().items(Joi.string()),
-  categories: Joi.array().items(Joi.string().regex(/^[0-9a-fA-F]{24}$/)), // ObjectId
+  categories: Joi.array().items(Joi.string().regex(/^[0-9a-fA-F]{24}$/).allow('')), // ObjectId, allow empty for filtering
   tags: Joi.array().items(Joi.string()),
   image: Joi.string().uri().optional(),
   difficulty: Joi.number().min(1).max(5).default(1),

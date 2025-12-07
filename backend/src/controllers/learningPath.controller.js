@@ -24,13 +24,28 @@ const LearningPathController = {
   },
 
   async assignLessonToPath(req, res) {
-    
+
     const response = await LearningPathService.assignLessonToPath(req);
+    res.status(response.code).json(response);
+  },
+
+  async removeLessonFromPath(req, res) {
+    const response = await LearningPathService.removeLessonFromPath(req);
     res.status(response.code).json(response);
   },
 
   async getAllPath(req, res) {
     const response = await LearningPathService.getAllPath(req);
+    res.status(response.code).json(response);
+  },
+
+  async getById(req, res) {
+    const response = await LearningPathService.getById(req);
+    res.status(response.code).json(response);
+  },
+
+  async getDetailForEdit(req, res) {
+    const response = await LearningPathService.getDetailForEdit(req);
     res.status(response.code).json(response);
   },
 
@@ -51,6 +66,21 @@ const LearningPathController = {
     res.status(response.code).json(response);
   },
 
+  async updateLevel(req, res) {
+    const response = await LearningPathService.updateLevel(req);
+    res.status(response.code).json(response);
+  },
+
+  async deleteLevel(req, res) {
+    const response = await LearningPathService.deleteLevel(req);
+    res.status(response.code).json(response);
+  },
+
+  async reorderLevels(req, res) {
+    const response = await LearningPathService.reorderLevels(req);
+    res.status(response.code).json(response);
+  },
+
   async getByTarget(req, res) {
     const { targetIds } = req.body;
     const paths = await LearningPathService.getPathsByTargets(targetIds);
@@ -59,6 +89,16 @@ const LearningPathController = {
 
   async assignTargetToPath(req, res) {
     const response = await LearningPathService.assignTargetToLearningPath(req);
+    res.status(response.code).json(response);
+  },
+
+  async updatePath(req, res) {
+    const response = await LearningPathService.updateLearningPath(req);
+    res.status(response.code).json(response);
+  },
+
+  async deletePath(req, res) {
+    const response = await LearningPathService.deleteLearningPath(req);
     res.status(response.code).json(response);
   },
 };

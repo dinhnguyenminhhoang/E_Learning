@@ -34,7 +34,7 @@ class ResponseBuilder {
         total: pagination.total ?? 0,
         pageNum: pagination.pageNum ?? 1,
         pageSize: pagination.pageSize ?? 10,
-        total: pagination.total ?? 0,
+        totalPages: pagination.totalPages ?? Math.ceil((pagination.total ?? 0) / (pagination.pageSize ?? 10)),
       },
       code,
       timestamp: new Date().toISOString(),

@@ -43,4 +43,19 @@ router.post(
   validateAddQuestions,
   asynchandler(quizController.addQuestions)
 );
+
+// Cập nhật câu hỏi trong quiz
+router.put(
+  "/:id/questions/:questionId",
+  auth.authenticate,
+  asynchandler(quizController.updateQuestion)
+);
+
+// Xóa câu hỏi khỏi quiz
+router.delete(
+  "/:id/questions/:questionId",
+  auth.authenticate,
+  asynchandler(quizController.deleteQuestion)
+);
+
 module.exports = router;

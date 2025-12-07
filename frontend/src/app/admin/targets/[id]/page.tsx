@@ -31,7 +31,6 @@ export default function EditTargetPage() {
     const fetchTarget = async () => {
         try {
             setLoading(true);
-            // Fetch all targets and find the one we need
             const response = await targetService.getAllTargets({});
             if (response.code === 200) {
                 const foundTarget = response.data.find((t) => t._id === targetId);
@@ -41,7 +40,6 @@ export default function EditTargetPage() {
                         name: foundTarget.name,
                         description: foundTarget.description || "",
                         key: foundTarget.key,
-                        // Join all tags with commas
                         tag: foundTarget.tags.join(", "),
                     });
                 } else {
@@ -116,7 +114,7 @@ export default function EditTargetPage() {
     }
 
     return (
-        <div className="p-6 max-w-4xl mx-auto">
+        <div className="p-6 mx-auto">
             <div className="mb-8">
                 <Button
                     variant="ghost"

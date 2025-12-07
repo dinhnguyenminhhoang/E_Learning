@@ -34,6 +34,18 @@ router.delete(
 );
 
 router.post(
+  "/lesson",
+  auth.authenticate,
+  asynchandler(LearningPathController.assignLessonToPath)
+);
+
+router.delete(
+  "/lesson",
+  auth.authenticate,
+  asynchandler(LearningPathController.removeLessonFromPath)
+);
+
+router.post(
   "/:learningPathId/assign",
   asynchandler(LearningPathController.assignLessonToPath)
 );
@@ -41,6 +53,24 @@ router.post(
   "/level/:learningPathId",
   auth.authenticate,
   asynchandler(LearningPathController.createNewLevel)
+);
+
+router.put(
+  "/:pathId/level/:levelOrder",
+  auth.authenticate,
+  asynchandler(LearningPathController.updateLevel)
+);
+
+router.delete(
+  "/:pathId/level/:levelOrder",
+  auth.authenticate,
+  asynchandler(LearningPathController.deleteLevel)
+);
+
+router.put(
+  "/:pathId/levels/reorder",
+  auth.authenticate,
+  asynchandler(LearningPathController.reorderLevels)
 );
 
 router.get(
@@ -60,6 +90,30 @@ router.put(
   auth.authenticate,
   validateAssignTargetToPath,
   asynchandler(LearningPathController.assignTargetToPath)
+);
+
+router.get(
+  "/:id/detail",
+  auth.authenticate,
+  asynchandler(LearningPathController.getDetailForEdit)
+);
+
+router.get(
+  "/:id",
+  auth.authenticate,
+  asynchandler(LearningPathController.getById)
+);
+
+router.put(
+  "/:id",
+  auth.authenticate,
+  asynchandler(LearningPathController.updatePath)
+);
+
+router.delete(
+  "/:id",
+  auth.authenticate,
+  asynchandler(LearningPathController.deletePath)
 );
 
 module.exports = router;

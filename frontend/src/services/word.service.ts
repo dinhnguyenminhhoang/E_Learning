@@ -32,6 +32,10 @@ class WordService {
     return await apiClient.get("/v1/api/word/", { params: query });
   }
 
+  async getWordById(wordId: string) {
+    return await apiClient.get(`/v1/api/word/${wordId}`);
+  }
+
   async getWordsByCategory(categoryId: string, query?: any) {
     return await apiClient.get(`/v1/api/word/category/${categoryId}`, {
       params: query,

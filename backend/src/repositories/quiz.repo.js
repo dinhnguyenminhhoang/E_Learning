@@ -13,11 +13,12 @@ class QuizRepository {
   }
 
   async getQuizByTitleAndAttachedTo(title, attachedTo) {
-    return await Quiz.findOne({
-      title,
-      "attachedTo.kind": attachedTo.kind,
-      "attachedTo.item": attachedTo.item,
-    });
+    const query = { title };
+    if (attachedTo && attachedTo.kind && attachedTo.item) {
+      query["attachedTo.kind"] = attachedTo.kind;
+      query["attachedTo.item"] = attachedTo.item;
+    }
+    return await Quiz.findOne(query);
   }
 
   async getAllQuizzes(req) {
@@ -27,12 +28,27 @@ class QuizRepository {
       attachedKind,
       attachedItem,
       search,
+      status,
+      skill,
+      difficulty,
     } = req.query;
 
     const filter = { status: { $ne: `${STATUS.DELETED}` } };
     if (attachedKind && attachedItem) {
       filter["attachedTo.kind"] = attachedKind;
       filter["attachedTo.item"] = attachedItem;
+    }
+
+    if (status && status !== "all") {
+      filter.status = status;
+    }
+
+    if (skill && skill !== "all") {
+      filter.skill = skill;
+    }
+
+    if (difficulty && difficulty !== "all") {
+      filter.difficulty = difficulty;
     }
 
     if (search) {
@@ -87,6 +103,27 @@ class QuizRepository {
   async deleteHardQuiz(id) {
     return await Quiz.findByIdAndDelete(id);
   }
-}
 
+  async updateQuestion(quizId, questionId, questionData) {
+    return await Quiz.findOneAndUpdate(
+      { _id: quizId, "questions._id": questionId },
+      {
+        $set: {
+          "questions.$": { ...questionData, _id: questionId }
+        }
+      },
+      { new: true }
+    );
+  }
+
+  async deleteQuestion(quizId, questionId) {
+    return await Quiz.findByIdAndUpdate(
+      quizId,
+      {
+        $pull: { questions: { _id: questionId } }
+      },
+      { new: true }
+    );
+  }
+}
 module.exports = new QuizRepository();
