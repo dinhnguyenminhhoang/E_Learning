@@ -15,9 +15,12 @@ import {
     Video,
     BookOpen,
     HelpCircle,
+    CheckCircle2,
+    Grid,
 } from "lucide-react";
 import { toast } from "react-hot-toast";
 import { cn } from "@/lib/utils";
+import { STATUS } from "@/constants/status";
 
 const SKILL_COLORS = {
     reading: "bg-blue-100 text-blue-700 border-blue-200",
@@ -39,17 +42,42 @@ export default function LessonsPage() {
     const [searchTerm, setSearchTerm] = useState("");
     const [skillFilter, setSkillFilter] = useState<string>("all");
     const [statusFilter, setStatusFilter] = useState<string>("all");
+    const [currentPage, setCurrentPage] = useState(1);
+    const [pageSize] = useState(10);
+    const [pagination, setPagination] = useState<{
+        total: number;
+        totalPages: number;
+    } | null>(null);
 
     useEffect(() => {
         fetchLessons();
-    }, []);
+    }, [currentPage, searchTerm, skillFilter, statusFilter]);
+
+    // Reset to page 1 when filters change
+    useEffect(() => {
+        if (currentPage !== 1) {
+            setCurrentPage(1);
+        }
+    }, [searchTerm, skillFilter, statusFilter]);
 
     const fetchLessons = async () => {
         try {
             setLoading(true);
-            const response = await lessonService.getAll();
+            const response = await lessonService.getAll({
+                pageNum: currentPage,
+                pageSize,
+                search: searchTerm,
+                skill: skillFilter,
+                status: statusFilter,
+            });
             if (response.code === 200) {
                 setLessons(response.data);
+                if (response.pagination) {
+                    setPagination({
+                        total: response.pagination.total,
+                        totalPages: response.pagination.totalPages,
+                    });
+                }
             }
         } catch (error) {
             console.error("Error fetching lessons:", error);
@@ -73,18 +101,10 @@ export default function LessonsPage() {
         }
     };
 
-    const filteredLessons = lessons.filter((lesson) => {
-        const matchesSearch = lesson.title
-            .toLowerCase()
-            .includes(searchTerm.toLowerCase());
-        const matchesSkill = skillFilter === "all" || lesson.skill === skillFilter;
-        const matchesStatus =
-            statusFilter === "all" || lesson.status === statusFilter;
-        return matchesSearch && matchesSkill && matchesStatus;
-    });
+    const displayLessons = lessons;
 
     return (
-        <div className="p-6 max-w-7xl mx-auto">
+        <div className="p-6 mx-auto">
             <div className="mb-8">
                 <h1 className="text-3xl font-bold text-gray-900 mb-2">
                     Lessons Management
@@ -143,10 +163,10 @@ export default function LessonsPage() {
                         <div>
                             <p className="text-sm text-gray-600 mb-1">Total Lessons</p>
                             <p className="text-2xl font-bold text-gray-900">
-                                {lessons.length}
+                                {lessons?.length || 0}
                             </p>
                         </div>
-                        <FileText className="w-8 h-8 text-blue-600" />
+                        <BookOpen className="w-8 h-8 text-blue-600" />
                     </div>
                 </div>
 
@@ -155,9 +175,10 @@ export default function LessonsPage() {
                         <div>
                             <p className="text-sm text-gray-600 mb-1">Published</p>
                             <p className="text-2xl font-bold text-green-600">
-                                {lessons.filter((l) => l.status === "published").length}
+                                {(lessons || []).filter((l) => l.status === STATUS.ACTIVE).length}
                             </p>
                         </div>
+                        <CheckCircle2 className="w-8 h-8 text-green-600" />
                     </div>
                 </div>
 
@@ -166,9 +187,10 @@ export default function LessonsPage() {
                         <div>
                             <p className="text-sm text-gray-600 mb-1">Drafts</p>
                             <p className="text-2xl font-bold text-yellow-600">
-                                {lessons.filter((l) => l.status === "draft").length}
+                                {(lessons || []).filter((l) => l.status === STATUS.DRAFT).length}
                             </p>
                         </div>
+                        <FileText className="w-8 h-8 text-yellow-600" />
                     </div>
                 </div>
 
@@ -177,9 +199,10 @@ export default function LessonsPage() {
                         <div>
                             <p className="text-sm text-gray-600 mb-1">Total Blocks</p>
                             <p className="text-2xl font-bold text-purple-600">
-                                {lessons.reduce((sum, l) => sum + (l.blocks?.length || 0), 0)}
+                                {(lessons || []).reduce((sum, l) => sum + (l.blocks?.length || 0), 0)}
                             </p>
                         </div>
+                        <Grid className="w-8 h-8 text-purple-600" />
                     </div>
                 </div>
             </div>
@@ -218,17 +241,16 @@ export default function LessonsPage() {
                                         </div>
                                     </td>
                                 </tr>
-                            ) : filteredLessons.length === 0 ? (
+                            ) : displayLessons.length === 0 ? (
                                 <tr>
-                                    <td colSpan={6} className="px-6 py-12 text-center">
-                                        <FileText className="w-12 h-12 mx-auto mb-3 text-gray-400 opacity-50" />
-                                        <p className="text-lg font-medium text-gray-400">
-                                            No lessons found
+                                    <td colSpan={7} className="px-6 py-12 text-center">
+                                        <p className="text-gray-500">
+                                            No lessons found matching your criteria
                                         </p>
                                     </td>
                                 </tr>
                             ) : (
-                                filteredLessons.map((lesson) => (
+                                displayLessons.map((lesson) => (
                                     <tr
                                         key={lesson._id}
                                         className="hover:bg-gray-50 transition-colors"
@@ -275,9 +297,9 @@ export default function LessonsPage() {
                                             <span
                                                 className={cn(
                                                     "inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold",
-                                                    lesson.status === "published"
+                                                    lesson.status === STATUS.ACTIVE
                                                         ? "bg-green-100 text-green-700"
-                                                        : lesson.status === "draft"
+                                                        : lesson.status === STATUS.DRAFT
                                                             ? "bg-yellow-100 text-yellow-700"
                                                             : "bg-gray-100 text-gray-700"
                                                 )}
@@ -313,6 +335,56 @@ export default function LessonsPage() {
                         </tbody>
                     </table>
                 </div>
+                {/* Pagination */}
+                {pagination && pagination.totalPages > 1 && (
+                    <div className="mt-6 flex items-center justify-between border-t pt-4 px-6">
+                        <div className="text-sm text-gray-600">
+                            Showing page {currentPage} of {pagination.totalPages} ({pagination.total} total lessons)
+                        </div>
+                        <div className="flex gap-2">
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                                disabled={currentPage === 1}
+                            >
+                                Previous
+                            </Button>
+                            {Array.from({ length: pagination.totalPages }, (_, i) => i + 1)
+                                .filter(page => {
+                                    // Show first, last, current, and pages around current
+                                    return page === 1 ||
+                                        page === pagination!.totalPages ||
+                                        Math.abs(page - currentPage) <= 1;
+                                })
+                                .map((page, idx, arr) => {
+                                    // Add ellipsis if there's a gap
+                                    const showEllipsisBefore = idx > 0 && page - arr[idx - 1] > 1;
+                                    return (
+                                        <div key={page} className="flex items-center gap-2">
+                                            {showEllipsisBefore && <span className="px-2 text-gray-400">...</span>}
+                                            <Button
+                                                variant={page === currentPage ? "default" : "outline"}
+                                                size="sm"
+                                                onClick={() => setCurrentPage(page)}
+                                                className={page === currentPage ? "bg-blue-600 text-white" : ""}
+                                            >
+                                                {page}
+                                            </Button>
+                                        </div>
+                                    );
+                                })}
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setCurrentPage(prev => Math.min(pagination!.totalPages, prev + 1))}
+                                disabled={currentPage === pagination.totalPages}
+                            >
+                                Next
+                            </Button>
+                        </div>
+                    </div>
+                )}
             </div>
         </div>
     );

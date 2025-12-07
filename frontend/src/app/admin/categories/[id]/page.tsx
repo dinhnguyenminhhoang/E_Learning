@@ -20,7 +20,6 @@ export default function EditCategoryPage() {
     const [formData, setFormData] = useState({
         name: "",
         nameVi: "",
-        slug: "",
         description: "",
         status: "active" as "active" | "inactive",
     });
@@ -38,7 +37,6 @@ export default function EditCategoryPage() {
                 setFormData({
                     name: response.data.name,
                     nameVi: response.data.nameVi,
-                    slug: response.data.slug,
                     description: response.data.description || "",
                     status: response.data.status,
                 });
@@ -57,8 +55,8 @@ export default function EditCategoryPage() {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
-        if (!formData.name.trim() || !formData.nameVi.trim() || !formData.slug.trim()) {
-            toast.error("Name, Name (VI), and Slug are required");
+        if (!formData.name.trim() || !formData.nameVi.trim()) {
+            toast.error("Name and Name (VI) are required");
             return;
         }
 
@@ -115,7 +113,7 @@ export default function EditCategoryPage() {
     }
 
     return (
-        <div className="p-6 max-w-4xl mx-auto">
+        <div className="p-6 mx-auto">
             {/* Header */}
             <div className="mb-8">
                 <Button
@@ -194,25 +192,6 @@ export default function EditCategoryPage() {
                                 className="w-full"
                             />
                         </div>
-                    </div>
-
-                    {/* Slug */}
-                    <div>
-                        <label className="block text-sm font-semibold text-gray-700 mb-2">
-                            Slug <span className="text-red-500">*</span>
-                        </label>
-                        <Input
-                            type="text"
-                            name="slug"
-                            value={formData.slug}
-                            onChange={handleChange}
-                            placeholder="e.g., programming"
-                            required
-                            className="w-full"
-                        />
-                        <p className="text-xs text-gray-500 mt-1">
-                            URL-friendly identifier
-                        </p>
                     </div>
 
                     {/* Description */}
@@ -315,12 +294,6 @@ export default function EditCategoryPage() {
                             <p className="text-xs text-gray-500">Name (VI)</p>
                             <p className="text-sm text-gray-700">
                                 {formData.nameVi || "Tên danh mục"}
-                            </p>
-                        </div>
-                        <div>
-                            <p className="text-xs text-gray-500">Slug</p>
-                            <p className="text-sm font-mono text-blue-600">
-                                {formData.slug || "category-slug"}
                             </p>
                         </div>
                         <div>

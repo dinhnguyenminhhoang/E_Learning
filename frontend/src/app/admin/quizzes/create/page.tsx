@@ -3,22 +3,43 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { quizAdminService } from "@/services/quizAdmin.service";
-import { CreateQuizInput } from "@/types/admin";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ArrowLeft, Save } from "lucide-react";
 import { toast } from "react-hot-toast";
 
+// Skill options matching backend enum
+const SKILL_OPTIONS = [
+    { value: "reading", label: "Reading" },
+    { value: "listening", label: "Listening" },
+    { value: "writing", label: "Writing" },
+    { value: "speaking", label: "Speaking" },
+    { value: "grammar", label: "Grammar" },
+    { value: "vocabulary", label: "Vocabulary" },
+];
+
+// Difficulty options matching backend enum
+const DIFFICULTY_OPTIONS = [
+    { value: "EASY", label: "Easy" },
+    { value: "MEDIUM", label: "Medium" },
+    { value: "HARD", label: "Hard" },
+];
+
+// Status options
+const STATUS_OPTIONS = [
+    { value: "draft", label: "Draft" },
+    { value: "active", label: "Active" },
+    { value: "archived", label: "Archived" },
+];
+
 export default function CreateQuizPage() {
     const router = useRouter();
     const [loading, setLoading] = useState(false);
-    const [formData, setFormData] = useState<CreateQuizInput>({
+    const [formData, setFormData] = useState({
         title: "",
-        description: "",
         skill: "grammar",
-        difficulty: "beginner",
-        timeLimit: 600,
-        passingScore: 70,
+        difficulty: "EASY",
+        xpReward: 50,
         status: "draft",
     });
 
@@ -32,7 +53,7 @@ export default function CreateQuizPage() {
 
         try {
             setLoading(true);
-            const response = await quizAdminService.create(formData);
+            const response = await quizAdminService.create(formData as any);
             if (response.code === 201) {
                 toast.success("Quiz created successfully!");
                 router.push("/admin/quizzes");
@@ -53,12 +74,12 @@ export default function CreateQuizPage() {
         const { name, value } = e.target;
         setFormData((prev) => ({
             ...prev,
-            [name]: name === "timeLimit" || name === "passingScore" ? Number(value) : value,
+            [name]: name === "xpReward" ? Number(value) : value,
         }));
     };
 
     return (
-        <div className="p-6 max-w-4xl mx-auto">
+        <div className="p-6 mx-auto">
             <div className="mb-8">
                 <Button variant="ghost" onClick={() => router.back()} className="mb-4 -ml-2">
                     <ArrowLeft className="w-4 h-4 mr-2" />
@@ -89,14 +110,19 @@ export default function CreateQuizPage() {
                             <label className="block text-sm font-semibold text-gray-700 mb-2">
                                 Skill <span className="text-red-500">*</span>
                             </label>
-                            <Input
-                                type="text"
+                            <select
                                 name="skill"
                                 value={formData.skill}
                                 onChange={handleChange}
-                                placeholder="e.g., grammar, vocabulary"
                                 required
-                            />
+                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                            >
+                                {SKILL_OPTIONS.map((option) => (
+                                    <option key={option.value} value={option.value}>
+                                        {option.label}
+                                    </option>
+                                ))}
+                            </select>
                         </div>
 
                         <div>
@@ -110,43 +136,29 @@ export default function CreateQuizPage() {
                                 required
                                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                             >
-                                <option value="beginner">Beginner</option>
-                                <option value="intermediate">Intermediate</option>
-                                <option value="advanced">Advanced</option>
+                                {DIFFICULTY_OPTIONS.map((option) => (
+                                    <option key={option.value} value={option.value}>
+                                        {option.label}
+                                    </option>
+                                ))}
                             </select>
                         </div>
 
                         <div>
                             <label className="block text-sm font-semibold text-gray-700 mb-2">
-                                Time Limit (seconds)
+                                XP Reward
                             </label>
                             <Input
                                 type="number"
-                                name="timeLimit"
-                                value={formData.timeLimit || ""}
+                                name="xpReward"
+                                value={formData.xpReward}
                                 onChange={handleChange}
-                                placeholder="600"
+                                placeholder="50"
                                 min="0"
                             />
                             <p className="text-xs text-gray-500 mt-1">
-                                Leave empty for no time limit
+                                Experience points awarded for completing the quiz
                             </p>
-                        </div>
-
-                        <div>
-                            <label className="block text-sm font-semibold text-gray-700 mb-2">
-                                Passing Score (%) <span className="text-red-500">*</span>
-                            </label>
-                            <Input
-                                type="number"
-                                name="passingScore"
-                                value={formData.passingScore}
-                                onChange={handleChange}
-                                placeholder="70"
-                                min="0"
-                                max="100"
-                                required
-                            />
                         </div>
 
                         <div>
@@ -160,23 +172,12 @@ export default function CreateQuizPage() {
                                 required
                                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                             >
-                                <option value="draft">Draft</option>
-                                <option value="published">Published</option>
+                                {STATUS_OPTIONS.map((option) => (
+                                    <option key={option.value} value={option.value}>
+                                        {option.label}
+                                    </option>
+                                ))}
                             </select>
-                        </div>
-
-                        <div className="md:col-span-2">
-                            <label className="block text-sm font-semibold text-gray-700 mb-2">
-                                Description
-                            </label>
-                            <textarea
-                                name="description"
-                                value={formData.description}
-                                onChange={handleChange}
-                                placeholder="Brief description of this quiz"
-                                rows={4}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none"
-                            />
                         </div>
                     </div>
 

@@ -1,4 +1,3 @@
-// src/app/admin/words/create/page.tsx
 "use client";
 
 import { useState } from "react";
@@ -467,14 +466,14 @@ export default function CreateWordPage() {
                                   onCheckedChange={(checked) => {
                                     return checked
                                       ? field.onChange([
-                                          ...field.value,
-                                          category._id,
-                                        ])
+                                        ...field.value,
+                                        category._id,
+                                      ])
                                       : field.onChange(
-                                          field.value?.filter(
-                                            (value) => value !== category._id
-                                          )
-                                        );
+                                        field.value?.filter(
+                                          (value) => value !== category._id
+                                        )
+                                      );
                                   }}
                                 />
                               </FormControl>

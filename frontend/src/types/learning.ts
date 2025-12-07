@@ -25,7 +25,7 @@ export interface WordLevel {
 }
 export interface Block {
   _id: string;
-  type: "vocabulary" | "grammar" | "quiz" | "media";
+  type: "vocabulary" | "grammar" | "quiz" | "media" | "video";
   title?: string;
   description?: string;
   skill: string;
@@ -50,6 +50,11 @@ export interface SubTopic {
   total: number;
   icon: string;
   blocks?: Block[];
+  isCompleted?: boolean;
+  isLearned?: boolean;
+  lastAccessedAt?: string | null;
+  completedAt?: string | null;
+  isLocked?: boolean;
 }
 
 export interface TopicList {

@@ -97,12 +97,9 @@ class CategoryService {
 
   async findAllCategories() {
     const categories = await categoryRepository.findCategories();
-    if (!categories || categories.length === 0) {
-      return ResponseBuilder.notFoundError();
-    }
     return ResponseBuilder.success(
       RESPONSE_MESSAGES.SUCCESS.FETCHED,
-      categories
+      categories || []
     );
   }
 

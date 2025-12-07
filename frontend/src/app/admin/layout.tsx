@@ -1,4 +1,3 @@
-// src/app/admin/layout.tsx
 "use client";
 
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";

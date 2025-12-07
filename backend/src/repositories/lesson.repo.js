@@ -56,6 +56,20 @@ class LessonRepository {
     return lesson;
   }
 
+  async findByIdWithFullDetails(lessonId) {
+    const lesson = await Lesson.findById(lessonId)
+      .populate("categoryId", "name")
+      .populate({
+        path: "blocks.block",
+        populate: [
+          { path: "cardDeck" }, // for vocabulary blocks
+        ],
+      })
+      .populate("blocks.exercise") // for quiz attached to blocks
+      .lean();
+    return lesson;
+  }
+
   async createLesson(lessonData) {
     const lesson = new Lesson(lessonData);
     return lesson.save();

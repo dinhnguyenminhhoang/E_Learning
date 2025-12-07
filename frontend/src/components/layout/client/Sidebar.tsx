@@ -11,6 +11,7 @@ import {
   ChevronRight,
   Trophy,
   User,
+  ClipboardList,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -30,6 +31,7 @@ type Item = {
 const items: Item[] = [
   { id: "home", label: "Home", href: "/learn", icon: Home },
   { id: "learning", label: "Learning", href: "/topic-list", icon: GraduationCap },
+  { id: "exams", label: "Exams", href: "/exams", icon: ClipboardList },
   { id: "wordlist", label: "Word list", href: "/my-wordlist", icon: BookOpen },
   { id: "leaderboard", label: "Leaderboard", href: "/leaderboard", icon: Trophy },
 ];

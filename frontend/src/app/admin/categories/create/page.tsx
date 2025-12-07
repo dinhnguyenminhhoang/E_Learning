@@ -15,7 +15,6 @@ export default function CreateCategoryPage() {
     const [formData, setFormData] = useState<CreateCategoryInput>({
         name: "",
         nameVi: "",
-        slug: "",
         description: "",
         status: "active",
     });
@@ -23,8 +22,8 @@ export default function CreateCategoryPage() {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
-        if (!formData.name.trim() || !formData.nameVi.trim() || !formData.slug.trim()) {
-            toast.error("Name, Name (VI), and Slug are required");
+        if (!formData.name.trim() || !formData.nameVi.trim()) {
+            toast.error("Name and Name (VI) are required");
             return;
         }
 
@@ -49,16 +48,7 @@ export default function CreateCategoryPage() {
         >
     ) => {
         const { name, value } = e.target;
-        setFormData((prev) => {
-            let newState = { ...prev, [name]: value };
-
-            // Auto-generate slug from name if name field is changed and slug is not manually set
-            if (name === "name" && !prev.slug) {
-                const autoSlug = value.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "");
-                newState = { ...newState, slug: autoSlug };
-            }
-            return newState;
-        });
+        setFormData((prev) => ({ ...prev, [name]: value }));
     };
 
     return (
@@ -114,25 +104,6 @@ export default function CreateCategoryPage() {
                                 className="w-full"
                             />
                         </div>
-                    </div>
-
-                    {/* Slug */}
-                    <div>
-                        <label className="block text-sm font-semibold text-gray-700 mb-2">
-                            Slug <span className="text-red-500">*</span>
-                        </label>
-                        <Input
-                            type="text"
-                            name="slug"
-                            value={formData.slug}
-                            onChange={handleChange}
-                            placeholder="e.g., programming"
-                            required
-                            className="w-full"
-                        />
-                        <p className="text-xs text-gray-500 mt-1">
-                            URL-friendly identifier (auto-generated from name)
-                        </p>
                     </div>
 
                     {/* Description */}
@@ -214,12 +185,6 @@ export default function CreateCategoryPage() {
                             <p className="text-xs text-gray-500">Name (VI)</p>
                             <p className="text-sm text-gray-700">
                                 {formData.nameVi || "Tên danh mục"}
-                            </p>
-                        </div>
-                        <div>
-                            <p className="text-xs text-gray-500">Slug</p>
-                            <p className="text-sm font-mono text-blue-600">
-                                {formData.slug || "category-slug"}
                             </p>
                         </div>
                         <div>

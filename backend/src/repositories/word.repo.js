@@ -49,7 +49,7 @@ class WordRepository {
     try {
       const { populate = true, lean = false } = options;
 
-      let query = this.model.findOne({ _id: id, isActive: true });
+      let query = this.model.findById(id);
 
       if (populate) {
         query = query.populate(this.defaultPopulate);

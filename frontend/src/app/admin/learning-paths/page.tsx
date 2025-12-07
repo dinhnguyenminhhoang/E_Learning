@@ -68,7 +68,7 @@ export default function LearningPathsPage() {
     });
 
     return (
-        <div className="p-6 max-w-7xl mx-auto">
+        <div className="p-6 mx-auto">
             <div className="mb-8">
                 <h1 className="text-3xl font-bold text-gray-900 mb-2">
                     Learning Paths Management
@@ -141,7 +141,7 @@ export default function LearningPathsPage() {
                         <div>
                             <p className="text-sm text-gray-600 mb-1">Total Levels</p>
                             <p className="text-2xl font-bold text-purple-600">
-                                {paths.reduce((sum, p) => sum + p.levels.length, 0)}
+                                {paths.reduce((sum, p) => sum + (p.levels?.length || 0), 0)}
                             </p>
                         </div>
                     </div>
@@ -209,7 +209,9 @@ export default function LearningPathsPage() {
                                         </td>
                                         <td className="px-6 py-4">
                                             <div className="space-y-1">
-                                                <p className="text-sm text-gray-700">{path.target}</p>
+                                                <p className="text-sm text-gray-700">
+                                                    {typeof path.target === 'object' ? path.target?.name : path.target || 'N/A'}
+                                                </p>
                                                 <p className="text-xs text-gray-500 font-mono">
                                                     {path.key}
                                                 </p>
@@ -231,7 +233,7 @@ export default function LearningPathsPage() {
                                         </td>
                                         <td className="px-6 py-4 text-center">
                                             <span className="text-sm font-medium text-gray-700">
-                                                {path.levels.length}
+                                                {path.levels?.length || 0}
                                             </span>
                                         </td>
                                         <td className="px-6 py-4 text-center">

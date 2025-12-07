@@ -88,7 +88,7 @@ export default function CreateLearningPathPage() {
     };
 
     return (
-        <div className="p-6 max-w-4xl mx-auto">
+        <div className="p-6 mx-auto">
             <div className="mb-8">
                 <Button variant="ghost" onClick={() => router.back()} className="mb-4 -ml-2">
                     <ArrowLeft className="w-4 h-4 mr-2" />

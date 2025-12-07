@@ -12,9 +12,9 @@ class QuizService {
     const { title, attachedTo, questions, xpReward, thumbnail, audio, tags, skill } =
       req.body || {};
 
-    if (!title || !attachedTo?.kind || !attachedTo?.item || !skill) {
+    if (!title || !skill) {
       return ResponseBuilder.badRequest(
-        "Thiếu thông tin bắt buộc: title, attachedTo.kind, attachedTo.item, skill."
+        "Thiếu thông tin bắt buộc: title, skill."
       );
     }
 
@@ -53,10 +53,10 @@ class QuizService {
     }
 
     const added = await QuizRepository.createQuiz(quizData);
-    return ResponseBuilder.success({
-      message: "Tạo quiz thành công!",
-      data: added,
-    });
+    return ResponseBuilder.success(
+      "Tạo quiz thành công!",
+      added
+    );
   }
 
   async addQuestions(req) {
@@ -73,10 +73,12 @@ class QuizService {
 
     const updatedQuiz = await QuizRepository.addQuestions(quizId, questions);
 
-    return ResponseBuilder.success({
-      message: "Thêm câu hỏi vào quiz thành công",
-      data: updatedQuiz,
-    });
+
+
+    return ResponseBuilder.success(
+      "Thêm câu hỏi vào quiz thành công",
+      updatedQuiz
+    );
   }
 
   async getQuizById(req) {
@@ -86,24 +88,24 @@ class QuizService {
       "Không tìm thấy quiz.",
       HTTP_STATUS.NOT_FOUND
     );
-    return ResponseBuilder.success({
-      message: "Lấy dữ liệu quiz thành công",
-      data: quiz,
-    });
+    return ResponseBuilder.success(
+      "Lấy dữ liệu quiz thành công",
+      quiz
+    );
   }
 
   async getAllQuizzes(req) {
     const quizzes = await QuizRepository.getAllQuizzes(req);
-    return ResponseBuilder.success({
-      message: "Lấy danh sách quiz thành công",
-      data: quizzes,
-      pagination: {
+    return ResponseBuilder.successWithPagination(
+      "Lấy danh sách quiz thành công",
+      quizzes.quiz,
+      {
         total: quizzes.total,
         pageNum: quizzes.pageNum,
         pageSize: quizzes.pageSize,
         totalPages: quizzes.totalPages,
-      },
-    });
+      }
+    );
   }
 
   async updateQuiz(req) {
@@ -133,10 +135,12 @@ class QuizService {
     quizUpdates.updatedBy = req.user?.id || null;
 
     const updatedQuiz = await QuizRepository.updateQuiz(quizId, quizUpdates);
-    return ResponseBuilder.success({
-      message: "Cập nhật quiz thành công",
-      data: updatedQuiz,
-    });
+    console.log("Updated quiz result:", JSON.stringify(updatedQuiz));
+
+    return ResponseBuilder.success(
+      "Cập nhật quiz thành công",
+      updatedQuiz
+    );
   }
 
   async deleteQuiz(req) {
@@ -149,6 +153,69 @@ class QuizService {
 
     await QuizRepository.deleteSoftQuiz(toObjectId(quizId));
     return ResponseBuilder.success("Xóa dữ liệu quiz thành công");
+  }
+
+  async updateQuestion(req) {
+    const { id: quizId, questionId } = req.params;
+    const questionData = req.body;
+
+    const existingQuiz = await QuizRepository.getQuizById(toObjectId(quizId));
+    if (!existingQuiz) {
+      return ResponseBuilder.error(
+        "Không tìm thấy quiz.",
+        HTTP_STATUS.NOT_FOUND
+      );
+    }
+
+    const questionExists = existingQuiz.questions.some(
+      q => q._id.toString() === questionId
+    );
+    if (!questionExists) {
+      return ResponseBuilder.error(
+        "Không tìm thấy câu hỏi trong quiz.",
+        HTTP_STATUS.NOT_FOUND
+      );
+    }
+
+    const updatedQuiz = await QuizRepository.updateQuestion(
+      quizId,
+      questionId,
+      questionData
+    );
+
+    return ResponseBuilder.success(
+      "Cập nhật câu hỏi thành công",
+      updatedQuiz
+    );
+  }
+
+  async deleteQuestion(req) {
+    const { id: quizId, questionId } = req.params;
+
+    const existingQuiz = await QuizRepository.getQuizById(toObjectId(quizId));
+    if (!existingQuiz) {
+      return ResponseBuilder.error(
+        "Không tìm thấy quiz.",
+        HTTP_STATUS.NOT_FOUND
+      );
+    }
+
+    const questionExists = existingQuiz.questions.some(
+      q => q._id.toString() === questionId
+    );
+    if (!questionExists) {
+      return ResponseBuilder.error(
+        "Không tìm thấy câu hỏi trong quiz.",
+        HTTP_STATUS.NOT_FOUND
+      );
+    }
+
+    const updatedQuiz = await QuizRepository.deleteQuestion(quizId, questionId);
+
+    return ResponseBuilder.success(
+      "Xóa câu hỏi thành công",
+      updatedQuiz
+    );
   }
 }
 

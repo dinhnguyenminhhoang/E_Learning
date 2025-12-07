@@ -16,6 +16,7 @@ import {
   ChevronDown,
   ChevronRight,
   Target,
+  ClipboardList,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -62,6 +63,12 @@ const menuItems: MenuItem[] = [
         label: "Quizzes",
         href: "/admin/quizzes",
         icon: HelpCircle,
+      },
+      {
+        id: "exams",
+        label: "Exams",
+        href: "/admin/exams",
+        icon: ClipboardList,
       },
     ],
   },

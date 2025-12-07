@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { learningPathService } from "@/services/learningPath.service";
+import { blockService, QuizAttempt, QuizAnswer } from "@/services/block.service";
 import { Block } from "@/types/learning";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -22,6 +23,15 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "react-hot-toast";
+import { QuizModal } from "./components/QuizModal";
+import { QuizResults } from "./components/QuizResults";
+
+interface BlockWithLock extends Block {
+    isLocked?: boolean;
+    isCompleted?: boolean;
+    isLearned?: boolean;
+    progressPercentage?: number;
+}
 
 export default function LearningPage() {
     const params = useParams();
@@ -30,18 +40,40 @@ export default function LearningPage() {
     const lessonId = params.lessonId as string;
     const pathId = searchParams.get("pathId");
 
-    const [blocks, setBlocks] = useState<Block[]>([]);
+    const [blocks, setBlocks] = useState<BlockWithLock[]>([]);
     const [loading, setLoading] = useState(true);
     const [activeBlockId, setActiveBlockId] = useState<string | null>(null);
     const [lessonTitle, setLessonTitle] = useState("Lesson Detail");
     const [sidebarOpen, setSidebarOpen] = useState(true);
-    const [completedBlocks, setCompletedBlocks] = useState<Set<string>>(new Set());
+    const [totalBlocks, setTotalBlocks] = useState(0);
+    const [completedCount, setCompletedCount] = useState(0);
+
+    const [quizAttempt, setQuizAttempt] = useState<QuizAttempt | null>(null);
+    const [showQuizModal, setShowQuizModal] = useState(false);
+    const [showResultsModal, setShowResultsModal] = useState(false);
+    const [quizResult, setQuizResult] = useState<QuizAttempt | null>(null);
+
+    const videoRef = useRef<HTMLIFrameElement>(null);
+    const heartbeatIntervalRef = useRef<NodeJS.Timeout | null>(null);
+    const [videoProgress, setVideoProgress] = useState({ maxWatchedTime: 0, videoDuration: 0 });
 
     useEffect(() => {
         if (lessonId) {
             fetchBlocks();
         }
     }, [lessonId]);
+
+    useEffect(() => {
+        if (activeBlockId && activeBlock) {
+            handleBlockStart();
+        }
+
+        return () => {
+            if (heartbeatIntervalRef.current) {
+                clearInterval(heartbeatIntervalRef.current);
+            }
+        };
+    }, [activeBlockId]);
 
     const fetchBlocks = async () => {
         try {
@@ -53,9 +85,24 @@ export default function LearningPage() {
             }) as any;
 
             if (response.code === 200 && response.data) {
-                setBlocks(response.data);
-                if (response.data.length > 0) {
-                    setActiveBlockId(response.data[0]._id);
+                const blocksData = response.data.blocks || [];
+
+                const blocksWithLock = blocksData.map((block: any, index: number) => {
+                    const previousBlock = index > 0 ? blocksData[index - 1] : null;
+                    const isLocked = index > 0 && previousBlock && !previousBlock.isCompleted;
+
+                    return {
+                        ...block,
+                        isLocked: isLocked
+                    };
+                });
+
+                setBlocks(blocksWithLock);
+                setTotalBlocks(response.data.totalBlocks || blocksWithLock.length);
+                setCompletedCount(response.data.completedBlocks || 0);
+
+                if (blocksWithLock.length > 0) {
+                    setActiveBlockId(blocksWithLock[0]._id);
                 }
             }
         } catch (error) {
@@ -66,43 +113,151 @@ export default function LearningPage() {
         }
     };
 
+    const handleBlockStart = async () => {
+        if (!activeBlockId || !pathId) return;
+
+        try {
+            await blockService.startBlock(activeBlockId, pathId);
+
+            if (activeBlock?.type === "video" || activeBlock?.type === "media") {
+                startVideoHeartbeat();
+            }
+        } catch (error) {
+            console.error("Error starting block:", error);
+        }
+    };
+
+    const startVideoHeartbeat = () => {
+        if (heartbeatIntervalRef.current) {
+            clearInterval(heartbeatIntervalRef.current);
+        }
+
+        heartbeatIntervalRef.current = setInterval(async () => {
+            if (!activeBlockId) return;
+
+            try {
+                const response = await blockService.sendVideoHeartbeat(
+                    activeBlockId,
+                    videoProgress.maxWatchedTime,
+                    videoProgress.videoDuration
+                );
+
+                if (response.code === 200 && response.message?.data) {
+                    const { isCompleted, isLearned, progressPercentage } = response.message.data;
+
+                    updateBlockProgress(activeBlockId, {
+                        isCompleted,
+                        isLearned,
+                        progressPercentage
+                    });
+
+                    if (isLearned && !isCompleted) {
+                        toast.success("Video completed! Ready for quiz.");
+                    }
+                }
+            } catch (error) {
+                console.error("Error sending heartbeat:", error);
+            }
+        }, 5000);
+    };
+
+    const updateBlockProgress = (blockId: string, updates: Partial<BlockWithLock>) => {
+        setBlocks(prev => prev.map(block =>
+            block._id === blockId ? { ...block, ...updates } : block
+        ));
+    };
+
+    const handleStartQuiz = async () => {
+        if (!activeBlockId) return;
+
+        try {
+            const response = await blockService.startQuiz(activeBlockId);
+
+            if (response.code === 200 && response.data) {
+                setQuizAttempt(response.data.attempt);
+                setShowQuizModal(true);
+            }
+        } catch (error) {
+            console.error("Error starting quiz:", error);
+            toast.error("Failed to start quiz");
+        }
+    };
+
+    const handleSubmitQuiz = async (answers: QuizAnswer[]) => {
+        if (!quizAttempt) return;
+
+        try {
+            const response = await blockService.submitQuiz(quizAttempt._id, answers);
+
+            if (response.code === 200 && response.data) {
+                setQuizResult(response.data.attempt);
+                setShowQuizModal(false);
+                setShowResultsModal(true);
+
+                if (response.data.isBlockCompleted) {
+                    toast.success("Block completed!");
+                    await fetchBlocks();
+                }
+            }
+        } catch (error) {
+            console.error("Error submitting quiz:", error);
+            toast.error("Failed to submit quiz");
+        }
+    };
+
+    const handleRetryQuiz = () => {
+        setShowResultsModal(false);
+        setQuizResult(null);
+        handleStartQuiz();
+    };
+
+    const handleContinue = () => {
+        setShowResultsModal(false);
+        setQuizResult(null);
+        handleNext();
+    };
+
     const activeBlock = blocks.find(b => b._id === activeBlockId);
     const activeBlockIndex = blocks.findIndex(b => b._id === activeBlockId);
-    const progress = blocks.length > 0 ? Math.round((completedBlocks.size / blocks.length) * 100) : 0;
+    const progress = totalBlocks > 0 ? Math.round((completedCount / totalBlocks) * 100) : 0;
 
     const getIcon = (type: string) => {
         switch (type) {
-            case "media": return <PlayCircle className="w-4 h-4" />;
+            case "media":
+            case "video":
+                return <PlayCircle className="w-4 h-4" />;
             case "quiz": return <HelpCircle className="w-4 h-4" />;
             case "grammar": return <BookOpen className="w-4 h-4" />;
             default: return <FileText className="w-4 h-4" />;
         }
     };
 
-    const handleMarkComplete = () => {
-        if (activeBlockId) {
-            setCompletedBlocks(prev => new Set(prev).add(activeBlockId));
-            toast.success("Marked as complete!");
-        }
-    };
-
     const handleNext = () => {
         if (activeBlockIndex < blocks.length - 1) {
-            setActiveBlockId(blocks[activeBlockIndex + 1]._id);
-            window.scrollTo({ top: 0, behavior: 'smooth' });
+            const nextBlock = blocks[activeBlockIndex + 1];
+            if (!nextBlock.isLocked) {
+                setActiveBlockId(nextBlock._id);
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            } else {
+                toast.error("Complete the current lesson to unlock the next one");
+            }
         }
     };
 
     const handlePrevious = () => {
         if (activeBlockIndex > 0) {
             setActiveBlockId(blocks[activeBlockIndex - 1]._id);
-            window.scrollTo({ top: 0, behavior: 'smooth' });
+            window.scrollTo({ top: 0, behavior: 'smooth' })
         }
     };
 
+    const showStartQuizButton = activeBlock && (
+        ((activeBlock.type === "video" || activeBlock.type === "media") && activeBlock.isLearned && !activeBlock.isCompleted) ||
+        (activeBlock.type === "quiz")
+    );
+
     return (
         <div className="flex flex-col h-screen bg-gradient-to-br from-gray-50 to-gray-100">
-            {/* Enhanced Header */}
             <header className="h-16 bg-white border-b border-gray-200 shadow-sm flex items-center px-4 md:px-6 justify-between shrink-0 z-10">
                 <div className="flex items-center gap-3">
                     <Button
@@ -123,13 +278,11 @@ export default function LearningPage() {
                 </div>
 
                 <div className="flex items-center gap-3">
-                    {/* Progress Badge */}
                     <div className="hidden sm:flex items-center gap-2 bg-gradient-to-r from-blue-50 to-indigo-50 px-4 py-2 rounded-full border border-blue-200">
                         <Award className="w-4 h-4 text-blue-600" />
                         <span className="text-sm font-semibold text-blue-700">{progress}%</span>
                     </div>
 
-                    {/* Mobile Menu Toggle */}
                     <Button
                         variant="ghost"
                         size="icon"
@@ -142,39 +295,30 @@ export default function LearningPage() {
             </header>
 
             <div className="flex-1 flex overflow-hidden relative">
-                {/* Main Content Area */}
                 <div className="flex-1 bg-white relative flex flex-col overflow-y-auto">
                     {activeBlock ? (
-                        activeBlock.type === "media" ? (
+                        activeBlock.type === "video" || activeBlock.type === "media" ? (
                             <div className="w-full flex flex-col">
-                                {/* Video Container with Modern Styling */}
                                 <div className="w-full bg-black relative">
                                     <div className="max-w-7xl mx-auto">
                                         <div className="aspect-video bg-black">
-                                            {activeBlock.sourceUrl && activeBlock.sourceType === 'youtube' ? (
-                                                <iframe
-                                                    src={activeBlock.sourceUrl}
-                                                    className="w-full h-full"
-                                                    allowFullScreen
-                                                    title={activeBlock.title}
-                                                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                                                />
-                                            ) : (
-                                                <div className="flex flex-col items-center justify-center h-full text-gray-400 gap-4">
-                                                    <div className="w-20 h-20 rounded-full bg-gray-800 flex items-center justify-center">
-                                                        <PlayCircle className="w-10 h-10" />
-                                                    </div>
-                                                    <p className="text-lg">Video source not available</p>
-                                                </div>
-                                            )}
+                                            <iframe
+                                                ref={videoRef}
+                                                src={activeBlock.videoUrl || "https://www.youtube.com/embed/GnecCts0msU"}
+                                                className="w-full h-full"
+                                                allowFullScreen
+                                                title={activeBlock.title}
+                                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                                onLoad={() => {
+                                                    setVideoProgress({ maxWatchedTime: 0, videoDuration: 300 });
+                                                }}
+                                            />
                                         </div>
                                     </div>
                                 </div>
 
-                                {/* Content Section */}
                                 <div className="flex-1 bg-gradient-to-b from-white to-gray-50 p-4 md:p-8">
                                     <div className="max-w-4xl mx-auto space-y-6">
-                                        {/* Title & Description */}
                                         <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-200">
                                             <h2 className="text-2xl md:text-3xl font-bold mb-3 text-gray-900">
                                                 {activeBlock.title}
@@ -184,63 +328,6 @@ export default function LearningPage() {
                                             </p>
                                         </div>
 
-                                        {/* AI Insights Card */}
-                                        <div className="bg-gradient-to-br from-purple-50 via-blue-50 to-indigo-50 rounded-2xl p-6 border border-purple-200 shadow-sm">
-                                            <div className="flex items-center gap-3 mb-5">
-                                                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center shadow-md">
-                                                    <Lightbulb className="w-5 h-5 text-white" />
-                                                </div>
-                                                <h3 className="text-xl font-bold text-gray-900">AI Lesson Insights</h3>
-                                            </div>
-
-                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                                {/* Key Vocabulary */}
-                                                <div className="bg-white/80 backdrop-blur rounded-xl p-5 border border-purple-100 shadow-sm">
-                                                    <h4 className="text-xs font-bold text-purple-600 mb-3 uppercase tracking-wider flex items-center gap-2">
-                                                        <span className="w-2 h-2 rounded-full bg-purple-500"></span>
-                                                        Key Vocabulary
-                                                    </h4>
-                                                    <div className="flex flex-wrap gap-2">
-                                                        {["Irregular", "Plural", "Noun", "Child/Children", "Person/People", "Mouse/Mice"].map(word => (
-                                                            <span
-                                                                key={word}
-                                                                className="px-3 py-2 bg-gradient-to-r from-purple-100 to-indigo-100 hover:from-purple-200 hover:to-indigo-200 text-purple-700 rounded-lg text-xs font-semibold border border-purple-200 transition-all cursor-pointer hover:shadow-md"
-                                                            >
-                                                                {word}
-                                                            </span>
-                                                        ))}
-                                                    </div>
-                                                </div>
-
-                                                {/* Summary */}
-                                                <div className="bg-white/80 backdrop-blur rounded-xl p-5 border border-blue-100 shadow-sm">
-                                                    <h4 className="text-xs font-bold text-blue-600 mb-3 uppercase tracking-wider flex items-center gap-2">
-                                                        <span className="w-2 h-2 rounded-full bg-blue-500"></span>
-                                                        Summary
-                                                    </h4>
-                                                    <p className="text-gray-700 text-sm leading-relaxed">
-                                                        This lesson covers <strong className="text-blue-700">irregular plural nouns</strong>.
-                                                        Unlike regular nouns where you add 's' or 'es', these change form completely.
-                                                    </p>
-                                                    <ul className="mt-3 space-y-1 text-sm text-gray-600">
-                                                        <li className="flex items-center gap-2">
-                                                            <ChevronRight className="w-3 h-3 text-blue-500" />
-                                                            Man → Men
-                                                        </li>
-                                                        <li className="flex items-center gap-2">
-                                                            <ChevronRight className="w-3 h-3 text-blue-500" />
-                                                            Woman → Women
-                                                        </li>
-                                                        <li className="flex items-center gap-2">
-                                                            <ChevronRight className="w-3 h-3 text-blue-500" />
-                                                            Child → Children
-                                                        </li>
-                                                    </ul>
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        {/* Navigation Buttons */}
                                         <div className="flex items-center justify-between gap-4 pt-4">
                                             <Button
                                                 variant="outline"
@@ -252,24 +339,18 @@ export default function LearningPage() {
                                                 Previous
                                             </Button>
 
-                                            <Button
-                                                onClick={handleMarkComplete}
-                                                disabled={completedBlocks.has(activeBlockId || '')}
-                                                className="flex-1 md:flex-none bg-green-600 hover:bg-green-700"
-                                            >
-                                                {completedBlocks.has(activeBlockId || '') ? (
-                                                    <>
-                                                        <CheckCircle className="w-4 h-4 mr-2" />
-                                                        Completed
-                                                    </>
-                                                ) : (
-                                                    'Mark Complete'
-                                                )}
-                                            </Button>
+                                            {showStartQuizButton && (
+                                                <Button
+                                                    onClick={handleStartQuiz}
+                                                    className="flex-1 md:flex-none bg-purple-600 hover:bg-purple-700"
+                                                >
+                                                    Start Quiz
+                                                </Button>
+                                            )}
 
                                             <Button
                                                 onClick={handleNext}
-                                                disabled={activeBlockIndex === blocks.length - 1}
+                                                disabled={activeBlockIndex === blocks.length - 1 || blocks[activeBlockIndex + 1]?.isLocked}
                                                 className="flex-1 md:flex-none bg-blue-600 hover:bg-blue-700"
                                             >
                                                 Next
@@ -328,7 +409,6 @@ export default function LearningPage() {
                                     )}
                                 </div>
 
-                                {/* Navigation Buttons */}
                                 <div className="flex items-center justify-between gap-4 mt-8">
                                     <Button
                                         variant="outline"
@@ -340,24 +420,18 @@ export default function LearningPage() {
                                         Previous
                                     </Button>
 
-                                    <Button
-                                        onClick={handleMarkComplete}
-                                        disabled={completedBlocks.has(activeBlockId || '')}
-                                        className="flex-1 md:flex-none bg-green-600 hover:bg-green-700"
-                                    >
-                                        {completedBlocks.has(activeBlockId || '') ? (
-                                            <>
-                                                <CheckCircle className="w-4 h-4 mr-2" />
-                                                Completed
-                                            </>
-                                        ) : (
-                                            'Mark Complete'
-                                        )}
-                                    </Button>
+                                    {showStartQuizButton && (
+                                        <Button
+                                            onClick={handleStartQuiz}
+                                            className="flex-1 md:flex-none bg-purple-600 hover:bg-purple-700"
+                                        >
+                                            Start Quiz
+                                        </Button>
+                                    )}
 
                                     <Button
                                         onClick={handleNext}
-                                        disabled={activeBlockIndex === blocks.length - 1}
+                                        disabled={activeBlockIndex === blocks.length - 1 || blocks[activeBlockIndex + 1]?.isLocked}
                                         className="flex-1 md:flex-none bg-blue-600 hover:bg-blue-700"
                                     >
                                         Next
@@ -373,11 +447,15 @@ export default function LearningPage() {
                                     </div>
                                     <h2 className="text-2xl font-bold mb-3 text-gray-900">{activeBlock.title}</h2>
                                     <p className="text-gray-600 mb-6 text-base">{activeBlock.description}</p>
-                                    <div className="bg-yellow-50 border border-yellow-200 rounded-xl px-6 py-3 inline-block">
-                                        <p className="text-yellow-700 font-semibold text-sm">
-                                            Content type '{activeBlock.type}' coming soon
-                                        </p>
-                                    </div>
+
+                                    {showStartQuizButton && (
+                                        <Button
+                                            onClick={handleStartQuiz}
+                                            className="bg-purple-600 hover:bg-purple-700"
+                                        >
+                                            Start Quiz
+                                        </Button>
+                                    )}
                                 </div>
                             </div>
                         )
@@ -391,7 +469,6 @@ export default function LearningPage() {
                     )}
                 </div>
 
-                {/* Enhanced Sidebar */}
                 <div className={cn(
                     "w-full md:w-96 bg-white border-l border-gray-200 flex flex-col shrink-0 shadow-xl transition-transform duration-300 absolute md:relative h-full z-20",
                     sidebarOpen ? "translate-x-0" : "translate-x-full md:translate-x-0"
@@ -401,7 +478,7 @@ export default function LearningPage() {
                             <div>
                                 <h3 className="font-bold text-gray-900 text-lg">Course Content</h3>
                                 <p className="text-sm text-gray-600 mt-1">
-                                    {completedBlocks.size} of {blocks.length} completed
+                                    {completedCount} of {totalBlocks} completed
                                 </p>
                             </div>
                             <Button
@@ -414,7 +491,6 @@ export default function LearningPage() {
                             </Button>
                         </div>
 
-                        {/* Progress Bar */}
                         <div className="mt-4">
                             <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden">
                                 <div
@@ -440,32 +516,44 @@ export default function LearningPage() {
                             ) : (
                                 blocks.map((block, index) => {
                                     const isActive = block._id === activeBlockId;
-                                    const isCompleted = completedBlocks.has(block._id);
+                                    const isCompleted = block.isCompleted || false;
+                                    const isLocked = block.isLocked || false;
 
                                     return (
                                         <button
                                             key={block._id}
                                             onClick={() => {
-                                                setActiveBlockId(block._id);
-                                                setSidebarOpen(false);
+                                                if (!isLocked) {
+                                                    setActiveBlockId(block._id);
+                                                    setSidebarOpen(false);
+                                                } else {
+                                                    toast.error("Complete the previous lesson first");
+                                                }
                                             }}
+                                            disabled={isLocked}
                                             className={cn(
                                                 "flex items-start gap-3 p-4 text-left transition-all rounded-xl mb-2 group",
-                                                isActive
-                                                    ? "bg-gradient-to-r from-blue-50 to-indigo-50 border-2 border-blue-300 shadow-md"
-                                                    : "hover:bg-gray-50 border-2 border-transparent hover:border-gray-200"
+                                                isLocked
+                                                    ? "opacity-50 cursor-not-allowed border-2 border-gray-200"
+                                                    : isActive
+                                                        ? "bg-gradient-to-r from-blue-50 to-indigo-50 border-2 border-blue-300 shadow-md"
+                                                        : "hover:bg-gray-50 border-2 border-transparent hover:border-gray-200"
                                             )}
                                         >
                                             <div className="mt-0.5 flex-shrink-0">
                                                 <div className={cn(
                                                     "w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all",
-                                                    isCompleted
-                                                        ? "bg-green-500 border-green-500"
-                                                        : isActive
-                                                            ? "border-blue-500 bg-blue-100"
-                                                            : "border-gray-300 bg-white group-hover:border-blue-400"
+                                                    isLocked
+                                                        ? "border-gray-300 bg-gray-100"
+                                                        : isCompleted
+                                                            ? "bg-green-500 border-green-500"
+                                                            : isActive
+                                                                ? "border-blue-500 bg-blue-100"
+                                                                : "border-gray-300 bg-white group-hover:border-blue-400"
                                                 )}>
-                                                    {isCompleted ? (
+                                                    {isLocked ? (
+                                                        <Lock className="w-3 h-3 text-gray-500" />
+                                                    ) : isCompleted ? (
                                                         <CheckCircle className="w-4 h-4 text-white" />
                                                     ) : (
                                                         <span className={cn(
@@ -481,9 +569,14 @@ export default function LearningPage() {
                                             <div className="flex-1 min-w-0">
                                                 <p className={cn(
                                                     "text-sm font-semibold mb-1.5 line-clamp-2",
-                                                    isActive ? "text-blue-700" : "text-gray-800"
+                                                    isLocked ? "text-gray-500" : isActive ? "text-blue-700" : "text-gray-800"
                                                 )}>
                                                     {block.title || "Untitled"}
+                                                    {isLocked && (
+                                                        <span className="ml-2 text-xs font-normal text-gray-400">
+                                                            (Locked)
+                                                        </span>
+                                                    )}
                                                 </p>
                                                 <div className="flex items-center gap-2 text-xs text-gray-500">
                                                     <div className={cn(
@@ -493,12 +586,16 @@ export default function LearningPage() {
                                                         {getIcon(block.type)}
                                                     </div>
                                                     <span className="capitalize font-medium">{block.type}</span>
-                                                    <span>•</span>
-                                                    <span>5 min</span>
+                                                    {isCompleted && (
+                                                        <>
+                                                            <span>•</span>
+                                                            <span className="text-green-600 font-semibold">✓ Done</span>
+                                                        </>
+                                                    )}
                                                 </div>
                                             </div>
 
-                                            {isActive && (
+                                            {isActive && !isLocked && (
                                                 <ChevronRight className="w-5 h-5 text-blue-600 flex-shrink-0 mt-1" />
                                             )}
                                         </button>
@@ -510,13 +607,28 @@ export default function LearningPage() {
                 </div>
             </div>
 
-            {/* Mobile Overlay */}
             {sidebarOpen && (
                 <div
                     className="fixed inset-0 bg-black/50 z-10 md:hidden"
                     onClick={() => setSidebarOpen(false)}
                 />
             )}
+
+            <QuizModal
+                open={showQuizModal}
+                onClose={() => setShowQuizModal(false)}
+                attempt={quizAttempt}
+                questions={quizAttempt?.quiz.questions || []}
+                onSubmit={handleSubmitQuiz}
+            />
+
+            <QuizResults
+                open={showResultsModal}
+                onClose={() => setShowResultsModal(false)}
+                attempt={quizResult}
+                onRetry={handleRetryQuiz}
+                onContinue={handleContinue}
+            />
         </div>
     );
 }

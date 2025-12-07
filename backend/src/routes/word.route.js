@@ -16,6 +16,7 @@ router.post(
 );
 
 router.get("/", auth.authenticate, asynchandler(wordController.getAllWord));
+router.get("/:wordId", auth.authenticate, asynchandler(wordController.getWordById));
 router.get(
   "/category/:categoryId",
   asynchandler(wordController.getWordsByCategory)

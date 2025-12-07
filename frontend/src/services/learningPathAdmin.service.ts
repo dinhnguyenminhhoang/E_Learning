@@ -14,14 +14,28 @@ class LearningPathAdminService {
      */
     async getById(id: string): Promise<{ code: number; data: LearningPath | null }> {
         try {
-            const response = await this.getAll();
-            if (response.code === 200) {
-                const path = response.data.find((p: LearningPath) => p._id === id);
-                return { code: path ? 200 : 404, data: path || null };
-            }
-            return { code: response.code, data: null };
+            const response = await apiClient.get<{ data: LearningPath }>(`/v1/api/learning-path/${id}`);
+            return { code: 200, data: response.data };
         } catch (error) {
             return { code: 500, data: null };
+        }
+    }
+
+    /**
+     * Get full details of a learning path for editing
+     * Includes: target, levels with lessons (with blocks), finalQuiz
+     */
+    async getDetailForEdit(id: string): Promise<{
+        code: number;
+        message: string;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        data: any | null;
+    }> {
+        try {
+            const response = await apiClient.get(`/v1/api/learning-path/${id}/detail`);
+            return response;
+        } catch (error) {
+            return { code: 500, message: "Failed to fetch details", data: null };
         }
     }
 
@@ -103,6 +117,58 @@ class LearningPathAdminService {
             "/v1/api/learning-path/remove-quiz-from-level",
             { data }
         );
+    }
+
+    /**
+     * Assign a lesson to a level in learning path
+     */
+    async assignLessonToPath(data: {
+        learningPathId: string;
+        levelOrder: number;
+        lessonId: string;
+    }): Promise<{ code: number; message: string; data?: any }> {
+        return await apiClient.post("/v1/api/learning-path/lesson", data);
+    }
+
+    /**
+     * Remove lesson from a level
+     * Note: This may need to be implemented in backend if not exists
+     */
+    async removeLessonFromPath(data: {
+        learningPathId: string;
+        levelOrder: number;
+        lessonId: string;
+    }): Promise<{ code: number; message: string }> {
+        return await apiClient.delete("/v1/api/learning-path/lesson", { data });
+    }
+
+    async updateLevel(
+        pathId: string,
+        levelOrder: number,
+        data: { title: string }
+    ): Promise<{ code: number; message: string; data?: any }> {
+        return await apiClient.put(`/v1/api/learning-path/${pathId}/level/${levelOrder}`, data);
+    }
+
+    async deleteLevel(
+        pathId: string,
+        levelOrder: number
+    ): Promise<{ code: number; message: string; data?: any }> {
+        return await apiClient.delete(`/v1/api/learning-path/${pathId}/level/${levelOrder}`);
+    }
+
+    async createLevel(
+        pathId: string,
+        data: { title: string }
+    ): Promise<{ code: number; message: string; data?: any }> {
+        return await apiClient.post(`/v1/api/learning-path/level/${pathId}`, data);
+    }
+
+    async reorderLevels(
+        pathId: string,
+        levelOrders: number[]
+    ): Promise<{ code: number; message: string; data?: any }> {
+        return await apiClient.put(`/v1/api/learning-path/${pathId}/levels/reorder`, { levelOrders });
     }
 }
 

@@ -14,6 +14,26 @@ class LearningPathRepository {
     return path;
   }
 
+  /**
+   * Find Learning Path by ID with full details for editing
+   * Deep populates: target, lessons (with blocks), finalQuiz
+   */
+  async findByIdWithFullDetails(id) {
+    return await LearningPath.findOne({
+      _id: toObjectId(id),
+      status: { $ne: STATUS.DELETED },
+    })
+      .populate("target")
+      .populate({
+        path: "levels.lessons.lesson",
+        populate: {
+          path: "blocks.block",
+        },
+      })
+      .populate("levels.finalQuiz")
+      .lean();
+  }
+
   async addLesson(learningPathId, updatedLevels) {
     return await LearningPath.findByIdAndUpdate(
       learningPathId,
@@ -85,11 +105,15 @@ class LearningPathRepository {
   async getAllPath() {
     return await LearningPath.find({
       status: { $ne: STATUS.DELETED },
-    }).select("_id title description status");
+    })
+      .populate("target")
+      .populate("levels.lessons.lesson")
+      .select("_id title description status level key levels target")
+      .lean();
   }
 
   async findByFinalExam(examId) {
-    return await LearningPathModel.findOne({
+    return await LearningPath.findOne({
       "levels.finalQuiz": toObjectId(examId),
       status: { $ne: STATUS.DELETED },
     }).lean();
@@ -131,6 +155,31 @@ class LearningPathRepository {
   }
   static async findByTargetIds(targetIds) {
     return LearningPath.find({ target: { $in: targetIds } }).lean();
+  }
+
+  async updateLearningPath(id, updateData) {
+    const updateFields = {};
+    if (updateData.title) updateFields.title = updateData.title;
+    if (updateData.description !== undefined) updateFields.description = updateData.description;
+    if (updateData.status) updateFields.status = updateData.status;
+    if (updateData.level) updateFields.level = updateData.level;
+    if (updateData.targetId) updateFields.target = toObjectId(updateData.targetId);
+
+    updateFields.updatedAt = new Date();
+
+    return await LearningPath.findByIdAndUpdate(
+      toObjectId(id),
+      { $set: updateFields },
+      { new: true }
+    ).populate("target");
+  }
+
+  async softDelete(id) {
+    return await LearningPath.findByIdAndUpdate(
+      toObjectId(id),
+      { $set: { status: STATUS.DELETED, updatedAt: new Date() } },
+      { new: true }
+    );
   }
 }
 
