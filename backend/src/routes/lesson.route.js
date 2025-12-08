@@ -63,6 +63,12 @@ router.post(
   asynchandler(lessonController.assignBlockToLesson)
 );
 
+router.get(
+  "/blocks/:blockId",
+  auth.authenticate,
+  asynchandler(lessonController.getBlockById)
+);
+
 router.post(
   "/blocks",
   auth.authenticate,

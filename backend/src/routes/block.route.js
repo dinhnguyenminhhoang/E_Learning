@@ -6,6 +6,17 @@ const { asynchandler } = require("../helpers/asyncHandler");
 const router = Router();
 
 /**
+ * GET /v1/api/block/:blockId
+ * Lấy block by ID với format response giống request khi tạo (cho admin)
+ * Note: Route này phải đặt trước /:blockId/with-progress để tránh conflict
+ */
+router.get(
+  "/:blockId",
+  authenticate,
+  asynchandler(blockController.getBlockById)
+);
+
+/**
  * GET /v1/api/block/:blockId/with-progress
  * Lấy block kèm progress của user (để resume video)
  */

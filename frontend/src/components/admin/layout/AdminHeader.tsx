@@ -22,14 +22,14 @@ export function AdminHeader() {
       <div className="flex w-full max-w-md items-center space-x-2">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-          <Input placeholder="Search..." className="pl-10" />
+          <Input placeholder="Tìm kiếm..." className="pl-10" />
         </div>
       </div>
 
       {/* Actions */}
       <div className="flex items-center space-x-4">
         {/* Notifications */}
-        <Button variant="ghost" size="icon" className="relative">
+        <Button variant="ghost" size="icon" className="relative cursor-pointer">
           <Bell className="h-5 w-5" />
           <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-red-500" />
         </Button>
@@ -37,7 +37,7 @@ export function AdminHeader() {
         {/* User Menu */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="flex items-center space-x-2">
+            <Button variant="ghost" className="flex items-center space-x-2 cursor-pointer">
               <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-r from-sky-600 to-emerald-600">
                 <User className="h-4 w-4 text-white" />
               </div>
@@ -45,13 +45,13 @@ export function AdminHeader() {
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-56">
-            <DropdownMenuLabel>My Account</DropdownMenuLabel>
+            <DropdownMenuLabel>Tài khoản của tôi</DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuItem>Profile</DropdownMenuItem>
-            <DropdownMenuItem>Settings</DropdownMenuItem>
+            <DropdownMenuItem className="cursor-pointer">Hồ sơ</DropdownMenuItem>
+            <DropdownMenuItem className="cursor-pointer">Cài đặt</DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={() => signOut()}>
-              Sign out
+            <DropdownMenuItem onClick={() => signOut()} className="cursor-pointer">
+              Đăng xuất
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

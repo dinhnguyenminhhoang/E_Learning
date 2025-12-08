@@ -6,7 +6,7 @@ const SKILL_ENUM = ["listening", "speaking", "reading", "writing"];
 const LEVEL_ENUM = ["beginner", "intermediate", "advanced"];
 const BLOCK_TYPE_ENUM = ["vocabulary", "grammar", "quiz", "media"];
 
-const ContentBlockSchema = new Schema(  
+const ContentBlockSchema = new Schema(
   {
     type: {
       type: String,
@@ -18,7 +18,11 @@ const ContentBlockSchema = new Schema(
     skill: { type: String, enum: SKILL_ENUM, required: true },
     difficulty: { type: String, enum: LEVEL_ENUM, default: "beginner" },
     lessonId: { type: Schema.Types.ObjectId, ref: "Lesson" },
-    status:{ type: String, enum: Object.values(STATUS), default: STATUS.ACTIVE }
+    status: {
+      type: String,
+      enum: Object.values(STATUS),
+      default: STATUS.ACTIVE,
+    },
   },
   {
     timestamps: true,

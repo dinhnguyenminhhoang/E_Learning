@@ -285,6 +285,50 @@ class LearningPathService {
       transformedPath
     );
   }
+  /**
+   * Kiểm tra level đã hoàn thành chưa (tất cả lessons trong level đã completed)
+   * @private
+   * @param {Object} level - Level object với lessons
+   * @param {Object} userProgress - UserProgress object
+   * @returns {boolean} true nếu level đã hoàn thành
+   */
+  _isLevelCompleted(level, userProgress) {
+    // Level không có lesson nào thì không thể completed
+    if (!level?.lessons || level.lessons.length === 0) {
+      return false;
+    }
+
+    // Filter ra các lesson hợp lệ (có lesson ID)
+    const validLessons = level.lessons.filter(
+      (lessonItem) => lessonItem?.lesson
+    );
+
+    if (validLessons.length === 0) {
+      return false; // Không có lesson hợp lệ nào
+    }
+
+    // User chưa có progress nào
+    if (!userProgress?.lessonProgress || userProgress.lessonProgress.length === 0) {
+      return false;
+    }
+
+    // Tạo map để tra cứu nhanh lesson completion
+    const completedLessonMap = new Map();
+    console.log("userProgress.lessonProgress", userProgress.lessonProgress);
+    userProgress.lessonProgress.forEach((lp) => {
+      if (lp.isCompleted && lp.lessonId) {
+        completedLessonMap.set(lp.lessonId.toString(), true);
+      }
+    });
+
+    // Kiểm tra tất cả lessons hợp lệ trong level đã completed chưa
+    const allLessonsCompleted = validLessons.every((lessonItem) => {
+      const lessonIdStr = lessonItem.lesson?.toString();
+      return lessonIdStr && completedLessonMap.has(lessonIdStr);
+    });
+
+    return allLessonsCompleted;
+  }
 
   async getLearningPathHierarchy(req) {
     const { learningPathId, isLevel, isLesson, isBlock, levelOrder, lessonId } =
@@ -295,13 +339,38 @@ class LearningPathService {
       );
       if (!path)
         return ResponseBuilder.notFoundError("Không tìm thấy lộ trình.");
+
+      // Lấy user progress để kiểm tra level nào đã hoàn thành
+      const userProgress = req.user?._id
+        ? await UserProgressRepository.findByUserAndPath(
+            req.user._id,
+            toObjectId(learningPathId)
+          )
+        : null;
+
+      // Map levels với finalQuiz chỉ khi level đã hoàn thành
+      const levelsWithFinalQuiz = path.levels.map((level) => {
+        const isCompleted = this._isLevelCompleted(level, userProgress);
+
+        return {
+          _id: level._id,
+          order: level.order,
+          title: level.title,
+          // Chỉ trả về finalQuiz ID nếu level đã hoàn thành
+          finalQuiz: isCompleted && level.finalQuiz 
+            ? level.finalQuiz.toString() 
+            : null,
+        };
+      });
+
       return ResponseBuilder.success(
         "lấy dữ liệu cấp độ thành công",
-        path.levels
+        levelsWithFinalQuiz
       );
     }
 
     if (isLesson === "true" && levelOrder) {
+      
       const path = await learningPathRepo.findLessonsByLevel(
         learningPathId,
         Number(levelOrder)

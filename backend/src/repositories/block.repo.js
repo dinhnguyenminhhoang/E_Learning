@@ -8,19 +8,38 @@ const VocabularyBlock = require("../models/subModel/VocabularyBlock.schema");
 const { default: AppError } = require("../utils/appError");
 
 class BlockRepository {
+  async findOne(filter = {}) {
+    return ContentBlock.findOne(filter).where("status").ne(STATUS.DELETED);
+  }
+
   async getBlockById(blockId) {
     const base = await ContentBlock.findById(blockId).where("status").ne(STATUS.DELETED);
     if (!base) return null;
 
     switch (base.type) {
       case "grammar":
-        return await GrammarBlock.findById(blockId).where("status").ne(STATUS.DELETED);
+        return await GrammarBlock.findById(blockId)
+          .where("status")
+          .ne(STATUS.DELETED)
+          .populate("lessonId", "title skill");
       case "quiz":
-        return await QuizBlock.findById(blockId).where("status").ne(STATUS.DELETED);
+        return await QuizBlock.findById(blockId)
+          .where("status")
+          .ne(STATUS.DELETED)
+          .populate("lessonId", "title skill");
       case "vocabulary":
-        return await VocabularyBlock.findById(blockId).where("status").ne(STATUS.DELETED).populate("cardDeck");
+        return await VocabularyBlock.findById(blockId)
+          .where("status")
+          .ne(STATUS.DELETED)
+          .populate("cardDeck")
+          .populate("lessonId", "title skill");
+      case "media":
+        return await MediaBlock.findById(blockId)
+          .where("status")
+          .ne(STATUS.DELETED)
+          .populate("lessonId", "title skill");
       default:
-        return base;
+        return base.populate("lessonId", "title skill");
     }
   }
 

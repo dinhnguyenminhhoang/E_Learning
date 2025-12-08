@@ -75,6 +75,27 @@ class FlashcardRepository {
     });
   }
 
+  /**
+   * Lấy flashcards từ deck và populate word với đầy đủ thông tin
+   * @param {String} deckId - ID của card deck
+   * @returns {Promise<Array>} Array of flashcards with populated word
+   */
+  async findByDeckWithWord(deckId) {
+    return this.model
+      .find({
+        cardDeck: deckId,
+        status: STATUS.ACTIVE,
+        updatedAt: null,
+      })
+      .populate({
+        path: "word",
+        select:
+          "word pronunciation audio partOfSpeech definitions level image synonyms antonyms tags",
+      })
+      .lean()
+      .exec();
+  }
+
   async findByDifficulty(difficulty) {
     return this.model.find({ difficulty, status: "active", updatedAt: null });
   }

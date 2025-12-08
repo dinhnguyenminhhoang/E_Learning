@@ -71,29 +71,29 @@ export default function BlocksPage() {
             if (statusFilter !== "all") filters.status = statusFilter;
 
             const response = await blockService.getAllBlocks(filters);
-            if (response.code === 200) {
-                setBlocks(response.data || []);
-                setTotal(response.pagination?.total || 0);
+            if ((response as any).code === 200) {
+                setBlocks((response as any).data || []);
+                setTotal((response as any).pagination?.total || 0);
             }
         } catch (error) {
             console.error("Error fetching blocks:", error);
-            toast.error("Failed to load blocks");
+            toast.error("Không thể tải danh sách block");
         } finally {
             setLoading(false);
         }
     };
 
     const handleDelete = async (id: string) => {
-        if (!confirm("Are you sure you want to delete this block?")) return;
+        if (!confirm("Bạn có chắc chắn muốn xóa block này?")) return;
 
         try {
             const response = await blockService.deleteBlock(id);
-            if (response.code === 200) {
-                toast.success("Block deleted successfully");
+            if ((response as any).code === 200) {
+                toast.success("Xóa block thành công");
                 fetchBlocks();
             }
         } catch (error) {
-            toast.error("Failed to delete block");
+            toast.error("Không thể xóa block");
         }
     };
 
@@ -104,9 +104,9 @@ export default function BlocksPage() {
         <div className="p-6 mx-auto">
             <div className="mb-8">
                 <h1 className="text-3xl font-bold text-gray-900 mb-2">
-                    Content Blocks Management
+                    Quản lý Block
                 </h1>
-                <p className="text-gray-600">Manage all content blocks across lessons</p>
+                <p className="text-gray-600">Quản lý tất cả các block nội dung trong bài học</p>
             </div>
 
             <div className="mb-6 flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
@@ -114,13 +114,13 @@ export default function BlocksPage() {
                     <div className="relative flex-1 max-w-md">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                         <Input
-                            placeholder="Search blocks..."
+                            placeholder="Tìm kiếm block..."
                             value={searchTerm}
                             onChange={(e) => {
                                 setSearchTerm(e.target.value);
                                 setPageNum(1);
                             }}
-                            className="pl-10"
+                            className="pl-10 cursor-pointer"
                         />
                     </div>
 
@@ -130,9 +130,9 @@ export default function BlocksPage() {
                             setTypeFilter(e.target.value);
                             setPageNum(1);
                         }}
-                        className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 cursor-pointer"
                     >
-                        <option value="all">All Types</option>
+                        <option value="all">Tất cả loại</option>
                         <option value="vocabulary">Vocabulary</option>
                         <option value="grammar">Grammar</option>
                         <option value="quiz">Quiz</option>
@@ -145,9 +145,9 @@ export default function BlocksPage() {
                             setSkillFilter(e.target.value);
                             setPageNum(1);
                         }}
-                        className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 cursor-pointer"
                     >
-                        <option value="all">All Skills</option>
+                        <option value="all">Tất cả kỹ năng</option>
                         <option value="reading">Reading</option>
                         <option value="writing">Writing</option>
                         <option value="listening">Listening</option>
@@ -160,9 +160,9 @@ export default function BlocksPage() {
                             setStatusFilter(e.target.value);
                             setPageNum(1);
                         }}
-                        className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 cursor-pointer"
                     >
-                        <option value="all">All Status</option>
+                        <option value="all">Tất cả trạng thái</option>
                         <option value="active">Active</option>
                         <option value="inactive">Inactive</option>
                     </select>
@@ -170,10 +170,10 @@ export default function BlocksPage() {
 
                 <Button
                     onClick={() => router.push("/admin/blocks/create")}
-                    className="bg-blue-600 hover:bg-blue-700"
+                    className="bg-blue-600 hover:bg-blue-700 cursor-pointer"
                 >
                     <Plus className="w-4 h-4 mr-2" />
-                    Add Block
+                    Thêm Block
                 </Button>
             </div>
 
@@ -210,19 +210,19 @@ export default function BlocksPage() {
                                     Block
                                 </th>
                                 <th className="px-6 py-4 text-center text-xs font-semibold text-gray-600 uppercase">
-                                    Type
+                                    Loại
                                 </th>
                                 <th className="px-6 py-4 text-center text-xs font-semibold text-gray-600 uppercase">
-                                    Skill
+                                    Kỹ năng
                                 </th>
                                 <th className="px-6 py-4 text-center text-xs font-semibold text-gray-600 uppercase">
-                                    Difficulty
+                                    Độ khó
                                 </th>
                                 <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase">
-                                    Lesson
+                                    Bài học
                                 </th>
                                 <th className="px-6 py-4 text-center text-xs font-semibold text-gray-600 uppercase">
-                                    Actions
+                                    Thao tác
                                 </th>
                             </tr>
                         </thead>
@@ -240,7 +240,7 @@ export default function BlocksPage() {
                                     <td colSpan={6} className="px-6 py-12 text-center">
                                         <FileText className="w-12 h-12 mx-auto mb-3 text-gray-400 opacity-50" />
                                         <p className="text-lg font-medium text-gray-400">
-                                            No blocks found
+                                            Không tìm thấy block nào
                                         </p>
                                     </td>
                                 </tr>
@@ -253,10 +253,10 @@ export default function BlocksPage() {
                                         <td className="px-6 py-4">
                                             <div>
                                                 <p className="font-semibold text-gray-900">
-                                                    {block.title || "Untitled"}
+                                                    {block.title || "Chưa có tiêu đề"}
                                                 </p>
                                                 <p className="text-sm text-gray-500 line-clamp-1">
-                                                    {block.description || "No description"}
+                                                    {block.description || "Không có mô tả"}
                                                 </p>
                                             </div>
                                         </td>
@@ -297,7 +297,7 @@ export default function BlocksPage() {
                                                 </span>
                                             ) : (
                                                 <span className="text-sm text-gray-400 italic">
-                                                    Not assigned
+                                                    Chưa gán
                                                 </span>
                                             )}
                                         </td>
@@ -309,7 +309,7 @@ export default function BlocksPage() {
                                                     onClick={() =>
                                                         router.push(`/admin/blocks/${block._id}`)
                                                     }
-                                                    className="hover:bg-blue-50 hover:text-blue-700 hover:border-blue-300"
+                                                    className="hover:bg-blue-50 hover:text-blue-700 hover:border-blue-300 cursor-pointer"
                                                 >
                                                     <Edit className="w-4 h-4" />
                                                 </Button>
@@ -317,7 +317,7 @@ export default function BlocksPage() {
                                                     variant="outline"
                                                     size="sm"
                                                     onClick={() => handleDelete(block._id)}
-                                                    className="hover:bg-red-50 hover:text-red-700 hover:border-red-300"
+                                                    className="hover:bg-red-50 hover:text-red-700 hover:border-red-300 cursor-pointer"
                                                 >
                                                     <Trash2 className="w-4 h-4" />
                                                 </Button>
@@ -334,8 +334,8 @@ export default function BlocksPage() {
                 {total > pageSize && (
                     <div className="flex items-center justify-between px-6 py-4 border-t border-gray-200 bg-gray-50">
                         <p className="text-sm text-gray-600">
-                            Showing {(pageNum - 1) * pageSize + 1} to{" "}
-                            {Math.min(pageNum * pageSize, total)} of {total} blocks
+                            Hiển thị {(pageNum - 1) * pageSize + 1} đến{" "}
+                            {Math.min(pageNum * pageSize, total)} trong tổng số {total} block
                         </p>
                         <div className="flex gap-2">
                             <Button
@@ -343,16 +343,18 @@ export default function BlocksPage() {
                                 size="sm"
                                 onClick={() => setPageNum(Math.max(1, pageNum - 1))}
                                 disabled={pageNum === 1}
+                                className="cursor-pointer"
                             >
-                                Previous
+                                Trước
                             </Button>
                             <Button
                                 variant="outline"
                                 size="sm"
                                 onClick={() => setPageNum(pageNum + 1)}
                                 disabled={pageNum * pageSize >= total}
+                                className="cursor-pointer"
                             >
-                                Next
+                                Sau
                             </Button>
                         </div>
                     </div>

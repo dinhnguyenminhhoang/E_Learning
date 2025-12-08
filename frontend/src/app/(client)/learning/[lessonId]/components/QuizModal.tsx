@@ -86,18 +86,18 @@ export function QuizModal({ open, onClose, attempt, questions, onSubmit }: QuizM
             <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
                     <DialogTitle className="text-2xl font-bold">
-                        {attempt?.quiz.title || "Quiz"}
+                        {attempt?.quiz.title || "Bài tập"}
                     </DialogTitle>
                 </DialogHeader>
 
                 <div className="space-y-6">
                     <div className="flex items-center justify-between text-sm text-gray-600">
                         <span>
-                            Question {currentQuestionIndex + 1} of {questions.length}
+                            Câu hỏi {currentQuestionIndex + 1} / {questions.length}
                         </span>
                         <span className="flex items-center gap-2">
                             <CheckCircle className="w-4 h-4 text-green-600" />
-                            {answers.size} answered
+                            {answers.size} đã trả lời
                         </span>
                     </div>
 
@@ -121,7 +121,7 @@ export function QuizModal({ open, onClose, attempt, questions, onSubmit }: QuizM
                                         key={index}
                                         onClick={() => handleSelectAnswer(option.text)}
                                         className={cn(
-                                            "w-full text-left p-4 rounded-xl border-2 transition-all",
+                                            "w-full text-left p-4 rounded-xl border-2 transition-all cursor-pointer",
                                             isSelected
                                                 ? "border-blue-500 bg-blue-100 shadow-md"
                                                 : "border-gray-300 bg-white hover:border-blue-300 hover:shadow-sm"
@@ -159,13 +159,13 @@ export function QuizModal({ open, onClose, attempt, questions, onSubmit }: QuizM
                             onClick={handlePrevious}
                             disabled={currentQuestionIndex === 0}
                         >
-                            Previous
+                            Trước
                         </Button>
 
                         <div className="flex gap-2">
                             {!isLastQuestion ? (
                                 <Button onClick={handleNext} disabled={!selectedAnswer}>
-                                    Next Question
+                                    Câu tiếp theo
                                 </Button>
                             ) : (
                                 <Button
@@ -173,7 +173,7 @@ export function QuizModal({ open, onClose, attempt, questions, onSubmit }: QuizM
                                     disabled={!allAnswered || isSubmitting}
                                     className="bg-green-600 hover:bg-green-700"
                                 >
-                                    {isSubmitting ? "Submitting..." : "Submit Quiz"}
+                                    {isSubmitting ? "Đang nộp bài..." : "Nộp bài"}
                                 </Button>
                             )}
                         </div>

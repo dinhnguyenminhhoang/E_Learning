@@ -28,7 +28,6 @@ class QuizAttemptForBlockService {
       if (!block) {
         return ResponseBuilder.notFoundError("Block not found");
       }
-
       // Lấy lessonId từ block
       let lessonId = block.lessonId;
       if (!lessonId) {
@@ -50,17 +49,21 @@ class QuizAttemptForBlockService {
       }
 
       // Tìm block trong lesson để lấy exercise (quiz)
-      const blockInLesson = lesson.blocks.find(
-        (b) => {
-          const blockIdStr = b.block?.toString() || b.block?._id?.toString();
-          return blockIdStr === blockId.toString();
-        }
-      );
+      const blockInLesson = lesson.blocks.find((b) => {
+        const blockIdStr = b.block?.toString() || b.block?._id?.toString();
+        return blockIdStr === blockId.toString();
+      });
 
       if (!blockInLesson || !blockInLesson.exercise) {
-        return ResponseBuilder.badRequest("Block này không có bài tập.");
+        // Đánh dấu block là completed vì không có bài tập
+        await this._markBlockCompletedWhenNoExercise(userId, blockId, lessonId);
+        
+        return ResponseBuilder.success("Đã hoàn thành block này. Block không có bài tập.", {
+          hasExercise: false,
+          blockCompleted: true,
+          message: "Đã hoàn thành block này vì block không có bài tập.",
+        });
       }
-
       const quizId = blockInLesson.exercise;
 
       // Lấy thông tin quiz
@@ -83,23 +86,20 @@ class QuizAttemptForBlockService {
 
         // Sanitize quiz để bỏ isCorrect từ options
         const sanitizedQuiz = this._sanitizeQuizForUser(quiz);
-        
+
         // Convert attempt to plain object và sanitize quiz trong attempt
         const attemptObj = attemptWithQuiz.toObject
           ? attemptWithQuiz.toObject()
           : { ...attemptWithQuiz };
-        
+
         if (attemptObj.quiz) {
           attemptObj.quiz = this._sanitizeQuizForUser(attemptObj.quiz);
         }
 
-        return ResponseBuilder.success(
-          "Lấy quiz attempt thành công",
-          {
-            attempt: attemptObj,
-            quiz: sanitizedQuiz,
-          }
-        );
+        return ResponseBuilder.success("Lấy quiz attempt thành công", {
+          attempt: attemptObj,
+          quiz: sanitizedQuiz,
+        });
       }
 
       // Nếu chưa có attempt, tạo mới
@@ -124,12 +124,12 @@ class QuizAttemptForBlockService {
 
       // Sanitize quiz để bỏ isCorrect từ options
       const sanitizedQuiz = this._sanitizeQuizForUser(quiz);
-      
+
       // Convert attempt to plain object và sanitize quiz trong attempt
       const attemptObj = attemptWithQuiz.toObject
         ? attemptWithQuiz.toObject()
         : { ...attemptWithQuiz };
-      
+
       if (attemptObj.quiz) {
         attemptObj.quiz = this._sanitizeQuizForUser(attemptObj.quiz);
       }
@@ -172,7 +172,9 @@ class QuizAttemptForBlockService {
       }
 
       if (attempt.user.toString() !== userId.toString()) {
-        return ResponseBuilder.forbiddenError("Bạn không có quyền truy cập quiz attempt này.");
+        return ResponseBuilder.forbiddenError(
+          "Bạn không có quyền truy cập quiz attempt này."
+        );
       }
 
       if (attempt.status === "completed") {
@@ -244,11 +246,7 @@ class QuizAttemptForBlockService {
         `[QuizAttemptForBlockService] Error submitting quiz for user ${userId}, attempt ${attemptId}:`,
         error
       );
-      return ResponseBuilder.error(
-        "Failed to submit quiz",
-        500,
-        error.message
-      );
+      return ResponseBuilder.error("Failed to submit quiz", 500, error.message);
     }
   }
 
@@ -308,7 +306,9 @@ class QuizAttemptForBlockService {
         switch (question.type) {
           case "multiple_choice":
             // Tìm option đúng
-            const correctOption = question.options?.find((opt) => opt.isCorrect);
+            const correctOption = question.options?.find(
+              (opt) => opt.isCorrect
+            );
             if (correctOption) {
               // So sánh text (case-insensitive, trim whitespace)
               isCorrect =
@@ -319,15 +319,19 @@ class QuizAttemptForBlockService {
 
           case "fill_blank":
             // So sánh với correctAnswer (case-insensitive, trim)
-            const userAnswerText = userAnswer?.selectedAnswer?.trim().toLowerCase() || "";
-            const correctAnswerText = question.correctAnswer?.trim().toLowerCase() || "";
+            const userAnswerText =
+              userAnswer?.selectedAnswer?.trim().toLowerCase() || "";
+            const correctAnswerText =
+              question.correctAnswer?.trim().toLowerCase() || "";
             isCorrect = userAnswerText === correctAnswerText;
             break;
 
           case "true_false":
             // So sánh true/false (case-insensitive)
-            const userAnswerTF = userAnswer?.selectedAnswer?.trim().toLowerCase() || "";
-            const correctAnswerTF = question.correctAnswer?.trim().toLowerCase() || "";
+            const userAnswerTF =
+              userAnswer?.selectedAnswer?.trim().toLowerCase() || "";
+            const correctAnswerTF =
+              question.correctAnswer?.trim().toLowerCase() || "";
             isCorrect = userAnswerTF === correctAnswerTF;
             break;
 
@@ -339,7 +343,10 @@ class QuizAttemptForBlockService {
               Array.isArray(question.correctAnswer)
             ) {
               // So sánh từng cặp
-              if (userAnswer.selectedAnswer.length === question.correctAnswer.length) {
+              if (
+                userAnswer.selectedAnswer.length ===
+                question.correctAnswer.length
+              ) {
                 isCorrect = userAnswer.selectedAnswer.every((pair) => {
                   const correctPair = question.correctAnswer.find(
                     (cp) => cp.key === pair.key
@@ -564,7 +571,7 @@ class QuizAttemptForBlockService {
         lessonId,
         blockId,
         0, // maxWatchedTime
-        0  // videoDuration
+        0 // videoDuration
       );
 
       // Reload progress để lấy dữ liệu mới nhất
@@ -614,9 +621,7 @@ class QuizAttemptForBlockService {
       // Lấy lesson để đếm tổng số blocks
       const lesson = await LessonRepository.getLessonById(toObjectId(lessonId));
       if (lesson && lesson.blocks) {
-        const totalBlocksInLesson = lesson.blocks.filter(
-          (b) => b.block
-        ).length;
+        const totalBlocksInLesson = lesson.blocks.filter((b) => b.block).length;
 
         if (totalBlocksInLesson > 0) {
           await UserProgressRepository.checkAndUpdateLessonCompletion(
@@ -631,6 +636,123 @@ class QuizAttemptForBlockService {
       // Log error nhưng không throw để không làm fail quiz submission
       console.error(
         `[QuizAttemptForBlockService] Error updating user progress after quiz pass for user ${userId}, block ${blockId}:`,
+        error
+      );
+    }
+  }
+
+  /**
+   * Đánh dấu block là completed khi block không có bài tập
+   * @private
+   * @param {String} userId - ID của user
+   * @param {String} blockId - ID của block
+   * @param {String} lessonId - ID của lesson
+   */
+  async _markBlockCompletedWhenNoExercise(userId, blockId, lessonId) {
+    try {
+      // Lấy learningPathId từ UserLearningPath
+      const userPaths = await UserLearningPathRepository.findByUserId(
+        toObjectId(userId)
+      );
+      if (!userPaths || userPaths.length === 0) {
+        console.warn(
+          `[QuizAttemptForBlockService] Learning path not found for user ${userId}`
+        );
+        return;
+      }
+
+      const learningPathId = userPaths[0].learningPath.toString();
+
+      // Lấy hoặc tạo UserProgress
+      let progress = await UserProgressRepository.findByUserAndPath(
+        userId,
+        learningPathId
+      );
+
+      if (!progress) {
+        // Tạo UserProgress nếu chưa có
+        progress = await UserProgressRepository.findOrCreate(
+          userId,
+          learningPathId
+        );
+      }
+
+      // Đảm bảo block progress tồn tại (tạo nếu chưa có)
+      await UserProgressRepository.updateBlockProgress(
+        userId,
+        learningPathId,
+        lessonId,
+        blockId,
+        0, // maxWatchedTime
+        0 // videoDuration
+      );
+
+      // Reload progress để lấy dữ liệu mới nhất
+      progress = await UserProgressRepository.findByUserAndPath(
+        userId,
+        learningPathId
+      );
+
+      if (!progress) {
+        console.warn(
+          `[QuizAttemptForBlockService] Failed to create/load UserProgress for user ${userId}, path ${learningPathId}`
+        );
+        return;
+      }
+
+      // Lấy lesson progress
+      let lessonProgress = progress.getLessonProgress(toObjectId(lessonId));
+      if (!lessonProgress) {
+        console.warn(
+          `[QuizAttemptForBlockService] LessonProgress not found for lesson ${lessonId}`
+        );
+        return;
+      }
+
+      // Lấy block progress (đã được tạo ở trên)
+      const blockProgress = lessonProgress.blockProgress.find(
+        (bp) => bp.blockId.toString() === blockId.toString()
+      );
+
+      if (!blockProgress) {
+        console.warn(
+          `[QuizAttemptForBlockService] BlockProgress not found for block ${blockId} after creation`
+        );
+        return;
+      }
+
+      // Đánh dấu block là completed vì không có bài tập
+      blockProgress.isCompleted = true;
+      blockProgress.completedAt = new Date();
+      blockProgress.lastUpdatedAt = new Date();
+
+      // Lưu progress
+      await progress.save();
+
+      // Kiểm tra và cập nhật lesson completion
+      const lesson = await LessonRepository.getLessonById(toObjectId(lessonId));
+      if (lesson && lesson.blocks) {
+        const totalBlocksInLesson = lesson.blocks.filter((b) => b.block).length;
+
+        if (totalBlocksInLesson > 0) {
+          const isLessonCompleted = await UserProgressRepository.checkAndUpdateLessonCompletion(
+            userId,
+            learningPathId,
+            lessonId,
+            totalBlocksInLesson
+          );
+
+          if (isLessonCompleted) {
+            console.log(
+              `[QuizAttemptForBlockService] Lesson ${lessonId} completed for user ${userId}`
+            );
+          }
+        }
+      }
+    } catch (error) {
+      // Log error nhưng không throw để không làm fail request
+      console.error(
+        `[QuizAttemptForBlockService] Error marking block completed when no exercise for user ${userId}, block ${blockId}:`,
         error
       );
     }
@@ -714,7 +836,9 @@ class QuizAttemptForBlockService {
     );
 
     if (passedAttempt) {
-      return ResponseBuilder.badRequest("Bạn đã pass quiz này rồi. Không cần làm lại.");
+      return ResponseBuilder.badRequest(
+        "Bạn đã pass quiz này rồi. Không cần làm lại."
+      );
     }
 
     return await this.startQuizAttempt(userId, blockId);

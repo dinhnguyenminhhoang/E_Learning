@@ -41,6 +41,8 @@ export interface Block {
   explanation?: string;
   examples?: string[];
   videoUrl?: string;
+  exercise?: string; // quiz id attached to block/lesson
+  isQuiz?: boolean; // has quiz attached (backend startBlock response)
 }
 
 export interface SubTopic {

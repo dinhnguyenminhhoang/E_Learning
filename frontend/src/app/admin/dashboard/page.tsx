@@ -85,7 +85,7 @@ export default function AdminDashboard() {
 
   const stats = overview?.overview ? [
     {
-      title: "Total Users",
+      title: "Tổng người dùng",
       value: overview.overview.totalUsers.toLocaleString(),
       change: overview.changes.usersChange,
       icon: Users,
@@ -93,7 +93,7 @@ export default function AdminDashboard() {
       bgColor: "bg-blue-50",
     },
     {
-      title: "Active Users",
+      title: "Người dùng hoạt động",
       value: overview.overview.activeUsers.toLocaleString(),
       change: 0,
       icon: Activity,
@@ -101,7 +101,7 @@ export default function AdminDashboard() {
       bgColor: "bg-green-50",
     },
     {
-      title: "Total Words",
+      title: "Tổng từ vựng",
       value: overview.overview.totalWords.toLocaleString(),
       change: overview.changes.wordsChange,
       icon: BookOpen,
@@ -109,7 +109,7 @@ export default function AdminDashboard() {
       bgColor: "bg-sky-50",
     },
     {
-      title: "Categories",
+      title: "Danh mục",
       value: overview.overview.totalCategories.toLocaleString(),
       change: 0,
       icon: FolderTree,
@@ -117,7 +117,7 @@ export default function AdminDashboard() {
       bgColor: "bg-emerald-50",
     },
     {
-      title: "Card Decks",
+      title: "Bộ thẻ",
       value: overview.overview.totalCardDecks.toLocaleString(),
       change: 0,
       icon: CreditCard,
@@ -125,7 +125,7 @@ export default function AdminDashboard() {
       bgColor: "bg-purple-50",
     },
     {
-      title: "Learning Paths",
+      title: "Lộ trình học",
       value: overview.overview.totalLearningPaths.toLocaleString(),
       change: 0,
       icon: Target,
@@ -133,7 +133,7 @@ export default function AdminDashboard() {
       bgColor: "bg-orange-50",
     },
     {
-      title: "Lessons",
+      title: "Bài học",
       value: overview.overview.totalLessons.toLocaleString(),
       change: overview.changes.lessonsChange,
       icon: GraduationCap,
@@ -141,7 +141,7 @@ export default function AdminDashboard() {
       bgColor: "bg-pink-50",
     },
     {
-      title: "Quizzes",
+      title: "Bài tập",
       value: overview.overview.totalQuizzes.toLocaleString(),
       change: 0,
       icon: ClipboardList,
@@ -167,8 +167,8 @@ export default function AdminDashboard() {
     <div className="space-y-8 p-6">
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
-        <p className="text-gray-500">Welcome back! Here's your analytics overview.</p>
+        <h1 className="text-3xl font-bold text-gray-900">Bảng điều khiển</h1>
+        <p className="text-gray-500">Chào mừng trở lại! Đây là tổng quan phân tích của bạn.</p>
       </div>
 
       {/* Stats Grid */}
@@ -192,7 +192,7 @@ export default function AdminDashboard() {
                   ) : (
                     <TrendingDown className="mr-1 h-3 w-3" />
                   )}
-                  {stat.change > 0 ? '+' : ''}{stat.change}% from last month
+                  {stat.change > 0 ? '+' : ''}{stat.change}% so với tháng trước
                 </p>
               )}
             </CardContent>
@@ -207,16 +207,16 @@ export default function AdminDashboard() {
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="flex items-center gap-2">
               <Calendar className="h-5 w-5 text-blue-600" />
-              User Registration Trend
+              Xu hướng đăng ký người dùng
             </CardTitle>
             <select
               value={trendPeriod}
               onChange={(e) => setTrendPeriod(Number(e.target.value))}
-              className="text-sm border rounded-lg px-3 py-1"
+              className="text-sm border rounded-lg px-3 py-1 cursor-pointer"
             >
-              <option value={7}>Last 7 days</option>
-              <option value={14}>Last 14 days</option>
-              <option value={30}>Last 30 days</option>
+              <option value={7}>7 ngày qua</option>
+              <option value={14}>14 ngày qua</option>
+              <option value={30}>30 ngày qua</option>
             </select>
           </CardHeader>
           <CardContent>
@@ -243,7 +243,7 @@ export default function AdminDashboard() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <BookOpen className="h-5 w-5 text-emerald-600" />
-              Words by Level
+              Từ vựng theo cấp độ
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -278,7 +278,7 @@ export default function AdminDashboard() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <FolderTree className="h-5 w-5 text-purple-600" />
-              Top Categories by Words
+              Danh mục hàng đầu theo từ vựng
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -299,7 +299,7 @@ export default function AdminDashboard() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <GraduationCap className="h-5 w-5 text-pink-600" />
-              Lessons by Status
+              Bài học theo trạng thái
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -327,13 +327,13 @@ export default function AdminDashboard() {
           <CardHeader>
             <CardTitle className="text-lg flex items-center gap-2">
               <BookOpen className="h-5 w-5 text-sky-600" />
-              Recent Words
+              Từ vựng gần đây
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
               {recentActivity?.recentWords?.length === 0 ? (
-                <p className="text-gray-500 text-sm">No recent words</p>
+                <p className="text-gray-500 text-sm">Không có từ vựng gần đây</p>
               ) : (
                 recentActivity?.recentWords?.map((word: any) => (
                   <div key={word._id} className="flex items-center justify-between">
@@ -363,13 +363,13 @@ export default function AdminDashboard() {
           <CardHeader>
             <CardTitle className="text-lg flex items-center gap-2">
               <Users className="h-5 w-5 text-green-600" />
-              Recent Users
+              Người dùng gần đây
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
               {recentActivity?.recentUsers?.length === 0 ? (
-                <p className="text-gray-500 text-sm">No recent users</p>
+                <p className="text-gray-500 text-sm">Không có người dùng gần đây</p>
               ) : (
                 recentActivity?.recentUsers?.map((user: any) => (
                   <div key={user._id} className="flex items-center justify-between">
@@ -397,13 +397,13 @@ export default function AdminDashboard() {
           <CardHeader>
             <CardTitle className="text-lg flex items-center gap-2">
               <GraduationCap className="h-5 w-5 text-pink-600" />
-              Recent Lessons
+              Bài học gần đây
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
               {recentActivity?.recentLessons?.length === 0 ? (
-                <p className="text-gray-500 text-sm">No recent lessons</p>
+                <p className="text-gray-500 text-sm">Không có bài học gần đây</p>
               ) : (
                 recentActivity?.recentLessons?.map((lesson: any) => (
                   <div key={lesson._id} className="flex items-center justify-between">

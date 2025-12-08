@@ -5,8 +5,11 @@ const UserProgressRepository = require("../repositories/userProgress.repo");
 const UserLearningPathRepository = require("../repositories/userLearningPath.repo");
 const LessonRepository = require("../repositories/lesson.repo");
 const QuizAttemptForBlockRepository = require("../repositories/quizAttemptForBlock.repo");
+const CardDeckRepo = require("../repositories/cardDeck.repo");
+const FlashcardRepo = require("../repositories/flashcard.repo");
 const ResponseBuilder = require("../types/response/baseResponse");
-const { default: AppError } = require("../utils/appError");
+const AppError = require("../utils/appError");
+const { STATUS } = require("../constants/status.constans");
 class BlockService {
   async existingBlock(blockId) {
     const block = await BlockRepository.getBlockById(toObjectId(blockId));
@@ -15,13 +18,187 @@ class BlockService {
     }
     return block;
   }
+
+  /**
+   * Escape regex special chars to build safe regex for title matching
+   * @private
+   */
+  _escapeRegex(text = "") {
+    return text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  }
+
+  /**
+   * Ensure block title is unique (case-insensitive) within a lesson (if provided)
+   * @private
+   */
+  async _ensureUniqueTitle(title, lessonId, excludeId = null) {
+    if (!title) return;
+    const regex = new RegExp(`^${this._escapeRegex(title)}$`, "i");
+    const query = {
+      title: regex,
+      status: { $ne: STATUS.DELETED },
+    };
+    if (lessonId) {
+      query.lessonId = lessonId;
+    }
+    if (excludeId) {
+      query._id = { $ne: toObjectId(excludeId) };
+    }
+
+    const existing = await BlockRepository.findOne(query);
+    if (existing) {
+      throw new AppError(
+        "Tiêu đề block đã tồn tại trong bài học này. Vui lòng chọn tên khác.",
+        400
+      );
+    }
+  }
+  /**
+   * Format block data theo cấu trúc giống request khi tạo block
+   * @private
+   * @param {Object} block - Block object từ database
+   * @param {String|null} exerciseId - Exercise (Quiz) ID nếu có (từ lesson.blocks)
+   * @returns {Object} Formatted block data
+   */
+  _formatBlockResponse(block, exerciseId = null) {
+    // Base fields cho tất cả block types
+    const baseData = {
+      _id: block._id,
+      type: block.type,
+      title: block.title || "",
+      description: block.description || "",
+      skill: block.skill,
+      difficulty: block.difficulty,
+      lessonId: block.lessonId?._id || block.lessonId || null,
+      status: block.status,
+      order: block.order,
+      createdAt: block.createdAt,
+      updatedAt: block.updatedAt,
+    };
+
+    // Type-specific fields
+    switch (block.type) {
+      case "grammar":
+        return {
+          ...baseData,
+          topic: block.topic || "",
+          explanation: block.explanation || "",
+          examples: block.examples || [],
+          videoUrl: block.videoUrl || null,
+          sourceType: block.sourceType || "upload",
+          exercise: exerciseId || null,
+          duration: block.duration || 0,
+        };
+
+      case "vocabulary":
+        return {
+          ...baseData,
+          cardDeck: block.cardDeck?._id || block.cardDeck || null,
+        };
+
+      case "media":
+        return {
+          ...baseData,
+          mediaType: block.mediaType || "video",
+          sourceType: block.sourceType || "upload",
+          sourceUrl: block.sourceUrl || "",
+          transcript: block.transcript || null,
+          tasks: block.tasks || [],
+        };
+
+      case "quiz":
+        return {
+          ...baseData,
+          questions: block.questions || [],
+        };
+
+      default:
+        return baseData;
+    }
+  }
+
+  /**
+   * Lấy exercise (Quiz) ID từ lesson cho block cụ thể
+   * @private
+   * @param {String} blockId - Block ID
+   * @param {String} lessonId - Lesson ID
+   * @returns {Promise<String|null>} Exercise (Quiz) ID hoặc null
+   */
+  async _getBlockExercise(blockId, lessonId) {
+    if (!lessonId) return null;
+
+    try {
+      // Lấy lesson với populate blocks.exercise để lấy exercise ID
+      const lesson = await LessonRepository.getLessonById(toObjectId(lessonId));
+      if (!lesson || !lesson.blocks) return null;
+
+      // Tìm block trong lesson và lấy exercise ID
+      const blockInfo = lesson.blocks.find(
+        (b) => b.block?.toString() === blockId.toString()
+      );
+      console.log(blockInfo);
+
+      if (!blockInfo || !blockInfo.exercise) return null;
+
+      // Trả về exercise ID (string) để giống request structure
+      const exerciseId = blockInfo.exercise?._id || blockInfo.exercise;
+      return exerciseId ? exerciseId.toString() : null;
+    } catch (error) {
+      console.error(
+        `[BlockService] Error getting exercise for block ${blockId}:`,
+        error
+      );
+      return null;
+    }
+  }
+
+  /**
+   * Lấy block by ID với format response giống request khi tạo
+   * @param {Object} req - Express request object
+   * @param {String} req.params.blockId - Block ID
+   * @returns {Promise<Object>} Response object với formatted block data
+   */
   async getBlockById(req) {
     const { blockId } = req.params;
     const block = await this.existingBlock(blockId);
-    return ResponseBuilder.success({
-      message: "Fetched block successfully",
-      data: block,
-    });
+
+    // Populate lessonId nếu chưa được populate
+    let lessonId = block.lessonId;
+    if (lessonId && typeof lessonId === "object") {
+      lessonId = lessonId._id || lessonId;
+    }
+
+    // Lấy exercise từ lesson nếu là grammar block
+    let exercise = null;
+    if (block.type === "grammar" && lessonId) {
+      exercise = await this._getBlockExercise(blockId, lessonId.toString());
+    }
+
+    // Format block data
+    const formattedBlock = this._formatBlockResponse(block, exercise);
+
+    // Đảm bảo lessonId và cardDeck là string ID (không phải object)
+    if (
+      formattedBlock.lessonId &&
+      typeof formattedBlock.lessonId === "object"
+    ) {
+      formattedBlock.lessonId =
+        formattedBlock.lessonId._id?.toString() ||
+        formattedBlock.lessonId.toString();
+    }
+    if (
+      formattedBlock.cardDeck &&
+      typeof formattedBlock.cardDeck === "object"
+    ) {
+      formattedBlock.cardDeck =
+        formattedBlock.cardDeck._id?.toString() ||
+        formattedBlock.cardDeck.toString();
+    }
+
+    return ResponseBuilder.success(
+      "Fetched block successfully",
+      formattedBlock
+    );
   }
 
   /**
@@ -133,10 +310,7 @@ class BlockService {
 
     // Validate: maxWatchedTime không được vượt quá videoDuration
     if (maxWatchedTime > videoDuration && videoDuration > 0) {
-      throw new AppError(
-        "maxWatchedTime cannot exceed videoDuration",
-        400
-      );
+      throw new AppError("maxWatchedTime cannot exceed videoDuration", 400);
     }
 
     // Lấy block để validate
@@ -201,7 +375,10 @@ class BlockService {
         );
 
         // Sử dụng giá trị đã clamp
-        validatedMaxWatchedTime = Math.min(clampedMaxWatchedTime, videoDuration);
+        validatedMaxWatchedTime = Math.min(
+          clampedMaxWatchedTime,
+          videoDuration
+        );
       }
     }
 
@@ -263,7 +440,8 @@ class BlockService {
       message: "Video progress updated successfully",
       data: {
         isCompleted: updatedBlockProgress?.isCompleted || false,
-        isLearned: hasWatchedFullVideo || updatedBlockProgress?.isCompleted || false,
+        isLearned:
+          hasWatchedFullVideo || updatedBlockProgress?.isCompleted || false,
         maxWatchedTime: updatedBlockProgress?.maxWatchedTime || 0,
         videoDuration: updatedBlockProgress?.videoDuration || 0,
         progressPercentage:
@@ -295,12 +473,10 @@ class BlockService {
       }
 
       // Tìm block trong lesson để lấy exercise (quiz)
-      const blockInLesson = lesson.blocks.find(
-        (b) => {
-          const blockIdStr = b.block?.toString() || b.block?._id?.toString();
-          return blockIdStr === blockId.toString();
-        }
-      );
+      const blockInLesson = lesson.blocks.find((b) => {
+        const blockIdStr = b.block?.toString() || b.block?._id?.toString();
+        return blockIdStr === blockId.toString();
+      });
 
       const hasQuiz = !!(blockInLesson && blockInLesson.exercise);
 
@@ -334,10 +510,11 @@ class BlockService {
         }
       } else {
         // Có quiz → kiểm tra user đã làm quiz và pass chưa
-        const passedAttempt = await QuizAttemptForBlockRepository.findPassedAttempt(
-          toObjectId(userId),
-          toObjectId(blockId)
-        );
+        const passedAttempt =
+          await QuizAttemptForBlockRepository.findPassedAttempt(
+            toObjectId(userId),
+            toObjectId(blockId)
+          );
 
         const hasPassedQuiz = !!(passedAttempt && passedAttempt.isPassed);
 
@@ -366,6 +543,132 @@ class BlockService {
   }
 
   /**
+   * Lấy lesson content dựa trên block type
+   * @private
+   * @param {Object} block - Block object
+   * @returns {Promise<Object>} Lesson content object
+   */
+  async _getLessonContent(block) {
+    try {
+      // Case 1: Media hoặc Video - trả về block data trực tiếp
+      if (block.type === "media" || block.type === "video") {
+        return {
+          type: block.type,
+          blockData: {
+            _id: block._id,
+            title: block.title,
+            description: block.description,
+            videoUrl: block.videoUrl,
+            thumbnail: block.thumbnail,
+            duration: block.duration,
+            order: block.order,
+          },
+        };
+      }
+
+      // Case 2: Vocabulary hoặc có cardDeck
+      // Lấy cardDeckId từ nhiều nguồn có thể
+      let cardDeckId = null;
+      if (block.cardDeck) {
+        // Nếu cardDeck đã được populate (là object)
+        cardDeckId =
+          block.cardDeck._id?.toString() || block.cardDeck.toString();
+      } else if (block.cardDeckId) {
+        // Nếu có field cardDeckId riêng
+        cardDeckId = block.cardDeckId.toString();
+      }
+
+      if (block.type === "vocabulary" || cardDeckId) {
+        // Validate cardDeckId
+        if (!cardDeckId) {
+          throw new AppError(
+            "CardDeck ID is required for vocabulary block",
+            400
+          );
+        }
+
+        // Lấy CardDeck info
+        const cardDeck = await CardDeckRepo.getCardDeckById(cardDeckId);
+        if (!cardDeck) {
+          throw new AppError("CardDeck not found", 404);
+        }
+
+        // Lấy flashcards từ CardDeck với word đã populate
+        const flashcards = await FlashcardRepo.findByDeckWithWord(cardDeckId);
+
+        // Format flashcards với word information
+        const flashcardsWithWord = flashcards.map((flashcard) => ({
+          _id: flashcard._id,
+          frontText: flashcard.frontText,
+          backText: flashcard.backText,
+          difficulty: flashcard.difficulty,
+          tags: flashcard.tags || [],
+          word: flashcard.word
+            ? {
+                _id: flashcard.word._id,
+                word: flashcard.word.word,
+                pronunciation: flashcard.word.pronunciation,
+                audio: flashcard.word.audio,
+                partOfSpeech: flashcard.word.partOfSpeech,
+                definitions: flashcard.word.definitions || [],
+                level: flashcard.word.level,
+                image: flashcard.word.image,
+                synonyms: flashcard.word.synonyms || [],
+                antonyms: flashcard.word.antonyms || [],
+                tags: flashcard.word.tags || [],
+              }
+            : null,
+        }));
+
+        return {
+          type: "vocabulary",
+          cardDeck: {
+            _id: cardDeck._id,
+            title: cardDeck.title,
+            description: cardDeck.description,
+            level: cardDeck.level,
+            thumbnail: cardDeck.thumbnail,
+            target: cardDeck.target,
+            categoryId: cardDeck.categoryId,
+          },
+          flashcards: flashcardsWithWord,
+        };
+      }
+
+      // Case 3: Các type khác (grammar, quiz, etc.)
+      const blockData = {
+        _id: block._id,
+        title: block.title,
+        description: block.description,
+        order: block.order,
+        explanation: block.explanation,
+        examples: block.examples,
+      };
+
+      // Thêm videoUrl nếu có (cho các block type như grammar có thể có video)
+      if (block.videoUrl) {
+        blockData.videoUrl = block.videoUrl;
+      }
+
+      return {
+        type: block.type,
+        blockData,
+      };
+    } catch (error) {
+      // Nếu là AppError, throw lại
+      if (error instanceof AppError) {
+        throw error;
+      }
+      // Log và throw error khác
+      console.error(
+        `[BlockService] Error getting lesson content for block ${block._id}:`,
+        error
+      );
+      throw new AppError("Failed to get lesson content", 500);
+    }
+  }
+
+  /**
    * Bắt đầu học một block - thêm block vào user progress với trạng thái chưa hoàn thành
    * @param {Object} req - Express request object
    * @param {String} req.params.blockId - ID của block
@@ -378,6 +681,11 @@ class BlockService {
       const { blockId } = req.params;
       const userId = req.user._id;
       const { learningPathId } = req.query;
+      const normalizeId = (id) => {
+        if (!id) return null;
+        if (typeof id === "object" && id._id) return id._id.toString();
+        return id.toString();
+      };
 
       // Validate block tồn tại
       const block = await this.existingBlock(blockId);
@@ -394,7 +702,9 @@ class BlockService {
       }
 
       if (!pathId) {
-        return ResponseBuilder.notFoundError("Learning path not found for user");
+        return ResponseBuilder.notFoundError(
+          "Learning path not found for user"
+        );
       }
 
       // Lấy lessonId từ block
@@ -407,17 +717,39 @@ class BlockService {
         }
       }
 
+      const lessonIdStr = normalizeId(lessonId);
       if (!lessonId) {
-        throw new AppError("Lesson not found for this block", 404);
+        return ResponseBuilder.notFoundError("Lesson not found for this block");
+      }
+      if (!lessonIdStr) {
+        return ResponseBuilder.notFoundError("Lesson not found for this block");
       }
 
+      // Lấy thông tin quiz gắn với block (exercise từ lesson -> block)
+      const exerciseId = await this._getBlockExercise(blockId, lessonIdStr);
+      const hasQuiz = !!exerciseId;
+
       // Kiểm tra xem block progress đã tồn tại chưa
-      const existingBlockProgress = await UserProgressRepository.getBlockProgress(
-        userId,
-        pathId,
-        lessonId,
-        blockId
-      );
+      const existingBlockProgress =
+        await UserProgressRepository.getBlockProgress(
+          userId,
+          pathId,
+          lessonIdStr,
+          blockId
+        );
+
+      // Lấy lesson content dựa trên block type
+      let lessonContent = null;
+      try {
+        lessonContent = await this._getLessonContent(block);
+      } catch (error) {
+        // Log error nhưng không fail toàn bộ request
+        // Frontend có thể handle trường hợp lessonContent = null
+        console.error(
+          `[BlockService] Error getting lesson content for block ${blockId}:`,
+          error
+        );
+      }
 
       // Nếu đã có progress, chỉ cập nhật lastAccessedBlockId
       if (existingBlockProgress) {
@@ -437,6 +769,10 @@ class BlockService {
             isCompleted: existingBlockProgress.isCompleted || false,
             maxWatchedTime: existingBlockProgress.maxWatchedTime || 0,
             videoDuration: existingBlockProgress.videoDuration || 0,
+            videoUrl: block.videoUrl || null,
+            duration: block.duration || null,
+            lessonContent,
+            isQuiz: hasQuiz,
           },
         });
       }
@@ -467,7 +803,11 @@ class BlockService {
           isCompleted: newBlockProgress?.isCompleted || false,
           maxWatchedTime: newBlockProgress?.maxWatchedTime || 0,
           videoDuration: newBlockProgress?.videoDuration || 0,
+          videoUrl: block.videoUrl || null,
+          duration: block.duration || null,
           lastAccessedAt: new Date(),
+          lessonContent,
+          isQuiz: hasQuiz,
         },
       });
     } catch (error) {
@@ -529,6 +869,7 @@ class BlockService {
 
   async createBlockContent(req) {
     const block = req.body;
+    await this._ensureUniqueTitle(block.title, block.lessonId);
     const createdBlock = await BlockRepository.create(block);
     return ResponseBuilder.success({
       message: "Block created successfully",
@@ -540,6 +881,17 @@ class BlockService {
     const { blockId } = req.params;
     const blockUpdates = req.body;
     const existingBlock = await this.existingBlock(blockId);
+
+    // Check duplicate title when title is being changed
+    if (
+      blockUpdates.title &&
+      blockUpdates.title.toLowerCase() !==
+        (existingBlock.title || "").toLowerCase()
+    ) {
+      const lessonContext = blockUpdates.lessonId || existingBlock.lessonId;
+      await this._ensureUniqueTitle(blockUpdates.title, lessonContext, blockId);
+    }
+
     if (existingBlock.order !== blockUpdates.order) {
       await lessonBlockHelper.checkOrderExists(
         existingBlock,
