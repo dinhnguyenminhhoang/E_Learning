@@ -10,7 +10,7 @@ const Header = () => {
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-2 bg-gray-50 rounded-lg px-4 py-2">
             <Target className="w-5 h-5 text-red-500" />
-            <span className="text-sm">Daily goal:</span>
+            <span className="text-sm">Mục tiêu hàng ngày:</span>
             <span className="text-sm font-semibold text-yellow-600">
               {dailyGoal}
             </span>
@@ -18,13 +18,13 @@ const Header = () => {
         </div>
 
         <div className="flex items-center gap-4">
-          <button className="flex items-center gap-2 text-sm text-gray-600 hover:text-gray-900">
-            🇬🇧 <span>English</span>
+          <button className="flex items-center gap-2 text-sm text-gray-600 hover:text-gray-900 cursor-pointer">
+            🇬🇧 <span>Tiếng Anh</span>
           </button>
           <Button variant="outline" size="sm">
-            📱 Get The App
+            📱 Tải ứng dụng
           </Button>
-          <button className="w-9 h-9 bg-gray-200 rounded-full flex items-center justify-center hover:bg-gray-300">
+          <button className="w-9 h-9 bg-gray-200 rounded-full flex items-center justify-center hover:bg-gray-300 cursor-pointer">
             👤
           </button>
         </div>

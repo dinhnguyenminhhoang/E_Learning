@@ -29,11 +29,11 @@ type Item = {
   icon: React.ComponentType<any>;
 };
 const items: Item[] = [
-  { id: "home", label: "Home", href: "/learn", icon: Home },
-  { id: "learning", label: "Learning", href: "/topic-list", icon: GraduationCap },
-  { id: "exams", label: "Exams", href: "/exams", icon: ClipboardList },
-  { id: "wordlist", label: "Word list", href: "/my-wordlist", icon: BookOpen },
-  { id: "leaderboard", label: "Leaderboard", href: "/leaderboard", icon: Trophy },
+  { id: "home", label: "Trang chủ", href: "/learn", icon: Home },
+  { id: "learning", label: "Học tập", href: "/topic-list", icon: GraduationCap },
+  { id: "exams", label: "Bài kiểm tra", href: "/exams", icon: ClipboardList },
+  { id: "wordlist", label: "Danh sách từ", href: "/my-wordlist", icon: BookOpen },
+  { id: "leaderboard", label: "Bảng xếp hạng", href: "/leaderboard", icon: Trophy },
 ];
 export default function Sidebar() {
   const [collapsed, setCollapsed] = useState(false);
@@ -61,7 +61,7 @@ export default function Sidebar() {
         <button
           onClick={() => setCollapsed((v) => !v)}
           className="absolute -right-3 top-5 z-10 rounded-full border bg-white shadow-sm p-1 hover:bg-gray-50"
-          aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+          aria-label={collapsed ? "Mở rộng sidebar" : "Thu gọn sidebar"}
         >
           {collapsed ? (
             <ChevronRight className="w-4 h-4 text-gray-600" />
@@ -76,7 +76,7 @@ export default function Sidebar() {
           <div>
             {!collapsed && (
               <div className="text-xs font-semibold text-gray-400 uppercase mb-2 px-3">
-                Learning
+                Học tập
               </div>
             )}
 
@@ -126,26 +126,26 @@ export default function Sidebar() {
           <div>
             {!collapsed && (
               <div className="text-xs font-semibold text-gray-400 uppercase mb-2 px-3">
-                Account
+                Tài khoản
               </div>
             )}
             <Link
               href="/profile"
               className={cn(
-                "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-600 hover:bg-gray-50",
+                "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-600 hover:bg-gray-50 cursor-pointer",
                 pathname?.startsWith("/profile") &&
                 "bg-blue-50 text-blue-600 font-medium"
               )}
             >
               <User className="w-5 h-5 shrink-0" />
-              {!collapsed && <span>Profile</span>}
+              {!collapsed && <span>Hồ sơ</span>}
             </Link>
           </div>
         </nav>
       </TooltipProvider>
 
       {/* Footer user */}
-      <Link href="/profile" className="block p-4 border-t border-gray-200 hover:bg-gray-50 transition-colors">
+      <Link href="/profile" className="block p-4 border-t border-gray-200 hover:bg-gray-50 transition-colors cursor-pointer">
         {collapsed ? (
           <div className="w-10 h-10 bg-gradient-to-br from-orange-400 to-pink-500 rounded-full flex items-center justify-center text-white font-semibold mx-auto">
             MH

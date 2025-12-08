@@ -39,10 +39,10 @@ export function LessonPickerDialog({
             <div className="bg-white rounded-xl w-full max-w-2xl max-h-[80vh] flex flex-col mx-4">
                 <div className="p-6 border-b flex items-center justify-between">
                     <div>
-                        <h2 className="text-xl font-bold">Add Lesson to Level</h2>
-                        <p className="text-sm text-gray-600 mt-1">Level {levelOrder}</p>
+                        <h2 className="text-xl font-bold">Thêm Bài học vào Cấp độ</h2>
+                        <p className="text-sm text-gray-600 mt-1">Cấp độ {levelOrder}</p>
                     </div>
-                    <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-lg">
+                    <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-lg cursor-pointer">
                         <X className="w-5 h-5" />
                     </button>
                 </div>
@@ -51,7 +51,7 @@ export function LessonPickerDialog({
                     <div className="relative">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                         <Input
-                            placeholder="Search lessons..."
+                            placeholder="Tìm kiếm bài học..."
                             value={search}
                             onChange={(e) => onSearchChange(e.target.value)}
                             className="pl-10"
@@ -70,14 +70,14 @@ export function LessonPickerDialog({
                                 <button
                                     key={lesson._id}
                                     onClick={() => onSelectLesson(lesson._id)}
-                                    className="w-full p-4 text-left bg-gray-50 hover:bg-blue-50 border border-gray-200 hover:border-blue-300 rounded-lg transition-colors"
+                                    className="w-full p-4 text-left bg-gray-50 hover:bg-blue-50 border border-gray-200 hover:border-blue-300 rounded-lg transition-colors cursor-pointer"
                                 >
                                     <div className="flex items-start gap-3">
                                         <BookOpen className="w-5 h-5 text-gray-600 mt-0.5" />
                                         <div className="flex-1">
                                             <p className="font-medium text-gray-900">{lesson.title}</p>
                                             <p className="text-sm text-gray-500 line-clamp-1">
-                                                {lesson.description || "No description"}
+                                                {lesson.description || "Không có mô tả"}
                                             </p>
                                             <div className="flex items-center gap-2 mt-2">
                                                 <span className="text-xs px-2 py-1 bg-white border rounded capitalize">
@@ -103,7 +103,7 @@ export function LessonPickerDialog({
                         </div>
                     ) : (
                         <div className="text-center py-12">
-                            <p className="text-gray-500">No lessons found</p>
+                            <p className="text-gray-500">Không tìm thấy bài học</p>
                         </div>
                     )}
                 </div>
@@ -111,7 +111,7 @@ export function LessonPickerDialog({
                 {totalPages > 1 && (
                     <div className="p-4 border-t flex items-center justify-between">
                         <p className="text-sm text-gray-600">
-                            Page {page} of {totalPages}
+                            Trang {page} / {totalPages}
                         </p>
                         <div className="flex gap-2">
                             <Button
@@ -120,7 +120,7 @@ export function LessonPickerDialog({
                                 disabled={page <= 1 || loading}
                                 onClick={() => onPageChange(page - 1)}
                             >
-                                Previous
+                                Trước
                             </Button>
                             <Button
                                 variant="outline"
@@ -128,7 +128,7 @@ export function LessonPickerDialog({
                                 disabled={page >= totalPages || loading}
                                 onClick={() => onPageChange(page + 1)}
                             >
-                                Next
+                                Tiếp theo
                             </Button>
                         </div>
                     </div>

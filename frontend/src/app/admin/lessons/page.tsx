@@ -80,24 +80,24 @@ export default function LessonsPage() {
                 }
             }
         } catch (error) {
-            console.error("Error fetching lessons:", error);
-            toast.error("Failed to load lessons");
+            console.error("Lỗi tải bài học:", error);
+            toast.error("Không thể tải danh sách bài học");
         } finally {
             setLoading(false);
         }
     };
 
     const handleDelete = async (id: string) => {
-        if (!confirm("Are you sure you want to delete this lesson?")) return;
+        if (!confirm("Bạn có chắc muốn xóa bài học này?")) return;
 
         try {
             const response = await lessonService.delete(id);
             if (response.code === 200) {
-                toast.success("Lesson deleted successfully");
+                toast.success("Đã xóa bài học thành công");
                 fetchLessons();
             }
         } catch (error) {
-            toast.error("Failed to delete lesson");
+            toast.error("Không thể xóa bài học");
         }
     };
 
@@ -107,9 +107,9 @@ export default function LessonsPage() {
         <div className="p-6 mx-auto">
             <div className="mb-8">
                 <h1 className="text-3xl font-bold text-gray-900 mb-2">
-                    Lessons Management
+                    Quản lý bài học
                 </h1>
-                <p className="text-gray-600">Create and manage lesson content</p>
+                <p className="text-gray-600">Tạo và quản lý nội dung bài học</p>
             </div>
 
             <div className="mb-6 flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
@@ -117,7 +117,7 @@ export default function LessonsPage() {
                     <div className="relative flex-1 max-w-md">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                         <Input
-                            placeholder="Search lessons..."
+                            placeholder="Tìm kiếm bài học..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
                             className="pl-10"
@@ -129,11 +129,11 @@ export default function LessonsPage() {
                         onChange={(e) => setSkillFilter(e.target.value)}
                         className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     >
-                        <option value="all">All Skills</option>
-                        <option value="reading">Reading</option>
-                        <option value="writing">Writing</option>
-                        <option value="listening">Listening</option>
-                        <option value="speaking">Speaking</option>
+                        <option value="all">Tất cả kỹ năng</option>
+                        <option value="reading">Đọc</option>
+                        <option value="writing">Viết</option>
+                        <option value="listening">Nghe</option>
+                        <option value="speaking">Nói</option>
                     </select>
 
                     <select
@@ -141,10 +141,10 @@ export default function LessonsPage() {
                         onChange={(e) => setStatusFilter(e.target.value)}
                         className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     >
-                        <option value="all">All Status</option>
-                        <option value="published">Published</option>
-                        <option value="draft">Draft</option>
-                        <option value="archived">Archived</option>
+                        <option value="all">Tất cả trạng thái</option>
+                        <option value="published">Đã xuất bản</option>
+                        <option value="draft">Nháp</option>
+                        <option value="archived">Lưu trữ</option>
                     </select>
                 </div>
 
@@ -153,7 +153,14 @@ export default function LessonsPage() {
                     className="bg-blue-600 hover:bg-blue-700"
                 >
                     <Plus className="w-4 h-4 mr-2" />
-                    Add Lesson
+                    Thêm bài học
+                </Button>
+                <Button
+                    variant="outline"
+                    onClick={() => router.push("/admin/blocks")}
+                    className="border-blue-200 text-blue-700 hover:bg-blue-50"
+                >
+                    Quản lý nội dung bài học
                 </Button>
             </div>
 
@@ -161,7 +168,7 @@ export default function LessonsPage() {
                 <div className="bg-white rounded-xl p-5 border border-gray-200 shadow-sm">
                     <div className="flex items-center justify-between">
                         <div>
-                            <p className="text-sm text-gray-600 mb-1">Total Lessons</p>
+                            <p className="text-sm text-gray-600 mb-1">Tổng số bài học</p>
                             <p className="text-2xl font-bold text-gray-900">
                                 {lessons?.length || 0}
                             </p>
@@ -173,7 +180,7 @@ export default function LessonsPage() {
                 <div className="bg-white rounded-xl p-5 border border-gray-200 shadow-sm">
                     <div className="flex items-center justify-between">
                         <div>
-                            <p className="text-sm text-gray-600 mb-1">Published</p>
+                            <p className="text-sm text-gray-600 mb-1">Đã xuất bản</p>
                             <p className="text-2xl font-bold text-green-600">
                                 {(lessons || []).filter((l) => l.status === STATUS.ACTIVE).length}
                             </p>
@@ -185,7 +192,7 @@ export default function LessonsPage() {
                 <div className="bg-white rounded-xl p-5 border border-gray-200 shadow-sm">
                     <div className="flex items-center justify-between">
                         <div>
-                            <p className="text-sm text-gray-600 mb-1">Drafts</p>
+                            <p className="text-sm text-gray-600 mb-1">Nháp</p>
                             <p className="text-2xl font-bold text-yellow-600">
                                 {(lessons || []).filter((l) => l.status === STATUS.DRAFT).length}
                             </p>
@@ -197,7 +204,7 @@ export default function LessonsPage() {
                 <div className="bg-white rounded-xl p-5 border border-gray-200 shadow-sm">
                     <div className="flex items-center justify-between">
                         <div>
-                            <p className="text-sm text-gray-600 mb-1">Total Blocks</p>
+                            <p className="text-sm text-gray-600 mb-1">Tổng số block</p>
                             <p className="text-2xl font-bold text-purple-600">
                                 {(lessons || []).reduce((sum, l) => sum + (l.blocks?.length || 0), 0)}
                             </p>
@@ -213,22 +220,22 @@ export default function LessonsPage() {
                         <thead className="bg-gray-50 border-b border-gray-200">
                             <tr>
                                 <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase">
-                                    Lesson
+                                    Bài học
                                 </th>
                                 <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase">
-                                    Topic/Skill
+                                    Chủ đề / Kỹ năng
                                 </th>
                                 <th className="px-6 py-4 text-center text-xs font-semibold text-gray-600 uppercase">
-                                    Difficulty
+                                    Độ khó
                                 </th>
                                 <th className="px-6 py-4 text-center text-xs font-semibold text-gray-600 uppercase">
-                                    Blocks
+                                    Số block
                                 </th>
                                 <th className="px-6 py-4 text-center text-xs font-semibold text-gray-600 uppercase">
-                                    Status
+                                    Trạng thái
                                 </th>
                                 <th className="px-6 py-4 text-center text-xs font-semibold text-gray-600 uppercase">
-                                    Actions
+                                    Thao tác
                                 </th>
                             </tr>
                         </thead>
@@ -261,7 +268,7 @@ export default function LessonsPage() {
                                                     {lesson.title}
                                                 </p>
                                                 <p className="text-sm text-gray-500 line-clamp-1">
-                                                    {lesson.description || "No description"}
+                                                    {lesson.description || "Chưa có mô tả"}
                                                 </p>
                                             </div>
                                         </td>
@@ -274,7 +281,7 @@ export default function LessonsPage() {
                                                         SKILL_COLORS[lesson.skill]
                                                     )}
                                                 >
-                                                    {lesson.skill}
+                                                {lesson.skill}
                                                 </span>
                                             </div>
                                         </td>
@@ -304,7 +311,11 @@ export default function LessonsPage() {
                                                             : "bg-gray-100 text-gray-700"
                                                 )}
                                             >
-                                                {lesson.status}
+                                                {lesson.status === STATUS.ACTIVE
+                                                    ? "Đã xuất bản"
+                                                    : lesson.status === STATUS.DRAFT
+                                                        ? "Nháp"
+                                                        : "Lưu trữ"}
                                             </span>
                                         </td>
                                         <td className="px-6 py-4">

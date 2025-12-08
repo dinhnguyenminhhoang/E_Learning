@@ -38,24 +38,24 @@ export default function LearningPathsPage() {
             }
         } catch (error) {
             console.error("Error fetching paths:", error);
-            toast.error("Failed to load learning paths");
+            toast.error("Không thể tải lộ trình học");
         } finally {
             setLoading(false);
         }
     };
 
     const handleDelete = async (id: string) => {
-        if (!confirm("Are you sure you want to delete this learning path?"))
+        if (!confirm("Bạn có chắc chắn muốn xóa lộ trình học này?"))
             return;
 
         try {
             const response = await learningPathAdminService.delete(id);
             if (response.code === 200) {
-                toast.success("Learning path deleted successfully");
+                toast.success("Xóa lộ trình học thành công");
                 fetchPaths();
             }
         } catch (error) {
-            toast.error("Failed to delete learning path");
+            toast.error("Không thể xóa lộ trình học");
         }
     };
 
@@ -71,10 +71,10 @@ export default function LearningPathsPage() {
         <div className="p-6 mx-auto">
             <div className="mb-8">
                 <h1 className="text-3xl font-bold text-gray-900 mb-2">
-                    Learning Paths Management
+                    Quản lý Lộ trình học
                 </h1>
                 <p className="text-gray-600">
-                    Create and manage structured learning journeys
+                    Tạo và quản lý các hành trình học tập có cấu trúc
                 </p>
             </div>
 
@@ -83,7 +83,7 @@ export default function LearningPathsPage() {
                     <div className="relative flex-1 max-w-md">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                         <Input
-                            placeholder="Search paths..."
+                            placeholder="Tìm kiếm lộ trình..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
                             className="pl-10"
@@ -93,12 +93,12 @@ export default function LearningPathsPage() {
                     <select
                         value={levelFilter}
                         onChange={(e) => setLevelFilter(e.target.value)}
-                        className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 cursor-pointer"
                     >
-                        <option value="all">All Levels</option>
-                        <option value="beginner">Beginner</option>
-                        <option value="intermediate">Intermediate</option>
-                        <option value="advanced">Advanced</option>
+                        <option value="all">Tất cả cấp độ</option>
+                        <option value="beginner">Sơ cấp</option>
+                        <option value="intermediate">Trung cấp</option>
+                        <option value="advanced">Nâng cao</option>
                     </select>
                 </div>
 
@@ -107,7 +107,7 @@ export default function LearningPathsPage() {
                     className="bg-blue-600 hover:bg-blue-700"
                 >
                     <Plus className="w-4 h-4 mr-2" />
-                    Add Learning Path
+                    Thêm Lộ trình học
                 </Button>
             </div>
 
@@ -115,7 +115,7 @@ export default function LearningPathsPage() {
                 <div className="bg-white rounded-xl p-5 border border-gray-200 shadow-sm">
                     <div className="flex items-center justify-between">
                         <div>
-                            <p className="text-sm text-gray-600 mb-1">Total Paths</p>
+                            <p className="text-sm text-gray-600 mb-1">Tổng Lộ trình</p>
                             <p className="text-2xl font-bold text-gray-900">
                                 {paths.length}
                             </p>
@@ -127,7 +127,7 @@ export default function LearningPathsPage() {
                 <div className="bg-white rounded-xl p-5 border border-gray-200 shadow-sm">
                     <div className="flex items-center justify-between">
                         <div>
-                            <p className="text-sm text-gray-600 mb-1">Active</p>
+                            <p className="text-sm text-gray-600 mb-1">Đang hoạt động</p>
                             <p className="text-2xl font-bold text-green-600">
                                 {paths.filter((p) => p.status === "active").length}
                             </p>
@@ -139,7 +139,7 @@ export default function LearningPathsPage() {
                 <div className="bg-white rounded-xl p-5 border border-gray-200 shadow-sm">
                     <div className="flex items-center justify-between">
                         <div>
-                            <p className="text-sm text-gray-600 mb-1">Total Levels</p>
+                            <p className="text-sm text-gray-600 mb-1">Tổng Cấp độ</p>
                             <p className="text-2xl font-bold text-purple-600">
                                 {paths.reduce((sum, p) => sum + (p.levels?.length || 0), 0)}
                             </p>
@@ -154,22 +154,22 @@ export default function LearningPathsPage() {
                         <thead className="bg-gray-50 border-b border-gray-200">
                             <tr>
                                 <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase">
-                                    Learning Path
+                                    Lộ trình học
                                 </th>
                                 <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase">
-                                    Target / Key
+                                    Mục tiêu / Mã
                                 </th>
                                 <th className="px-6 py-4 text-center text-xs font-semibold text-gray-600 uppercase">
-                                    Level
+                                    Cấp độ
                                 </th>
                                 <th className="px-6 py-4 text-center text-xs font-semibold text-gray-600 uppercase">
-                                    Levels
+                                    Số cấp độ
                                 </th>
                                 <th className="px-6 py-4 text-center text-xs font-semibold text-gray-600 uppercase">
-                                    Status
+                                    Trạng thái
                                 </th>
                                 <th className="px-6 py-4 text-center text-xs font-semibold text-gray-600 uppercase">
-                                    Actions
+                                    Thao tác
                                 </th>
                             </tr>
                         </thead>
@@ -187,7 +187,7 @@ export default function LearningPathsPage() {
                                     <td colSpan={6} className="px-6 py-12 text-center">
                                         <GraduationCap className="w-12 h-12 mx-auto mb-3 text-gray-400 opacity-50" />
                                         <p className="text-lg font-medium text-gray-400">
-                                            No learning paths found
+                                            Không tìm thấy lộ trình học
                                         </p>
                                     </td>
                                 </tr>
@@ -203,7 +203,7 @@ export default function LearningPathsPage() {
                                                     {path.title}
                                                 </p>
                                                 <p className="text-sm text-gray-500 line-clamp-1">
-                                                    {path.description || "No description"}
+                                                    {path.description || "Không có mô tả"}
                                                 </p>
                                             </div>
                                         </td>
@@ -228,7 +228,7 @@ export default function LearningPathsPage() {
                                                             : "bg-red-100 text-red-700"
                                                 )}
                                             >
-                                                {path.level}
+                                                {path.level === "beginner" ? "Sơ cấp" : path.level === "intermediate" ? "Trung cấp" : "Nâng cao"}
                                             </span>
                                         </td>
                                         <td className="px-6 py-4 text-center">
@@ -248,12 +248,12 @@ export default function LearningPathsPage() {
                                                 {path.status === "active" ? (
                                                     <>
                                                         <CheckCircle className="w-3 h-3 mr-1" />
-                                                        Active
+                                                        Hoạt động
                                                     </>
                                                 ) : (
                                                     <>
                                                         <XCircle className="w-3 h-3 mr-1" />
-                                                        Inactive
+                                                        Không hoạt động
                                                     </>
                                                 )}
                                             </span>
@@ -266,7 +266,7 @@ export default function LearningPathsPage() {
                                                     onClick={() =>
                                                         router.push(`/admin/learning-paths/${path._id}`)
                                                     }
-                                                    className="hover:bg-blue-50 hover:text-blue-700 hover:border-blue-300"
+                                                    className="hover:bg-blue-50 hover:text-blue-700 hover:border-blue-300 cursor-pointer"
                                                 >
                                                     <Edit className="w-4 h-4" />
                                                 </Button>
@@ -274,7 +274,7 @@ export default function LearningPathsPage() {
                                                     variant="outline"
                                                     size="sm"
                                                     onClick={() => handleDelete(path._id)}
-                                                    className="hover:bg-red-50 hover:text-red-700 hover:border-red-300"
+                                                    className="hover:bg-red-50 hover:text-red-700 hover:border-red-300 cursor-pointer"
                                                 >
                                                     <Trash2 className="w-4 h-4" />
                                                 </Button>
