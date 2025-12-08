@@ -30,7 +30,14 @@ const questionSchema = new Schema(
 
     type: {
       type: String,
-      enum: ["multiple_choice", "fill_blank", "matching", "true_false", "writing", "speaking"],
+      enum: [
+        "multiple_choice",
+        "fill_blank",
+        "matching",
+        "true_false",
+        "writing",
+        "speaking",
+      ],
       required: true,
     },
 
@@ -93,12 +100,20 @@ const quizSchema = new Schema(
     },
     skill: {
       type: String,
-      enum: ["reading", "listening", "writing", "speaking", "grammar", "vocabulary"],
+      enum: [
+        "reading",
+        "listening",
+        "writing",
+        "speaking",
+        "grammar",
+        "vocabulary",
+      ],
       required: true,
       lowercase: true,
       trim: true,
       index: true,
     },
+    
     attachedTo: {
       kind: {
         type: String,

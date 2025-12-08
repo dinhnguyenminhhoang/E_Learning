@@ -3,8 +3,11 @@ import { apiClient } from "@/config/api.config";
 
 class FlashcardAdminService {
     // Card Deck APIs
-    async getAll(): Promise<{ code: number; data: CardDeck[] }> {
-        return await apiClient.get("/v1/api/card-deck/");
+    async getAll(params?: { pageNum?: number; pageSize?: number; search?: string }): Promise<{ code: number; data: CardDeck[]; pagination?: any }> {
+        return await apiClient.get("/v1/api/card-deck/", {
+            params,
+            timeout: 60000, // kéo dài timeout để tránh ECONNABORTED khi tải nhiều deck
+        });
     }
 
     async getById(id: string): Promise<{ code: number; data: CardDeck | null }> {

@@ -41,7 +41,7 @@ export default function CreateLearningPathPage() {
             }
         } catch (error) {
             console.error("Error fetching targets:", error);
-            toast.error("Failed to load targets");
+            toast.error("Không thể tải mục tiêu");
         } finally {
             setLoadingTargets(false);
         }
@@ -51,12 +51,12 @@ export default function CreateLearningPathPage() {
         e.preventDefault();
 
         if (!formData.title.trim() || !formData.key.trim()) {
-            toast.error("Title and Key are required");
+            toast.error("Tiêu đề và Mã là bắt buộc");
             return;
         }
 
         if (!formData.targetId) {
-            toast.error("Please select a target");
+            toast.error("Vui lòng chọn mục tiêu");
             return;
         }
 
@@ -67,14 +67,14 @@ export default function CreateLearningPathPage() {
                 targetId: formData.targetId,
             });
             if (response.code === 200 || response.code === 201) {
-                toast.success("Learning path created successfully!");
+                toast.success("Tạo lộ trình học thành công!");
                 router.push("/admin/learning-paths");
             }
         } catch (error: any) {
             console.error("Error creating path:", error);
             const errorMessage =
                 error?.response?.data?.message || "Failed to create learning path";
-            toast.error(errorMessage);
+            toast.error(errorMessage || "Không thể tạo lộ trình học");
         } finally {
             setLoading(false);
         }
@@ -92,12 +92,12 @@ export default function CreateLearningPathPage() {
             <div className="mb-8">
                 <Button variant="ghost" onClick={() => router.back()} className="mb-4 -ml-2">
                     <ArrowLeft className="w-4 h-4 mr-2" />
-                    Back to Learning Paths
+                    Quay lại Lộ trình học
                 </Button>
                 <h1 className="text-3xl font-bold text-gray-900 mb-2">
-                    Create New Learning Path
+                    Tạo Lộ trình học Mới
                 </h1>
-                <p className="text-gray-600">Add a new structured learning journey</p>
+                <p className="text-gray-600">Thêm một hành trình học tập có cấu trúc mới</p>
             </div>
 
             <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
@@ -105,42 +105,41 @@ export default function CreateLearningPathPage() {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div className="md:col-span-2">
                             <label className="block text-sm font-semibold text-gray-700 mb-2">
-                                Path Title <span className="text-red-500">*</span>
+                                Tiêu đề Lộ trình <span className="text-red-500">*</span>
                             </label>
                             <Input
                                 type="text"
                                 name="title"
                                 value={formData.title}
                                 onChange={handleChange}
-                                placeholder="e.g., English for Beginners"
+                                placeholder="ví dụ: Tiếng Anh cho người mới bắt đầu"
                                 required
                             />
                         </div>
 
                         <div className="md:col-span-2">
                             <label className="block text-sm font-semibold text-gray-700 mb-2">
-                                Target <span className="text-red-500">*</span>
+                                Mục tiêu <span className="text-red-500">*</span>
                             </label>
                             {loadingTargets ? (
                                 <div className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg bg-gray-50">
                                     <div className="animate-spin w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full" />
                                     <span className="text-sm text-gray-600">
-                                        Loading targets...
+                                        Đang tải mục tiêu...
                                     </span>
                                 </div>
                             ) : availableTargets.length === 0 ? (
                                 <div className="px-4 py-3 border border-yellow-300 rounded-lg bg-yellow-50">
                                     <p className="text-sm text-yellow-800">
-                                        No available targets. All targets are already assigned
-                                        to learning paths.{" "}
+                                        Không có mục tiêu khả dụng. Tất cả mục tiêu đã được gán cho lộ trình học.{" "}
                                         <button
                                             type="button"
                                             onClick={() =>
                                                 router.push("/admin/targets/create")
                                             }
-                                            className="underline font-medium hover:text-yellow-900"
+                                            className="underline font-medium hover:text-yellow-900 cursor-pointer"
                                         >
-                                            Create a new target
+                                            Tạo mục tiêu mới
                                         </button>
                                     </p>
                                 </div>
@@ -159,9 +158,9 @@ export default function CreateLearningPathPage() {
                                         }));
                                     }}
                                     required
-                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 cursor-pointer"
                                 >
-                                    <option value="">Select a target...</option>
+                                    <option value="">Chọn mục tiêu...</option>
                                     {availableTargets.map((target) => (
                                         <option key={target.key} value={target.key}>
                                             {target.value}
@@ -170,69 +169,69 @@ export default function CreateLearningPathPage() {
                                 </select>
                             )}
                             <p className="text-xs text-gray-500 mt-1">
-                                Choose the learning objective (IELTS, TOEIC, etc.)
+                                Chọn mục tiêu học tập (IELTS, TOEIC, v.v.)
                             </p>
                         </div>
 
                         <div>
                             <label className="block text-sm font-semibold text-gray-700 mb-2">
-                                Path Key <span className="text-red-500">*</span>
+                                Mã Lộ trình <span className="text-red-500">*</span>
                             </label>
                             <Input
                                 type="text"
                                 name="key"
                                 value={formData.key}
                                 onChange={handleChange}
-                                placeholder="e.g., beginner-path"
+                                placeholder="ví dụ: beginner-path"
                                 required
                             />
                             <p className="text-xs text-gray-500 mt-1">
-                                Unique identifier (lowercase, no spaces)
+                                Định danh duy nhất (chữ thường, không có khoảng trắng)
                             </p>
                         </div>
 
                         <div>
                             <label className="block text-sm font-semibold text-gray-700 mb-2">
-                                Level <span className="text-red-500">*</span>
+                                Cấp độ <span className="text-red-500">*</span>
                             </label>
                             <select
                                 name="level"
                                 value={formData.level}
                                 onChange={handleChange}
                                 required
-                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 cursor-pointer"
                             >
-                                <option value="beginner">Beginner</option>
-                                <option value="intermediate">Intermediate</option>
-                                <option value="advanced">Advanced</option>
+                                <option value="beginner">Sơ cấp</option>
+                                <option value="intermediate">Trung cấp</option>
+                                <option value="advanced">Nâng cao</option>
                             </select>
                         </div>
 
                         <div>
                             <label className="block text-sm font-semibold text-gray-700 mb-2">
-                                Status <span className="text-red-500">*</span>
+                                Trạng thái <span className="text-red-500">*</span>
                             </label>
                             <select
                                 name="status"
                                 value={formData.status}
                                 onChange={handleChange}
                                 required
-                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 cursor-pointer"
                             >
-                                <option value="active">Active</option>
-                                <option value="inactive">Inactive</option>
+                                <option value="active">Hoạt động</option>
+                                <option value="inactive">Không hoạt động</option>
                             </select>
                         </div>
 
                         <div className="md:col-span-2">
                             <label className="block text-sm font-semibold text-gray-700 mb-2">
-                                Description
+                                Mô tả
                             </label>
                             <textarea
                                 name="description"
                                 value={formData.description}
                                 onChange={handleChange}
-                                placeholder="Brief description of this learning path"
+                                placeholder="Mô tả ngắn gọn về lộ trình học này"
                                 rows={4}
                                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none"
                             />
@@ -246,7 +245,7 @@ export default function CreateLearningPathPage() {
                             onClick={() => router.back()}
                             disabled={loading}
                         >
-                            Cancel
+                            Hủy
                         </Button>
                         <Button
                             type="submit"
@@ -256,12 +255,12 @@ export default function CreateLearningPathPage() {
                             {loading ? (
                                 <>
                                     <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full mr-2" />
-                                    Creating...
+                                    Đang tạo...
                                 </>
                             ) : (
                                 <>
                                     <Save className="w-4 h-4 mr-2" />
-                                    Create Learning Path
+                                    Tạo Lộ trình học
                                 </>
                             )}
                         </Button>
@@ -271,8 +270,8 @@ export default function CreateLearningPathPage() {
 
             <div className="mt-6 bg-blue-50 rounded-xl p-4 border border-blue-200">
                 <p className="text-sm text-blue-800">
-                    <strong>Note:</strong> After creating the path, you can add levels and
-                    assign lessons from the edit page.
+                    <strong>Lưu ý:</strong> Sau khi tạo lộ trình, bạn có thể thêm cấp độ và
+                    gán bài học từ trang chỉnh sửa.
                 </p>
             </div>
         </div>

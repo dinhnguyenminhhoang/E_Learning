@@ -121,7 +121,7 @@ class LearningPathRepository {
 
   async findLevelsByPath(learningPathId) {
     return await LearningPath.findById(toObjectId(learningPathId))
-      .select("levels.order levels.title levels._id")
+      .select("levels.order levels.title levels._id levels.finalQuiz levels.lessons.lesson")
       .lean();
   }
 

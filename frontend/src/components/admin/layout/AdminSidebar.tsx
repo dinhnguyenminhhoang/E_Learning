@@ -31,42 +31,42 @@ interface MenuItem {
 const menuItems: MenuItem[] = [
   {
     id: "dashboard",
-    label: "Dashboard",
+    label: "Bảng điều khiển",
     href: "/admin/dashboard",
     icon: LayoutDashboard,
   },
   {
     id: "content",
-    label: "Content Management",
+    label: "Quản lý Nội dung",
     icon: BookOpen,
     children: [
       {
         id: "learning-paths",
-        label: "Learning Paths",
+        label: "Lộ trình học",
         href: "/admin/learning-paths",
         icon: GraduationCap,
       },
       {
         id: "targets",
-        label: "Targets",
+        label: "Mục tiêu",
         href: "/admin/targets",
         icon: Target,
       },
       {
         id: "lessons",
-        label: "Lessons",
+        label: "Bài học",
         href: "/admin/lessons",
         icon: FileText,
       },
       {
         id: "quizzes",
-        label: "Quizzes",
+        label: "Bài tập",
         href: "/admin/quizzes",
         icon: HelpCircle,
       },
       {
         id: "exams",
-        label: "Exams",
+        label: "Kỳ thi",
         href: "/admin/exams",
         icon: ClipboardList,
       },
@@ -74,24 +74,24 @@ const menuItems: MenuItem[] = [
   },
   {
     id: "library",
-    label: "Library",
+    label: "Thư viện",
     icon: BookOpen,
     children: [
       {
         id: "categories",
-        label: "Categories",
+        label: "Danh mục",
         href: "/admin/categories",
         icon: FolderKanban,
       },
       {
         id: "words",
-        label: "Words",
+        label: "Từ vựng",
         href: "/admin/words",
         icon: FileText,
       },
       {
         id: "flashcards",
-        label: "Flashcards",
+        label: "Thẻ ghi nhớ",
         href: "/admin/flashcards",
         icon: Layers,
       },
@@ -99,13 +99,13 @@ const menuItems: MenuItem[] = [
   },
   {
     id: "users",
-    label: "Users",
+    label: "Người dùng",
     href: "/admin/users",
     icon: Users,
   },
   {
     id: "settings",
-    label: "Settings",
+    label: "Cài đặt",
     href: "/admin/settings",
     icon: Settings,
   },
@@ -135,7 +135,7 @@ export function AdminSidebar() {
           <button
             onClick={() => toggleExpand(item.id)}
             className={cn(
-              "w-full flex items-center justify-between px-4 py-2.5 rounded-lg transition-colors",
+              "w-full flex items-center justify-between px-4 py-2.5 rounded-lg transition-colors cursor-pointer",
               level === 0
                 ? "text-gray-700 hover:bg-gray-100"
                 : "text-gray-600 hover:bg-gray-50",
@@ -156,7 +156,7 @@ export function AdminSidebar() {
           <Link
             href={item.href!}
             className={cn(
-              "flex items-center gap-3 px-4 py-2.5 rounded-lg transition-colors",
+              "flex items-center gap-3 px-4 py-2.5 rounded-lg transition-colors cursor-pointer",
               level > 0 && "pl-12",
               isActive
                 ? "bg-sky-50 text-sky-600 font-medium"
@@ -187,7 +187,7 @@ export function AdminSidebar() {
           </div>
           <div>
             <h1 className="text-xl font-bold text-gray-900">E_LEANING</h1>
-            <p className="text-xs text-gray-500">Admin Panel</p>
+            <p className="text-xs text-gray-500">Bảng quản trị</p>
           </div>
         </Link>
       </div>

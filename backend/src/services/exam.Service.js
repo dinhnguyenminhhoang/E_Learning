@@ -99,12 +99,16 @@ class ExamService {
    * }
    */
   async createExam(req) {
-    const { title, description, totalTimeLimit, sections } = req.body || {};
+    const { title, description, maxScore, totalTimeLimit, sections } = req.body || {};
 
-    if (!title || !Array.isArray(sections) || sections.length === 0) {
+    if (!title || !maxScore || !Array.isArray(sections) || sections.length === 0) {
       return ResponseBuilder.badRequest(
-        "Tiêu đề exam và danh sách sections là bắt buộc."
+        "Tiêu đề exam, điểm số tối đa và danh sách sections là bắt buộc."
       );
+    }
+
+    if (maxScore <= 0) {
+      return ResponseBuilder.badRequest("Điểm số tối đa phải lớn hơn 0.");
     }
 
     // Lấy danh sách quizId từ body
@@ -141,12 +145,14 @@ class ExamService {
         order: sec.order ?? index + 1,
         quiz: toObjectId(sec.quiz),
         timeLimit: sec.timeLimit ?? null,
+        maxScore: sec.maxScore,
       }))
       .sort((a, b) => a.order - b.order);
 
     const examPayload = {
       title,
       description: description || null,
+      maxScore,
       totalTimeLimit: totalTimeLimit ?? null,
       sections: normalizedSections,
       updatedBy: req.user?.id || null,

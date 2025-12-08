@@ -95,9 +95,9 @@ export default function EditLearningPathPage() {
                 setFormData({
                     title: path.title,
                     description: path.description || "",
-                    target: typeof path.target === "object" ? path.target.name : path.target,
+                    target: path.target && typeof path.target === "object" ? path.target.name : path.target || "",
                     targetId:
-                        typeof path.target === "object" ? path.target._id : path.target,
+                        path.target && typeof path.target === "object" ? path.target._id : path.target || "",
                     key: path.key,
                     level: path.level,
                     status: path.status,
@@ -105,7 +105,7 @@ export default function EditLearningPathPage() {
             }
         } catch (error) {
             console.error("Error loading path:", error);
-            toast.error("Failed to load learning path");
+            toast.error("Không thể tải lộ trình học");
             router.push("/admin/learning-paths");
         } finally {
             setLoadingData(false);
@@ -205,13 +205,13 @@ export default function EditLearningPathPage() {
                 toast.error(response.message || "Failed to attach exam");
             }
         } catch (error) {
-            toast.error("Failed to attach exam");
+            toast.error("Không thể gắn bài kiểm tra");
         }
     };
 
     // Detach exam from level
     const handleDetachExam = async (levelOrder: number) => {
-        if (!confirm("Remove this exam from the level?")) return;
+        if (!confirm("Xóa bài kiểm tra này khỏi cấp độ?")) return;
 
         try {
             const response = await learningPathAdminService.removeQuizFromLevel({
@@ -219,13 +219,13 @@ export default function EditLearningPathPage() {
                 levelOrder,
             });
             if (response.code === 200) {
-                toast.success("Exam removed from level!");
+                toast.success("Đã xóa bài kiểm tra khỏi cấp độ!");
                 loadPath();
             } else {
-                toast.error(response.message || "Failed to remove exam");
+                toast.error(response.message || "Không thể xóa bài kiểm tra");
             }
         } catch (error) {
-            toast.error("Failed to remove exam");
+            toast.error("Không thể xóa bài kiểm tra");
         }
     };
 
@@ -233,12 +233,12 @@ export default function EditLearningPathPage() {
         e.preventDefault();
 
         if (!formData.title.trim() || !formData.key.trim()) {
-            toast.error("Title and Key are required");
+            toast.error("Tiêu đề và Mã là bắt buộc");
             return;
         }
 
         if (!formData.targetId) {
-            toast.error("Please select a target");
+            toast.error("Vui lòng chọn mục tiêu");
             return;
         }
 
@@ -253,12 +253,12 @@ export default function EditLearningPathPage() {
                 targetId: formData.targetId,
             });
             if (response.code === 200) {
-                toast.success("Learning path updated successfully!");
+                toast.success("Cập nhật lộ trình học thành công!");
                 loadPath();
             }
         } catch (error: any) {
             console.error("Error updating path:", error);
-            toast.error("Failed to update learning path");
+            toast.error("Không thể cập nhật lộ trình học");
         } finally {
             setLoading(false);
         }
@@ -274,18 +274,18 @@ export default function EditLearningPathPage() {
                 lessonId,
             });
             if (response.code === 200 || response.code === 201) {
-                toast.success("Lesson added to level!");
+                toast.success("Đã thêm bài học vào cấp độ!");
                 setShowAddLessonDialog(false);
                 setSelectedLevelForLesson(null);
                 loadPath();
             }
         } catch (error) {
-            toast.error("Failed to add lesson");
+            toast.error("Không thể thêm bài học");
         }
     };
 
     const handleRemoveLessonFromLevel = async (levelOrder: number, lessonId: string) => {
-        if (!confirm("Remove this lesson from the level?")) return;
+        if (!confirm("Xóa bài học này khỏi cấp độ?")) return;
 
         try {
             const response = await learningPathAdminService.removeLessonFromPath({
@@ -294,11 +294,11 @@ export default function EditLearningPathPage() {
                 lessonId,
             });
             if (response.code === 200) {
-                toast.success("Lesson removed!");
+                toast.success("Đã xóa bài học!");
                 loadPath();
             }
         } catch (error) {
-            toast.error("Failed to remove lesson");
+            toast.error("Không thể xóa bài học");
         }
     };
 
@@ -321,7 +321,7 @@ export default function EditLearningPathPage() {
                 { title: editLevelData.title.trim() }
             );
             if (response.code === 200) {
-                toast.success("Level updated successfully");
+                toast.success("Cập nhật cấp độ thành công");
                 setShowEditLevelDialog(false);
                 loadPath();
             } else {
@@ -346,7 +346,7 @@ export default function EditLearningPathPage() {
                 selectedLevel.order
             );
             if (response.code === 200) {
-                toast.success("Level deleted successfully");
+                toast.success("Xóa cấp độ thành công");
                 setShowDeleteLevelDialog(false);
                 loadPath();
             } else {
@@ -375,7 +375,7 @@ export default function EditLearningPathPage() {
         try {
             const response = await learningPathAdminService.reorderLevels(pathId, newLevelOrders);
             if (response.code === 200) {
-                toast.success("Levels reordered");
+                toast.success("Đã sắp xếp lại cấp độ");
                 loadPath();
             } else {
                 toast.error("Failed to reorder levels");
@@ -398,15 +398,15 @@ export default function EditLearningPathPage() {
                 title: newLevelTitle.trim(),
             });
             if (response.code === 200) {
-                toast.success("Level created successfully");
+                toast.success("Tạo cấp độ thành công");
                 setShowCreateLevelDialog(false);
                 setNewLevelTitle("");
                 loadPath();
             } else {
-                toast.error(response.message || "Failed to create level");
+                toast.error(response.message || "Không thể tạo cấp độ");
             }
         } catch (error) {
-            toast.error("Failed to create level");
+            toast.error("Không thể tạo cấp độ");
         }
     };
 
@@ -432,13 +432,13 @@ export default function EditLearningPathPage() {
             <div className="mb-8">
                 <Button variant="ghost" onClick={() => router.back()} className="mb-4 -ml-2">
                     <ArrowLeft className="w-4 h-4 mr-2" />
-                    Back to Learning Paths
+                    Quay lại Lộ trình học
                 </Button>
                 <h1 className="text-3xl font-bold text-gray-900 mb-2">
-                    Edit Learning Path
+                    Chỉnh sửa Lộ trình học
                 </h1>
                 <p className="text-gray-600">
-                    Update path information and manage levels & lessons
+                    Cập nhật thông tin lộ trình và quản lý cấp độ & bài học
                 </p>
             </div>
 
@@ -447,13 +447,13 @@ export default function EditLearningPathPage() {
                 <div className="lg:col-span-2">
                     <div className="bg-white rounded-xl border border-gray-200 shadow-sm mb-6">
                         <div className="p-6 border-b border-gray-200">
-                            <h2 className="text-lg font-semibold">Path Information</h2>
+                            <h2 className="text-lg font-semibold">Thông tin Lộ trình</h2>
                         </div>
                         <form onSubmit={handleSubmit} className="p-6 space-y-6">
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <div className="md:col-span-2">
                                     <label className="block text-sm font-semibold text-gray-700 mb-2">
-                                        Path Title <span className="text-red-500">*</span>
+                                        Tiêu đề Lộ trình <span className="text-red-500">*</span>
                                     </label>
                                     <Input
                                         type="text"
@@ -466,13 +466,13 @@ export default function EditLearningPathPage() {
 
                                 <div className="md:col-span-2">
                                     <label className="block text-sm font-semibold text-gray-700 mb-2">
-                                        Target <span className="text-red-500">*</span>
+                                        Mục tiêu <span className="text-red-500">*</span>
                                     </label>
                                     {loadingTargets ? (
                                         <div className="flex items-center gap-2 px-4 py-2 border rounded-lg bg-gray-50">
                                             <div className="animate-spin w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full" />
                                             <span className="text-sm text-gray-600">
-                                                Loading targets...
+                                                Đang tải mục tiêu...
                                             </span>
                                         </div>
                                     ) : (
@@ -492,13 +492,13 @@ export default function EditLearningPathPage() {
                                             required
                                             className="w-full px-4 py-2 border rounded-lg"
                                         >
-                                            <option value="">Select a target...</option>
+                                            <option value="">Chọn mục tiêu...</option>
                                             {formData.targetId &&
                                                 !availableTargets.find(
                                                     (t) => t.key === formData.targetId
                                                 ) && (
                                                     <option value={formData.targetId}>
-                                                        {formData.target} (Current)
+                                                        {formData.target} (Hiện tại)
                                                     </option>
                                                 )}
                                             {availableTargets.map((target) => (
@@ -512,7 +512,7 @@ export default function EditLearningPathPage() {
 
                                 <div>
                                     <label className="block text-sm font-semibold text-gray-700 mb-2">
-                                        Path Key <span className="text-red-500">*</span>
+                                        Mã Lộ trình <span className="text-red-500">*</span>
                                     </label>
                                     <Input
                                         type="text"
@@ -525,40 +525,40 @@ export default function EditLearningPathPage() {
 
                                 <div>
                                     <label className="block text-sm font-semibold text-gray-700 mb-2">
-                                        Level <span className="text-red-500">*</span>
+                                        Cấp độ <span className="text-red-500">*</span>
                                     </label>
                                     <select
                                         name="level"
                                         value={formData.level}
                                         onChange={handleChange}
                                         required
-                                        className="w-full px-4 py-2 border rounded-lg"
+                                        className="w-full px-4 py-2 border rounded-lg cursor-pointer"
                                     >
-                                        <option value="beginner">Beginner</option>
-                                        <option value="intermediate">Intermediate</option>
-                                        <option value="advanced">Advanced</option>
+                                        <option value="beginner">Sơ cấp</option>
+                                        <option value="intermediate">Trung cấp</option>
+                                        <option value="advanced">Nâng cao</option>
                                     </select>
                                 </div>
 
                                 <div>
                                     <label className="block text-sm font-semibold text-gray-700 mb-2">
-                                        Status <span className="text-red-500">*</span>
+                                        Trạng thái <span className="text-red-500">*</span>
                                     </label>
                                     <select
                                         name="status"
                                         value={formData.status}
                                         onChange={handleChange}
                                         required
-                                        className="w-full px-4 py-2 border rounded-lg"
+                                        className="w-full px-4 py-2 border rounded-lg cursor-pointer"
                                     >
-                                        <option value="active">Active</option>
-                                        <option value="inactive">Inactive</option>
+                                        <option value="active">Hoạt động</option>
+                                        <option value="inactive">Không hoạt động</option>
                                     </select>
                                 </div>
 
                                 <div className="md:col-span-2">
                                     <label className="block text-sm font-semibold text-gray-700 mb-2">
-                                        Description
+                                        Mô tả
                                     </label>
                                     <textarea
                                         name="description"
@@ -577,7 +577,7 @@ export default function EditLearningPathPage() {
                                     onClick={() => router.back()}
                                     disabled={loading}
                                 >
-                                    Cancel
+                                    Hủy
                                 </Button>
                                 <Button
                                     type="submit"
@@ -587,12 +587,12 @@ export default function EditLearningPathPage() {
                                     {loading ? (
                                         <>
                                             <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full mr-2" />
-                                            Updating...
+                                            Đang cập nhật...
                                         </>
                                     ) : (
                                         <>
                                             <Save className="w-4 h-4 mr-2" />
-                                            Update Path
+                                            Cập nhật Lộ trình
                                         </>
                                     )}
                                 </Button>
@@ -604,14 +604,14 @@ export default function EditLearningPathPage() {
                     <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
                         <div className="p-6 border-b border-gray-200 flex justify-between items-center">
                             <div>
-                                <h2 className="text-lg font-semibold">Levels & Lessons</h2>
+                                <h2 className="text-lg font-semibold">Cấp độ & Bài học</h2>
                                 <p className="text-sm text-gray-600 mt-1">
-                                    Manage lessons in each level of this learning path
+                                    Quản lý bài học trong từng cấp độ của lộ trình này
                                 </p>
                             </div>
                             <Button onClick={() => setShowCreateLevelDialog(true)}>
                                 <Plus className="w-4 h-4 mr-2" />
-                                Add Level
+                                Thêm Cấp độ
                             </Button>
                         </div>
 
@@ -627,40 +627,40 @@ export default function EditLearningPathPage() {
                                                 <div className="flex items-center justify-between">
                                                     <div className="flex-1">
                                                         <h3 className="font-bold text-lg">
-                                                            {level.title || `Level ${idx + 1}`}
+                                                            {level.title || `Cấp độ ${idx + 1}`}
                                                         </h3>
                                                         <p className="text-sm text-blue-100">
-                                                            {level.lessons?.length || 0} lessons
+                                                            {level.lessons?.length || 0} bài học
                                                         </p>
                                                     </div>
                                                     <div className="flex items-center gap-2">
                                                         <button
                                                             onClick={() => handleReorderLevel(level.order, "up")}
                                                             disabled={idx === 0}
-                                                            className="p-1 hover:bg-blue-400 rounded disabled:opacity-30 disabled:cursor-not-allowed"
-                                                            title="Move up"
+                                                            className="p-1 hover:bg-blue-400 rounded disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
+                                                            title="Di chuyển lên"
                                                         >
                                                             <ChevronUp className="w-4 h-4" />
                                                         </button>
                                                         <button
                                                             onClick={() => handleReorderLevel(level.order, "down")}
                                                             disabled={idx === pathData.levels.length - 1}
-                                                            className="p-1 hover:bg-blue-400 rounded disabled:opacity-30 disabled:cursor-not-allowed"
-                                                            title="Move down"
+                                                            className="p-1 hover:bg-blue-400 rounded disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
+                                                            title="Di chuyển xuống"
                                                         >
                                                             <ChevronDown className="w-4 h-4" />
                                                         </button>
                                                         <button
                                                             onClick={() => handleEditLevel(level)}
-                                                            className="p-1 hover:bg-blue-400 rounded"
-                                                            title="Edit level"
+                                                            className="p-1 hover:bg-blue-400 rounded cursor-pointer"
+                                                            title="Chỉnh sửa cấp độ"
                                                         >
                                                             <Edit2 className="w-4 h-4" />
                                                         </button>
                                                         <button
                                                             onClick={() => handleDeleteLevel(level)}
-                                                            className="p-1 hover:bg-red-500 rounded"
-                                                            title="Delete level"
+                                                            className="p-1 hover:bg-red-500 rounded cursor-pointer"
+                                                            title="Xóa cấp độ"
                                                         >
                                                             <Trash2 className="w-4 h-4" />
                                                         </button>
@@ -675,7 +675,7 @@ export default function EditLearningPathPage() {
                                                             className="bg-white text-blue-600 hover:bg-blue-50"
                                                         >
                                                             <Plus className="w-4 h-4 mr-2" />
-                                                            Add Lesson
+                                                            Thêm Bài học
                                                         </Button>
                                                     </div>
                                                 </div>
@@ -708,7 +708,7 @@ export default function EditLearningPathPage() {
                                                                                     {lessonData.skill} • {lessonData.level || lessonData.difficulty}
                                                                                     {lessonData.blockCount !== undefined && (
                                                                                         <span className="ml-2 text-blue-600">
-                                                                                            • {lessonData.blockCount} blocks
+                                                                                            • {lessonData.blockCount} khối
                                                                                         </span>
                                                                                     )}
                                                                                 </p>
@@ -721,8 +721,8 @@ export default function EditLearningPathPage() {
                                                                                     lessonId
                                                                                 )
                                                                             }
-                                                                            className="opacity-0 group-hover:opacity-100 p-1 hover:bg-red-100 rounded transition-opacity"
-                                                                            title="Remove lesson"
+                                                                            className="opacity-0 group-hover:opacity-100 p-1 hover:bg-red-100 rounded transition-opacity cursor-pointer"
+                                                                            title="Xóa bài học"
                                                                         >
                                                                             <Trash2 className="w-3 h-3 text-red-600" />
                                                                         </button>
@@ -735,10 +735,10 @@ export default function EditLearningPathPage() {
                                                     <div className="text-center py-8">
                                                         <BookOpen className="w-10 h-10 mx-auto mb-2 text-gray-300" />
                                                         <p className="text-sm text-gray-500">
-                                                            No lessons in this level
+                                                            Chưa có bài học trong cấp độ này
                                                         </p>
                                                         <p className="text-xs text-gray-400 mt-1">
-                                                            Click "Add Lesson" to get started
+                                                            Nhấn "Thêm Bài học" để bắt đầu
                                                         </p>
                                                     </div>
                                                 )}
@@ -750,7 +750,7 @@ export default function EditLearningPathPage() {
                                                     <div className="flex items-center justify-between mb-2">
                                                         <span className="text-sm font-semibold text-gray-700 flex items-center gap-2">
                                                             <FileQuestion className="w-4 h-4" />
-                                                            Final Exam
+                                                            Bài kiểm tra cuối
                                                         </span>
                                                     </div>
                                                     {level.finalQuiz ? (
@@ -758,13 +758,13 @@ export default function EditLearningPathPage() {
                                                             <div className="flex items-center gap-2">
                                                                 <FileQuestion className="w-4 h-4 text-purple-600" />
                                                                 <span className="text-sm text-purple-700 font-medium">
-                                                                    {level.finalQuiz.title || "Exam attached"}
+                                                                    {level.finalQuiz.title || "Đã gắn bài kiểm tra"}
                                                                 </span>
                                                             </div>
                                                             <button
                                                                 onClick={() => handleDetachExam(level.order)}
-                                                                className="p-1.5 hover:bg-red-100 rounded text-red-500 transition-colors"
-                                                                title="Remove Exam"
+                                                                className="p-1.5 hover:bg-red-100 rounded text-red-500 transition-colors cursor-pointer"
+                                                                title="Xóa Bài kiểm tra"
                                                             >
                                                                 <Unlink className="w-4 h-4" />
                                                             </button>
@@ -776,10 +776,10 @@ export default function EditLearningPathPage() {
                                                                 setExamSearch("");
                                                                 setShowExamDialog(true);
                                                             }}
-                                                            className="w-full flex items-center justify-center gap-2 p-3 border-2 border-dashed border-gray-300 rounded-lg text-gray-500 hover:border-purple-400 hover:text-purple-600 transition-colors"
+                                                            className="w-full flex items-center justify-center gap-2 p-3 border-2 border-dashed border-gray-300 rounded-lg text-gray-500 hover:border-purple-400 hover:text-purple-600 transition-colors cursor-pointer"
                                                         >
                                                             <Link2 className="w-4 h-4" />
-                                                            <span className="text-sm">Attach Final Exam</span>
+                                                            <span className="text-sm">Gắn Bài kiểm tra cuối</span>
                                                         </button>
                                                     )}
                                                 </div>
@@ -790,7 +790,7 @@ export default function EditLearningPathPage() {
                             ) : (
                                 <div className="text-center py-12">
                                     <p className="text-gray-500">
-                                        No levels defined yet. Levels should be created via backend.
+                                        Chưa có cấp độ nào. Cấp độ nên được tạo qua backend.
                                     </p>
                                 </div>
                             )}
@@ -801,16 +801,16 @@ export default function EditLearningPathPage() {
                 {/* Right: Quick Info */}
                 <div className="lg:col-span-1">
                     <div className="bg-white rounded-xl border border-gray-200 shadow-sm sticky top-6 p-6">
-                        <h3 className="font-semibold mb-4">Path Statistics</h3>
+                        <h3 className="font-semibold mb-4">Thống kê Lộ trình</h3>
                         <div className="space-y-4">
                             <div className="flex items-center justify-between py-2 border-b">
-                                <span className="text-sm text-gray-600">Total Levels</span>
+                                <span className="text-sm text-gray-600">Tổng Cấp độ</span>
                                 <span className="font-bold text-blue-600">
                                     {pathData?.levels?.length || 0}
                                 </span>
                             </div>
                             <div className="flex items-center justify-between py-2 border-b">
-                                <span className="text-sm text-gray-600">Total Lessons</span>
+                                <span className="text-sm text-gray-600">Tổng Bài học</span>
                                 <span className="font-bold text-green-600">
                                     {pathData?.levels?.reduce(
                                         (sum: number, l: any) =>
@@ -820,7 +820,7 @@ export default function EditLearningPathPage() {
                                 </span>
                             </div>
                             <div className="flex items-center justify-between py-2">
-                                <span className="text-sm text-gray-600">Status</span>
+                                <span className="text-sm text-gray-600">Trạng thái</span>
                                 <span
                                     className={cn(
                                         "px-2 py-1 rounded-full text-xs font-semibold",
@@ -829,7 +829,7 @@ export default function EditLearningPathPage() {
                                             : "bg-gray-100 text-gray-700"
                                     )}
                                 >
-                                    {formData.status}
+                                    {formData.status === "active" ? "Hoạt động" : "Không hoạt động"}
                                 </span>
                             </div>
                         </div>
@@ -882,9 +882,9 @@ export default function EditLearningPathPage() {
                     <div className="bg-white rounded-xl shadow-xl max-w-2xl w-full mx-4 max-h-[80vh] flex flex-col">
                         <div className="p-6 border-b flex items-center justify-between">
                             <div>
-                                <h2 className="text-xl font-bold">Attach Exam to Level</h2>
+                                <h2 className="text-xl font-bold">Gắn Bài kiểm tra vào Cấp độ</h2>
                                 <p className="text-sm text-gray-500">
-                                    Level {selectedLevelForExam}
+                                    Cấp độ {selectedLevelForExam}
                                 </p>
                             </div>
                             <button
@@ -892,7 +892,7 @@ export default function EditLearningPathPage() {
                                     setShowExamDialog(false);
                                     setSelectedLevelForExam(null);
                                 }}
-                                className="p-2 hover:bg-gray-100 rounded-lg"
+                                className="p-2 hover:bg-gray-100 rounded-lg cursor-pointer"
                             >
                                 <X className="w-5 h-5" />
                             </button>
@@ -902,7 +902,7 @@ export default function EditLearningPathPage() {
                             <div className="relative">
                                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                                 <Input
-                                    placeholder="Search exams..."
+                                    placeholder="Tìm kiếm bài kiểm tra..."
                                     value={examSearch}
                                     onChange={(e) => setExamSearch(e.target.value)}
                                     className="pl-10"
@@ -917,14 +917,14 @@ export default function EditLearningPathPage() {
                                 </div>
                             ) : availableExams.length === 0 ? (
                                 <div className="text-center py-8 text-gray-500">
-                                    No exams found
+                                    Không tìm thấy bài kiểm tra
                                 </div>
                             ) : (
                                 availableExams.map((exam: any) => (
                                     <button
                                         key={exam._id}
                                         onClick={() => handleAttachExam(exam._id)}
-                                        className="w-full p-4 text-left bg-gray-50 rounded-lg border hover:border-purple-400 hover:bg-purple-50 transition-colors"
+                                        className="w-full p-4 text-left bg-gray-50 rounded-lg border hover:border-purple-400 hover:bg-purple-50 transition-colors cursor-pointer"
                                     >
                                         <div className="flex items-center justify-between">
                                             <div>
@@ -933,7 +933,7 @@ export default function EditLearningPathPage() {
                                                 </p>
                                                 <div className="flex gap-2 mt-1">
                                                     <span className="text-xs px-2 py-0.5 bg-gray-200 rounded">
-                                                        {exam.sections?.length || 0} sections
+                                                        {exam.sections?.length || 0} phần
                                                     </span>
                                                     {exam.totalTimeLimit && (
                                                         <span className="text-xs px-2 py-0.5 bg-gray-200 rounded">
@@ -958,7 +958,7 @@ export default function EditLearningPathPage() {
                                 }}
                                 className="w-full"
                             >
-                                Cancel
+                                Hủy
                             </Button>
                         </div>
                     </div>

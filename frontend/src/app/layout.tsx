@@ -3,13 +3,21 @@ import "./globals.css";
 import { Toaster } from "react-hot-toast";
 import { QueryProvider } from "@/providers/QueryProvider";
 
+/**
+ * RootLayout component
+ * 
+ * suppressHydrationWarning on <html> tag:
+ * Browser extensions (e.g., Material Design Lite) may add attributes 
+ * (like className="mdl-js") to <html> tag after hydration, causing mismatch.
+ * This is safe to suppress as it's an external factor beyond our control.
+ */
 export default function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <body>
         <AuthProvider>
           <QueryProvider>

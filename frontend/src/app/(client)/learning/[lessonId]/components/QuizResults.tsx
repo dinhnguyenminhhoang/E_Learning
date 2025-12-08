@@ -25,7 +25,7 @@ export function QuizResults({ open, onClose, attempt, onRetry, onContinue }: Qui
             <DialogContent className="max-w-2xl">
                 <DialogHeader>
                     <DialogTitle className="text-center text-2xl font-bold">
-                        Quiz Results
+                        Kết quả bài tập
                     </DialogTitle>
                 </DialogHeader>
 
@@ -51,7 +51,7 @@ export function QuizResults({ open, onClose, attempt, onRetry, onContinue }: Qui
                             "text-3xl font-bold mb-2",
                             isPassed ? "text-green-900" : "text-red-900"
                         )}>
-                            {isPassed ? "Congratulations!" : "Keep Trying!"}
+                            {isPassed ? "Chúc mừng!" : "Tiếp tục cố gắng!"}
                         </h3>
 
                         <p className={cn(
@@ -59,8 +59,8 @@ export function QuizResults({ open, onClose, attempt, onRetry, onContinue }: Qui
                             isPassed ? "text-green-700" : "text-red-700"
                         )}>
                             {isPassed
-                                ? "You passed the quiz!"
-                                : `You need ${passingThreshold}% to pass. Try again!`}
+                                ? "Bạn đã vượt qua bài tập!"
+                                : `Bạn cần ${passingThreshold}% để đạt. Hãy thử lại!`}
                         </p>
                     </div>
 
@@ -70,7 +70,7 @@ export function QuizResults({ open, onClose, attempt, onRetry, onContinue }: Qui
                                 <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
                                     <TrendingUp className="w-5 h-5 text-blue-600" />
                                 </div>
-                                <span className="text-sm text-gray-600">Score</span>
+                                <span className="text-sm text-gray-600">Điểm số</span>
                             </div>
                             <p className="text-3xl font-bold text-gray-900">
                                 {attempt.percentage.toFixed(0)}%
@@ -82,7 +82,7 @@ export function QuizResults({ open, onClose, attempt, onRetry, onContinue }: Qui
                                 <div className="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center">
                                     <CheckCircle className="w-5 h-5 text-purple-600" />
                                 </div>
-                                <span className="text-sm text-gray-600">Correct</span>
+                                <span className="text-sm text-gray-600">Đúng</span>
                             </div>
                             <p className="text-3xl font-bold text-gray-900">
                                 {attempt.correctAnswers}/{attempt.totalQuestions}
@@ -95,7 +95,7 @@ export function QuizResults({ open, onClose, attempt, onRetry, onContinue }: Qui
                             <div className="flex items-center justify-center gap-3">
                                 <Award className="w-8 h-8 text-yellow-600" />
                                 <div>
-                                    <p className="text-sm text-yellow-700 font-semibold">XP Earned</p>
+                                    <p className="text-sm text-yellow-700 font-semibold">XP nhận được</p>
                                     <p className="text-2xl font-bold text-yellow-900">
                                         +{attempt.quiz.xpReward} XP
                                     </p>
@@ -112,7 +112,7 @@ export function QuizResults({ open, onClose, attempt, onRetry, onContinue }: Qui
                                 className="flex items-center gap-2"
                             >
                                 <RotateCcw className="w-4 h-4" />
-                                Retry Quiz
+                                Làm lại
                             </Button>
                         )}
 
@@ -121,12 +121,12 @@ export function QuizResults({ open, onClose, attempt, onRetry, onContinue }: Qui
                                 onClick={onContinue}
                                 className="bg-green-600 hover:bg-green-700"
                             >
-                                Continue Learning
+                                Tiếp tục học
                             </Button>
                         )}
 
                         <Button onClick={onClose} variant="outline">
-                            Close
+                            Đóng
                         </Button>
                     </div>
                 </div>

@@ -64,6 +64,11 @@ class LessonController {
     const lesson = await lessonService.updateLesson(req);
     return res.status(lesson.code).json(lesson);
   }
+  async getBlockById(req, res) {
+    const block = await blockService.getBlockById(req);
+    return res.status(block.code).json(block);
+  }
+
   async createBlock(req, res) {
     const block = await blockService.createBlockContent(req);
     return res.status(block.code).json(block);
