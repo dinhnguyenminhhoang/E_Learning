@@ -1,3 +1,4 @@
+"use client"
 "use client";
 
 import { useState } from "react";
@@ -12,6 +13,7 @@ import {
   Trophy,
   User,
   ClipboardList,
+  Award,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -32,6 +34,7 @@ const items: Item[] = [
   { id: "home", label: "Trang chủ", href: "/learn", icon: Home },
   { id: "learning", label: "Học tập", href: "/topic-list", icon: GraduationCap },
   { id: "exams", label: "Bài kiểm tra", href: "/exams", icon: ClipboardList },
+  { id: "achievements", label: "Thành tích", href: "/achievements", icon: Award },
   { id: "wordlist", label: "Danh sách từ", href: "/my-wordlist", icon: BookOpen },
   { id: "leaderboard", label: "Bảng xếp hạng", href: "/leaderboard", icon: Trophy },
 ];

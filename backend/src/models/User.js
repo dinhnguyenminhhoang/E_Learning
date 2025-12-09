@@ -103,6 +103,10 @@ const userSchema = new Schema(
       totalWordsLearned: { type: Number, default: 0 },
       currentStreak: { type: Number, default: 0 },
       longestStreak: { type: Number, default: 0 },
+      lastStudyDate: { type: Date, default: null },
+      currentLoginStreak: { type: Number, default: 0 },
+      longestLoginStreak: { type: Number, default: 0 },
+      lastLoginDate: { type: Date, default: null },
       totalStudyTime: { type: Number, default: 0 },
       averageAccuracy: { type: Number, default: 0 },
       totalXP: { type: Number, default: 0, index: true }, // Lifetime XP

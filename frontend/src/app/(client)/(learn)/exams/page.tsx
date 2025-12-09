@@ -51,7 +51,7 @@ export default function ExamsPage() {
             if (response.code === 200 || response.code === 201) {
                 const attemptId = response.data._id;
                 toast.success("Bắt đầu exam thành công!");
-                router.push(`/exams/${attemptId}`);
+                router.push(`/exams/${examId}?attemptId=${attemptId}`);
             } else {
                 toast.error((response as any).message || "Không thể bắt đầu exam");
             }
