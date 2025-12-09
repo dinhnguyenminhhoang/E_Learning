@@ -135,3 +135,56 @@ export interface UserLearningPath {
   status: string;
 }
 
+// User Overview/Dashboard Types
+export interface RecentLesson {
+  id: string;
+  title: string;
+  topic: string;
+  skill: string;
+  isCompleted: boolean;
+  progressPercentage: number;
+  lastAccessedAt: string;
+}
+
+export interface VocabularyLevelStats {
+  level: string;
+  count: number;
+}
+
+export interface QuickAction {
+  id: string;
+  label: string;
+  icon: string;
+  link: string;
+}
+
+export interface UserOverview {
+  hasLearningPath: boolean;
+  message?: string;
+  user?: {
+    name: string;
+    currentLevel: number;
+    streak: number;
+  };
+  dailyProgress?: {
+    goal: number;
+    completed: number;
+    percentage: number;
+  };
+  learningPath?: {
+    id: string;
+    title: string;
+    description: string;
+    totalLevels: number;
+    currentLevel: number;
+    totalLessons: number;
+    completedLessons: number;
+    progressPercentage: number;
+  };
+  recentLessons?: RecentLesson[];
+  vocabularyStats?: {
+    totalWords: number;
+    byLevel: VocabularyLevelStats[];
+  };
+  quickActions?: QuickAction[];
+}

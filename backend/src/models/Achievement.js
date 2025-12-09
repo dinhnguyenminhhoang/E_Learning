@@ -15,7 +15,7 @@ const criteriaSchema = new Schema(
     },
     unit: {
       type: String,
-      required: true, // ví dụ: "days", "words", "points", "sessions"
+      required: true,
       trim: true,
     },
   },
@@ -49,7 +49,7 @@ const achievementSchema = new Schema(
 
     type: {
       type: String,
-      enum: ["streak", "words_learned", "quiz_score", "sessions", "custom"],
+      enum: ["streak", "words_learned", "quiz_score", "sessions", "custom", "login_streak"],
       required: true,
       index: true,
     },
@@ -69,6 +69,11 @@ const achievementSchema = new Schema(
       type: String,
       enum: Object.values(STATUS),
       default: STATUS.ACTIVE,
+    },
+    deleted: {
+      type: Boolean,
+      default: false,
+      index: true,
     },
     points: {
       type: Number,

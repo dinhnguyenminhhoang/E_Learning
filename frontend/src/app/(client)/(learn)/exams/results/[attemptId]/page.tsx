@@ -86,7 +86,7 @@ export default function ExamResultsPage({ params }: PageProps) {
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 p-8">
-            <div className="max-w-5xl mx-auto">
+            <div className="mx-auto">
                 <Button
                     variant="ghost"
                     onClick={() => router.push("/exams")}
@@ -96,7 +96,6 @@ export default function ExamResultsPage({ params }: PageProps) {
                     Back to Exams
                 </Button>
 
-                {/* Hero Section */}
                 <Card className="mb-8 border-none shadow-2xl bg-gradient-to-br from-white to-blue-50">
                     <CardContent className="p-12 text-center">
                         <div className="mb-6">
