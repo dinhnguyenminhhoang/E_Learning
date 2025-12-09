@@ -8,6 +8,12 @@ const auth = require("../middlewares/auth");
 const router = Router();
 
 router.get(
+  "/overview",
+  auth.authenticate,
+  asynchandler(UserLearningPath.getUserOverview)
+);
+
+router.get(
   "/",
   auth.authenticate,
   asynchandler(UserLearningPath.getPathByUser)
