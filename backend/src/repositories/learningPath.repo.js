@@ -8,16 +8,10 @@ class LearningPathRepository {
     if (!isFindAll) {
       query.status = { $ne: STATUS.DELETED };
     }
-    console.log("query", query);
     const path = await LearningPath.findOne(query).populate("target");
-    console.log("path", path);
     return path;
   }
 
-  /**
-   * Find Learning Path by ID with full details for editing
-   * Deep populates: target, lessons (with blocks), finalQuiz
-   */
   async findByIdWithFullDetails(id) {
     return await LearningPath.findOne({
       _id: toObjectId(id),
@@ -65,6 +59,15 @@ class LearningPathRepository {
     return await LearningPath.findOne({
       title: title,
     }).lean();
+  }
+
+  async findByKey(key) {
+    return await LearningPath.findOne({
+      key: key,
+      status: { $ne: STATUS.DELETED },
+    })
+      .populate("target")
+      .lean();
   }
 
   async clearLevels(learningPathId) {
@@ -121,7 +124,9 @@ class LearningPathRepository {
 
   async findLevelsByPath(learningPathId) {
     return await LearningPath.findById(toObjectId(learningPathId))
-      .select("levels.order levels.title levels._id levels.finalQuiz levels.lessons.lesson")
+      .select(
+        "levels.order levels.title levels._id levels.finalQuiz levels.lessons.lesson"
+      )
       .lean();
   }
 
@@ -142,7 +147,6 @@ class LearningPathRepository {
       },
       { "levels.$": 1 }
     ).lean();
-    console.log("path", path);
 
     if (!path?.levels?.length) return null;
 
@@ -160,10 +164,12 @@ class LearningPathRepository {
   async updateLearningPath(id, updateData) {
     const updateFields = {};
     if (updateData.title) updateFields.title = updateData.title;
-    if (updateData.description !== undefined) updateFields.description = updateData.description;
+    if (updateData.description !== undefined)
+      updateFields.description = updateData.description;
     if (updateData.status) updateFields.status = updateData.status;
     if (updateData.level) updateFields.level = updateData.level;
-    if (updateData.targetId) updateFields.target = toObjectId(updateData.targetId);
+    if (updateData.targetId)
+      updateFields.target = toObjectId(updateData.targetId);
 
     updateFields.updatedAt = new Date();
 

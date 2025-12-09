@@ -4,6 +4,24 @@ const { STATUS } = require("../constants/status.constans");
 const AnswerMap = require("../models/AnswerMap");
 
 class AnswerMapRepo {
+  async findByQuestionKey(answers, targetQuestionKey) {
+    if (!answers || !Array.isArray(answers) || answers.length === 0) {
+      return null;
+    }
+
+    const answer = answers.find(
+      (a) =>
+        a.questionKey &&
+        a.questionKey.toUpperCase() === targetQuestionKey.toUpperCase()
+    );
+
+    if (!answer) {
+      return null;
+    }
+
+    return this.findMappedTargetByAnswer(answer);
+  }
+
   async findMappedTargetByAnswer(answer) {
     if (!answer || !answer.answerKeys || answer.answerKeys.length === 0)
       return null;
@@ -11,31 +29,24 @@ class AnswerMapRepo {
     let rawValue;
 
     if (answer.questionKey.toUpperCase() === "LEVEL") {
-      // Với LEVEL, chỉ lấy phần tử đầu tiên
       rawValue = answer.answerKeys[0]?.toUpperCase();
     } else {
-      // Với các key khác, bạn có thể join nhiều giá trị hoặc lấy cả mảng
       rawValue = answer.answerKeys.map((v) => v.toUpperCase());
     }
 
     const query = {
-      questionKey: answer.questionKey.toUpperCase(),
+      questionKey: { $regex: new RegExp(`^${answer.questionKey}$`, "i") },
       status: STATUS.ACTIVE,
     };
-    console.log("raw value", rawValue);
     if (Array.isArray(rawValue)) {
       query.rawValue = { $in: rawValue };
     } else {
       query.rawValue = rawValue;
     }
 
-    console.log("query", query);
-
     const mapping = await AnswerMap.findOne(query).select(
       "_id learningPath target"
     );
-
-    console.log("mapping", mapping);
     return mapping;
   }
 }

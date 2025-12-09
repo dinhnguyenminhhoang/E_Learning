@@ -3,11 +3,11 @@ const UserOnboardingAnswerRepo = require("../repositories/userOnboardingAnswer.r
 const ResponseBuilder = require("../types/response/baseResponse");
 const RESPONSE_MESSAGES = require("../constants/responseMessage");
 const AnswerMapService = require("../services/answerMap.service");
-const DEFAULT_LEARNING_PATH_KEY = "DAILY_CONVERSATION_PATH";
 const UserRepository = require("../repositories/user.repo");
 const { ONBOARDING_STATUS } = require("../constants/status.constans");
 const userLearningPathRepo = require("../repositories/userLearningPath.repo");
 const TOTAL_QUESTIONS = 4;
+const DEFAULT_LEARNING_PATH_KEY = "path-beginner";
 
 class UserOnboardingAnswerService {
   async handleSaveAnswers(userId, answers) {
@@ -31,6 +31,13 @@ class UserOnboardingAnswerService {
         (!Array.isArray(answers) || answers.length < TOTAL_QUESTIONS)
       ) {
         mapResult = await this.assignDefaultPath(userId);
+
+        if (!mapResult || !mapResult.success) {
+          return ResponseBuilder.badRequest(
+            "Không thể gán lộ trình học mặc định. Vui lòng thử lại."
+          );
+        }
+
         await UserRepository.updateOnboardingStatus(
           userId,
           ONBOARDING_STATUS.COMPLETED
@@ -38,10 +45,11 @@ class UserOnboardingAnswerService {
       } else if (Array.isArray(answers) && answers.length === TOTAL_QUESTIONS) {
         const existingAnswers =
           await UserOnboardingAnswerRepo.getByUser(userId);
-        if (existingAnswers && existingAnswers.length > 0)
+        if (existingAnswers && existingAnswers.length > 0) {
           return ResponseBuilder.duplicateError(
             "Bạn đã trả lời onboarding trước đó."
           );
+        }
 
         const docs = answers.map((a) => ({
           user: userId,
@@ -50,10 +58,25 @@ class UserOnboardingAnswerService {
         }));
 
         const savedAnswers = await UserOnboardingAnswerRepo.insertMany(docs);
-        if (!savedAnswers)
+        if (!savedAnswers) {
           return ResponseBuilder.badRequest("Lưu câu trả lời thất bại.");
+        }
 
         mapResult = await AnswerMapService.mapAnswerToTarget(userId, answers);
+
+        if (
+          !mapResult ||
+          mapResult.code !== 200 ||
+          mapResult.status === "error"
+        ) {
+          await UserOnboardingAnswerRepo.deleteByUser(userId);
+          return (
+            mapResult ||
+            ResponseBuilder.badRequest(
+              "Không thể gán lộ trình học. Vui lòng thử lại."
+            )
+          );
+        }
 
         await UserRepository.updateOnboardingStatus(
           userId,
@@ -68,13 +91,20 @@ class UserOnboardingAnswerService {
       const learningPath = await userLearningPathRepo.findByUserId(userId);
       const pathId =
         learningPath && learningPath.length > 0 ? learningPath[0]._id : "";
-      if (!learningPath || learningPath.length === 0)
-        return ResponseBuilder.notFoundError();
 
-      return ResponseBuilder.success("Xử lý onboarding thành công", {
+      if (!learningPath || learningPath.length === 0) {
+        return ResponseBuilder.notFoundError();
+      }
+
+      const finalResult = {
         learningPathId: pathId,
         ...mapResult,
-      });
+      };
+
+      return ResponseBuilder.success(
+        "Xử lý onboarding thành công",
+        finalResult
+      );
     } catch (error) {
       return ResponseBuilder.badRequest(
         "Lỗi trong quá trình xử lý câu trả lời."
