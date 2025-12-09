@@ -3,7 +3,7 @@
 import { useState, useEffect, use } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { examAttemptService } from "@/services/examAttempt.service";
-import { Question, Answer, ExamAttempt, SectionAttempt } from "@/Types/examAttempt.types";
+import { Question, Answer, ExamAttempt, SectionAttempt } from "@/types/examAttempt.types";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";

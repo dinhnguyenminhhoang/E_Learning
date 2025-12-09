@@ -3,7 +3,8 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useForm, useFieldArray } from "react-hook-form";
-import { examService, CreateExamRequest } from "@/services/exam.service";
+import { examService } from "@/services/exam.service";
+import { CreateExamRequest } from "@/types/exam.types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -269,7 +270,11 @@ export default function CreateExamPage() {
                                                         Quiz <span className="text-red-500">*</span>
                                                     </Label>
                                                     <QuizPicker
-                                                        value={form.watch(`sections.${index}.quiz`)}
+                                                        value={
+                                                            typeof form.watch(`sections.${index}.quiz`) === "object"
+                                                                ? (form.watch(`sections.${index}.quiz`) as any)._id
+                                                                : form.watch(`sections.${index}.quiz`)
+                                                        }
                                                         onChange={(quizId) =>
                                                             form.setValue(`sections.${index}.quiz`, quizId)
                                                         }

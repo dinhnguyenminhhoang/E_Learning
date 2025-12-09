@@ -315,7 +315,7 @@ class LearningPathService {
         toObjectId(learningPathId)
       );
 
-      // Tạo Map để tra cứu nhanh lesson progress (lessonId -> isCompleted)
+      // Tạo Map để tra cứu nhanh lesson progress (lessonId -> progress data)
       const lessonProgressMap = new Map();
       if (userProgress && userProgress.lessonProgress) {
         userProgress.lessonProgress.forEach((lp) => {
@@ -324,35 +324,53 @@ class LearningPathService {
             isCompleted: lp.isCompleted || false,
             lastAccessedAt: lp.lastAccessedAt || null,
             completedAt: lp.completedAt || null,
+            blockProgress: lp.blockProgress || [], // Include block progress data
           });
         });
       }
 
-      const lessons = path.levels[0].lessons
-        .filter((module) => module.lesson)
-        .map((module) => {
-          const lessonIdStr = module.lesson._id.toString();
-          const progress = lessonProgressMap.get(lessonIdStr);
+      // Map lessons với progress và block counts
+      const lessonsWithBlockProgress = await Promise.all(
+        path.levels[0].lessons
+          .filter((module) => module.lesson)
+          .map(async (module) => {
+            const lessonIdStr = module.lesson._id.toString();
+            const progress = lessonProgressMap.get(lessonIdStr);
 
-          return {
-            lesson: module.lesson._id,
-            order: module.order ?? 0,
-            title: module.lesson.title ?? "",
-            isCompleted: progress?.isCompleted || false,
-            isLearned: progress?.isCompleted || false, // Alias cho dễ hiểu
-            lastAccessedAt: progress?.lastAccessedAt || null,
-            completedAt: progress?.completedAt || null,
-          };
-        });
+            // Fetch all blocks for this lesson
+            const blocks = await blockRepo.getBlocksByLesson(lessonIdStr);
+            const totalBlocks = blocks ? blocks.length : 0;
+
+            // Count completed blocks from progress
+            let completedBlocks = 0;
+            if (progress && progress.blockProgress && progress.blockProgress.length > 0) {
+              completedBlocks = progress.blockProgress.filter(
+                (bp) => bp.isCompleted === true
+              ).length;
+            }
+
+            return {
+              lesson: module.lesson._id,
+              order: module.order ?? 0,
+              title: module.lesson.title ?? "",
+              isCompleted: progress?.isCompleted || false,
+              isLearned: progress?.isCompleted || false, // Alias cho dễ hiểu
+              lastAccessedAt: progress?.lastAccessedAt || null,
+              completedAt: progress?.completedAt || null,
+              totalBlocks: totalBlocks,
+              completedBlocks: completedBlocks,
+            };
+          })
+      );
 
       // Đếm số lesson đã hoàn thành
-      const completedLessonsCount = lessons.filter(
+      const completedLessonsCount = lessonsWithBlockProgress.filter(
         (lesson) => lesson.isCompleted === true
       ).length;
 
       return ResponseBuilder.success("Lấy dữ liệu bài học thành công", {
-        lessons: lessons,
-        totalLessons: lessons.length,
+        lessons: lessonsWithBlockProgress,
+        totalLessons: lessonsWithBlockProgress.length,
         completedLessons: completedLessonsCount,
       });
     }

@@ -1,6 +1,6 @@
 "use client";
 
-import { Question, Answer } from "@/Types/examAttempt.types";
+import { Question, Answer } from "@/types/examAttempt.types";
 import { cn } from "@/lib/utils";
 import { Check } from "lucide-react";
 

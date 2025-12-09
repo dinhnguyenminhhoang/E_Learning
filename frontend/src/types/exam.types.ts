@@ -2,7 +2,7 @@ export interface ExamSection {
     _id?: string;
     title: string;
     skill: "listening" | "reading" | "writing" | "speaking";
-    quiz: string;
+    quiz: string | { _id: string; title: string };
     order: number;
     timeLimit?: number;
 }

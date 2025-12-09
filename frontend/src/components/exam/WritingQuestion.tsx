@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Question, Answer } from "@/Types/examAttempt.types";
+import { Question, Answer } from "@/types/examAttempt.types";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { FileText } from "lucide-react";

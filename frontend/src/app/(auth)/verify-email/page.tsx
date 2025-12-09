@@ -24,7 +24,9 @@ import { toast } from "react-hot-toast";
 
 const PLATFORM_NAME = "GuruEnglish";
 
-export default function VerifyEmailPage() {
+import { Suspense } from "react";
+
+function VerifyEmailContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -485,5 +487,13 @@ export default function VerifyEmailPage() {
         }
       `}</style>
     </AuthLayout>
+  );
+}
+
+export default function VerifyEmailPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <VerifyEmailContent />
+    </Suspense>
   );
 }

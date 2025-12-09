@@ -1,6 +1,6 @@
 "use client";
 
-import { Question, Answer } from "@/Types/examAttempt.types";
+import { Question, Answer } from "@/types/examAttempt.types";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 

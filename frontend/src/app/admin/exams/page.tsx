@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { examService, Exam } from "@/services/exam.service";
+import { examService } from "@/services/exam.service";
+import { Exam } from "@/types/exam.types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";

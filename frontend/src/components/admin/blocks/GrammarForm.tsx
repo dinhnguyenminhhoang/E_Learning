@@ -9,7 +9,7 @@ interface GrammarFormData {
     explanation: string;
     examples: string[];
     videoUrl: string;
-    sourceType: string;
+    sourceType: "upload" | "youtube";
 }
 
 interface GrammarFormProps {

@@ -111,7 +111,12 @@ const menuItems: MenuItem[] = [
   },
 ];
 
-export function AdminSidebar() {
+interface AdminSidebarProps {
+  isOpen: boolean;
+  onToggle: () => void;
+}
+
+export function AdminSidebar({ isOpen, onToggle }: AdminSidebarProps) {
   const pathname = usePathname();
   const [expandedItems, setExpandedItems] = useState<string[]>([
     "content",
@@ -119,6 +124,11 @@ export function AdminSidebar() {
   ]);
 
   const toggleExpand = (id: string) => {
+    if (!isOpen) {
+      onToggle();
+      setExpandedItems([id]);
+      return;
+    }
     setExpandedItems((prev) =>
       prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
     );
@@ -139,17 +149,21 @@ export function AdminSidebar() {
               level === 0
                 ? "text-gray-700 hover:bg-gray-100"
                 : "text-gray-600 hover:bg-gray-50",
-              isExpanded && "bg-gray-50"
+              isExpanded && "bg-gray-50",
+              !isOpen && "justify-center px-2"
             )}
+            title={!isOpen ? item.label : undefined}
           >
             <div className="flex items-center gap-3">
               <item.icon className="w-5 h-5" />
-              <span className="font-medium">{item.label}</span>
+              {isOpen && <span className="font-medium">{item.label}</span>}
             </div>
-            {isExpanded ? (
-              <ChevronDown className="w-4 h-4" />
-            ) : (
-              <ChevronRight className="w-4 h-4" />
+            {isOpen && (
+              isExpanded ? (
+                <ChevronDown className="w-4 h-4" />
+              ) : (
+                <ChevronRight className="w-4 h-4" />
+              )
             )}
           </button>
         ) : (
@@ -157,18 +171,20 @@ export function AdminSidebar() {
             href={item.href!}
             className={cn(
               "flex items-center gap-3 px-4 py-2.5 rounded-lg transition-colors",
-              level > 0 && "pl-12",
+              level > 0 && isOpen && "pl-12",
               isActive
                 ? "bg-sky-50 text-sky-600 font-medium"
-                : "text-gray-700 hover:bg-gray-100"
+                : "text-gray-700 hover:bg-gray-100",
+              !isOpen && "justify-center px-2"
             )}
+            title={!isOpen ? item.label : undefined}
           >
             <item.icon className="w-5 h-5" />
-            <span>{item.label}</span>
+            {isOpen && <span>{item.label}</span>}
           </Link>
         )}
 
-        {hasChildren && isExpanded && (
+        {hasChildren && isExpanded && isOpen && (
           <div className="mt-1 space-y-1">
             {item.children!.map((child) => renderMenuItem(child, level + 1))}
           </div>
@@ -178,18 +194,28 @@ export function AdminSidebar() {
   };
 
   return (
-    <aside className="fixed left-0 top-0 h-full w-64 bg-white border-r border-gray-200 overflow-y-auto">
+    <aside
+      className={cn(
+        "fixed left-0 top-0 h-full bg-white border-r border-gray-200 overflow-y-auto transition-all duration-300 z-50",
+        isOpen ? "w-64" : "w-20"
+      )}
+    >
       {/* Logo */}
-      <div className="p-6 border-b border-gray-200">
-        <Link href="/admin/dashboard" className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-gradient-to-r from-sky-600 to-teal-600 rounded-xl flex items-center justify-center">
+      <div className="p-6 border-b border-gray-200 flex items-center justify-between">
+        <Link href="/admin/dashboard" className="flex items-center gap-3 overflow-hidden">
+          <div className="w-10 h-10 bg-gradient-to-r from-sky-600 to-teal-600 rounded-xl flex items-center justify-center flex-shrink-0">
             <GraduationCap className="w-6 h-6 text-white" />
           </div>
-          <div>
-            <h1 className="text-xl font-bold text-gray-900">E_LEANING</h1>
-            <p className="text-xs text-gray-500">Admin Panel</p>
-          </div>
+          {isOpen && (
+            <div className="min-w-0">
+              <h1 className="text-xl font-bold text-gray-900 truncate">E_LEANING</h1>
+              <p className="text-xs text-gray-500 truncate">Admin Panel</p>
+            </div>
+          )}
         </Link>
+        <button onClick={onToggle} className="p-1 hover:bg-gray-100 rounded-lg lg:hidden">
+          <ChevronRight className={cn("w-5 h-5 transition-transform", isOpen && "rotate-180")} />
+        </button>
       </div>
 
       {/* Menu */}

@@ -2,7 +2,7 @@ import { apiClient } from "@/config/api.config";
 import { LearningPath, LearningPathHierarchyParams } from "@/types/learning";
 
 class LearningPathService {
-  async createNewPath(data: Partial<LearningPath>) {
+  async createNewPath(data: Partial<LearningPath>): Promise<any> {
     return await apiClient.post("/v1/api/learning-path/", data);
   }
 
@@ -10,7 +10,7 @@ class LearningPathService {
     learningPathId: string;
     levelOrder: number;
     quizId: string;
-  }) {
+  }): Promise<any> {
     return await apiClient.post("/v1/api/learning-path/attach-quiz", data);
   }
 
@@ -18,7 +18,7 @@ class LearningPathService {
     learningPathId: string;
     levelOrder: number;
     newQuizId: string;
-  }) {
+  }): Promise<any> {
     return await apiClient.put(
       "/v1/api/learning-path/update-quiz-in-level",
       data
@@ -28,7 +28,7 @@ class LearningPathService {
   async removeQuizFromLevel(data: {
     learningPathId: string;
     levelOrder: number;
-  }) {
+  }): Promise<any> {
     return await apiClient.delete(
       "/v1/api/learning-path/remove-quiz-from-level",
       { data }
@@ -42,26 +42,26 @@ class LearningPathService {
       lessonId: string;
       order?: number;
     }
-  ) {
+  ): Promise<any> {
     return await apiClient.post(
       `/v1/api/learning-path/${learningPathId}/assign`,
       data
     );
   }
 
-  async createNewLevel(learningPathId: string, data: { title: string }) {
+  async createNewLevel(learningPathId: string, data: { title: string }): Promise<any> {
     return await apiClient.post(
       `/v1/api/learning-path/level/${learningPathId}`,
       data
     );
   }
 
-  async getAllPath() {
+  async getAllPath(): Promise<any> {
     return await apiClient.get("/v1/api/learning-path/");
   }
 
-  async getLearningPathHierarchy(params: LearningPathHierarchyParams) {
-    return await apiClient.get("/v1/api/learning-path/hierarchy", {
+  async getLearningPathHierarchy(params: LearningPathHierarchyParams): Promise<any> {
+    return await apiClient.get<any>("/v1/api/learning-path/hierarchy", {
       params,
     });
   }
@@ -69,7 +69,7 @@ class LearningPathService {
   /**
    * Assign a target to a learning path
    */
-  async assignTargetToPath(learningPathId: string, targetId: string) {
+  async assignTargetToPath(learningPathId: string, targetId: string): Promise<any> {
     return await apiClient.put(
       `/v1/api/learning-path/${learningPathId}/target`,
       { targetId }
@@ -79,7 +79,7 @@ class LearningPathService {
   /**
    * Get learning paths by target IDs
    */
-  async getByTarget(targetIds: string[]) {
+  async getByTarget(targetIds: string[]): Promise<any> {
     return await apiClient.post("/v1/api/learning-path/by-target", {
       targetIds,
     });

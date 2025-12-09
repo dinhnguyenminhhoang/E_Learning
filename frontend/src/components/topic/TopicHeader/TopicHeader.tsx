@@ -1,8 +1,8 @@
 import { cn } from "@/lib/utils";
-import { Topic } from "@/types/learning";
+import { TopicList } from "@/types/learning";
 import React from "react";
 
-function TopicHeader({ topic, isActive }: { topic: Topic; isActive: boolean }) {
+function TopicHeader({ topic, isActive }: { topic: TopicList; isActive: boolean }) {
   return (
     <div
       className={cn(

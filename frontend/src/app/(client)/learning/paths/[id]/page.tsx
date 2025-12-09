@@ -73,7 +73,7 @@ export default function LearningPathDetailPage() {
             // Fetch levels hierarchy
             const levelsResponse = await learningPathService.getLearningPathHierarchy({
                 learningPathId: pathId,
-                isLevel: "true",
+                isLevel: true,
             });
             if (levelsResponse.code === 200) {
                 setLevels(levelsResponse.data);

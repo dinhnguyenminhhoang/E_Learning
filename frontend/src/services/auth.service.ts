@@ -1,3 +1,4 @@
+import { UserRole } from "@/types/auth.types";
 import { apiClient } from "@/config/api.config";
 
 export interface SignUpData {
@@ -19,7 +20,7 @@ export interface AuthResponse {
     name: string;
     email: string;
     status: string;
-    roles: string[];
+    roles: UserRole[];
     verified: boolean;
     avatar?: string;
   };

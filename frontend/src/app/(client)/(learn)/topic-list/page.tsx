@@ -66,7 +66,9 @@ const TOPICS_DATA: TopicList[] = [
   },
 ];
 
-export default function TopicsPage() {
+import { Suspense } from "react";
+
+function TopicsPageContent() {
   const searchParams = useSearchParams();
   const pathId = searchParams.get("pathId");
 
@@ -158,17 +160,26 @@ export default function TopicsPage() {
                 const previousLesson = lessonIndex > 0 ? level.lessons[lessonIndex - 1] : null;
                 const isLocked = lessonIndex > 0 && previousLesson && !previousLesson.isCompleted;
 
+                // Calculate progress from block completion
+                const totalBlocks = lesson.totalBlocks || 0;
+                const completedBlocks = lesson.completedBlocks || 0;
+                const progressPercent = totalBlocks > 0
+                  ? Math.round((completedBlocks / totalBlocks) * 100)
+                  : 0;
+
                 return {
                   id: lesson.lesson,
                   name: lesson.title,
-                  progress: lesson.isCompleted ? 100 : 0,
-                  total: 100,
+                  progress: completedBlocks,
+                  total: totalBlocks,
                   icon: lesson.isCompleted ? "✅" : "📚",
                   isCompleted: lesson.isCompleted || false,
                   isLearned: lesson.isLearned || false,
                   lastAccessedAt: lesson.lastAccessedAt,
                   completedAt: lesson.completedAt,
                   isLocked: isLocked,
+                  totalBlocks: totalBlocks,
+                  completedBlocks: completedBlocks,
                   blocks: []
                 };
               }),
@@ -293,6 +304,14 @@ export default function TopicsPage() {
       </div>
       <TopicDetailModal open={isOpen} onOpenChange={setIsOpen} />
     </div>
+  );
+}
+
+export default function TopicsPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <TopicsPageContent />
+    </Suspense>
   );
 }
 

@@ -3,7 +3,8 @@
 import { useEffect, useState, useRef, useCallback } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { learningPathService } from "@/services/learningPath.service";
-import { blockService, QuizAttempt, QuizAnswer } from "@/services/block.service";
+import { blockService } from "@/services/block.service";
+import { QuizAttempt, QuizAnswer } from "@/types/block.types";
 import { Block } from "@/types/learning";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -25,6 +26,9 @@ import { cn } from "@/lib/utils";
 import { toast } from "react-hot-toast";
 import { QuizModal } from "./components/QuizModal";
 import { QuizResults } from "./components/QuizResults";
+import { FlashcardCarousel } from "./components/FlashcardCarousel";
+import { VideoContentTabs } from "./components/VideoContentTabs";
+import { GrammarContent } from "./components/GrammarContent";
 
 interface BlockWithLock extends Block {
     isLocked?: boolean;
@@ -57,6 +61,27 @@ export default function LearningPage() {
     const heartbeatIntervalRef = useRef<NodeJS.Timeout | null>(null);
     const [videoProgress, setVideoProgress] = useState({ maxWatchedTime: 0, videoDuration: 0 });
 
+    // Mock AI data (ready for real AI integration)
+    const mockTranscript = "Xin chào các bạn! Hôm nay chúng ta sẽ học về động vật. Trong bài học này, bạn sẽ được làm quen với nhiều từ vựng mới về các loài động vật khác nhau. Chúng ta sẽ bắt đầu với những con vật quen thuộc như chó, mèo, và sau đó chuyển sang những động vật hoang dã như sư tử, voi...";
+    const mockSummary = [
+        "Bài học giới thiệu về các loại động vật phổ biến và hoang dã",
+        "Học cách phát âm và sử dụng từ vựng về động vật trong câu",
+        "Thực hành với các ví dụ thực tế về môi trường sống của động vật",
+        "Áp dụng kiến thức vào bài quiz cuối bài để kiểm tra"
+    ];
+    const mockVocabulary = [
+        { word: "Lion", meaning: "Sư tử", example: "The lion is the king of the jungle." },
+        { word: "Elephant", meaning: "Voi", example: "Elephants have long trunks." },
+        { word: "Giraffe", meaning: "Hươu cao cổ", example: "Giraffes are the tallest animals." }
+    ];
+    const mockFlashcards = [
+        { word: "Cat", pronunciation: "kæt", meaning: "Con mèo", example: "I have a cute cat at home." },
+        { word: "Dog", pronunciation: "dɔːɡ", meaning: "Con chó", example: "My dog loves to play fetch." },
+        { word: "Bird", pronunciation: "bɜːrd", meaning: "Con chim", example: "The bird is singing in the tree." },
+        { word: "Fish", pronunciation: "fɪʃ", meaning: "Con cá", example: "Fish live in water." },
+        { word: "Horse", pronunciation: "hɔːrs", meaning: "Con ngựa", example: "Horses can run very fast." }
+    ];
+
     useEffect(() => {
         if (lessonId) {
             fetchBlocks();
@@ -79,7 +104,7 @@ export default function LearningPage() {
         try {
             setLoading(true);
             const response = await learningPathService.getLearningPathHierarchy({
-                learningPathId: pathId,
+                learningPathId: pathId || "",
                 isBlock: true,
                 lessonId: lessonId,
             }) as any;
@@ -228,6 +253,7 @@ export default function LearningPage() {
                 return <PlayCircle className="w-4 h-4" />;
             case "quiz": return <HelpCircle className="w-4 h-4" />;
             case "grammar": return <BookOpen className="w-4 h-4" />;
+            case "vocabulary": return <Lightbulb className="w-4 h-4" />;
             default: return <FileText className="w-4 h-4" />;
         }
     };
@@ -318,7 +344,7 @@ export default function LearningPage() {
                                 </div>
 
                                 <div className="flex-1 bg-gradient-to-b from-white to-gray-50 p-4 md:p-8">
-                                    <div className="max-w-4xl mx-auto space-y-6">
+                                    <div className="max-w-6xl mx-auto space-y-6">
                                         <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-200">
                                             <h2 className="text-2xl md:text-3xl font-bold mb-3 text-gray-900">
                                                 {activeBlock.title}
@@ -327,6 +353,13 @@ export default function LearningPage() {
                                                 {activeBlock.description}
                                             </p>
                                         </div>
+
+                                        {/* AI-Powered Video Content Tabs */}
+                                        <VideoContentTabs
+                                            transcript={mockTranscript}
+                                            summary={mockSummary}
+                                            vocabulary={mockVocabulary}
+                                        />
 
                                         <div className="flex items-center justify-between gap-4 pt-4">
                                             <Button
@@ -361,55 +394,16 @@ export default function LearningPage() {
                                 </div>
                             </div>
                         ) : activeBlock.type === "grammar" ? (
-                            <div className="w-full max-w-4xl mx-auto p-4 md:p-8">
-                                <div className="bg-white rounded-2xl p-6 md:p-8 shadow-sm border border-gray-200 mb-6">
-                                    <h2 className="text-3xl font-bold mb-4 text-gray-900">{activeBlock.title}</h2>
-                                    <p className="text-gray-600 text-lg leading-relaxed">{activeBlock.description}</p>
-                                </div>
+                            <div className="w-full p-4 md:p-8 bg-gradient-to-b from-white to-gray-50">
+                                <GrammarContent
+                                    title={activeBlock.title || "Grammar Lesson"}
+                                    description={activeBlock.description}
+                                    topic={activeBlock.topic}
+                                    explanation={activeBlock.explanation}
+                                    examples={activeBlock.examples}
+                                />
 
-                                <div className="space-y-6">
-                                    {activeBlock.explanation && (
-                                        <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-2xl p-6 md:p-8 border border-blue-200 shadow-sm">
-                                            <h3 className="text-xl font-bold mb-4 text-blue-900 flex items-center gap-3">
-                                                <div className="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center">
-                                                    <FileText className="w-5 h-5 text-white" />
-                                                </div>
-                                                Explanation
-                                            </h3>
-                                            <div className="bg-white/80 backdrop-blur rounded-xl p-6 border border-blue-100">
-                                                <p className="whitespace-pre-wrap leading-relaxed text-gray-700 text-base">
-                                                    {activeBlock.explanation}
-                                                </p>
-                                            </div>
-                                        </div>
-                                    )}
-
-                                    {activeBlock.examples && activeBlock.examples.length > 0 && (
-                                        <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-2xl p-6 md:p-8 border border-green-200 shadow-sm">
-                                            <h3 className="text-xl font-bold mb-4 text-green-900 flex items-center gap-3">
-                                                <div className="w-10 h-10 rounded-xl bg-green-600 flex items-center justify-center">
-                                                    <CheckCircle className="w-5 h-5 text-white" />
-                                                </div>
-                                                Examples
-                                            </h3>
-                                            <ul className="space-y-3">
-                                                {activeBlock.examples.map((ex, idx) => (
-                                                    <li
-                                                        key={idx}
-                                                        className="flex gap-4 bg-white/80 backdrop-blur p-5 rounded-xl border border-green-100 hover:shadow-md transition-shadow"
-                                                    >
-                                                        <span className="text-green-600 font-bold text-xl flex-shrink-0">
-                                                            {idx + 1}.
-                                                        </span>
-                                                        <span className="text-gray-700 text-base leading-relaxed">{ex}</span>
-                                                    </li>
-                                                ))}
-                                            </ul>
-                                        </div>
-                                    )}
-                                </div>
-
-                                <div className="flex items-center justify-between gap-4 mt-8">
+                                <div className="flex items-center justify-between gap-4 mt-8 max-w-5xl mx-auto">
                                     <Button
                                         variant="outline"
                                         onClick={handlePrevious}
@@ -438,24 +432,77 @@ export default function LearningPage() {
                                         <ChevronRight className="w-4 h-4 ml-2" />
                                     </Button>
                                 </div>
-                            </div>
-                        ) : (
+                            </div>) : activeBlock.type === "vocabulary" ? (
+                                <div className="w-full max-w-5xl mx-auto p-4 md:p-8">
+                                    <div className="bg-white rounded-2xl p-6 md:p-8 shadow-sm border border-gray-200 mb-6">
+                                        <h2 className="text-3xl font-bold mb-4 text-gray-900">{activeBlock.title}</h2>
+                                        <p className="text-gray-600 text-lg leading-relaxed">{activeBlock.description}</p>
+                                    </div>
+
+                                    {/* Interactive Flashcard Carousel */}
+                                    <FlashcardCarousel
+                                        cards={mockFlashcards}
+                                        onComplete={async () => {
+                                            try {
+                                                await blockService.completeBlock(activeBlock._id, pathId || "");
+                                                toast.success("🎉 Vocabulary lesson completed!");
+                                                await fetchBlocks();
+                                            } catch (error) {
+                                                console.error("Error completing block:", error);
+                                                toast.error("Failed to complete lesson");
+                                            }
+                                        }}
+                                    />
+
+                                    <div className="flex items-center justify-between gap-4 mt-8">
+                                        <Button
+                                            variant="outline"
+                                            onClick={handlePrevious}
+                                            disabled={activeBlockIndex === 0}
+                                            className="flex-1 md:flex-none"
+                                        >
+                                            <ChevronLeft className="w-4 h-4 mr-2" />
+                                            Previous
+                                        </Button>
+
+                                        <Button
+                                            onClick={handleNext}
+                                            disabled={activeBlockIndex === blocks.length - 1 || blocks[activeBlockIndex + 1]?.isLocked}
+                                            className="flex-1 md:flex-none bg-blue-600 hover:bg-blue-700"
+                                        >
+                                            Next
+                                            <ChevronRight className="w-4 h-4 ml-2" />
+                                        </Button>
+                                    </div>
+                                </div>
+                            ) : activeBlock.type === "quiz" ? (
+                                <div className="flex items-center justify-center h-full p-8">
+                                    <div className="text-center max-w-md">
+                                        <div className="w-24 h-24 bg-gradient-to-br from-yellow-100 to-orange-100 rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg">
+                                            <HelpCircle className="w-12 h-12 text-orange-600" />
+                                        </div>
+                                        <h2 className="text-2xl font-bold mb-3 text-gray-900">{activeBlock.title}</h2>
+                                        <p className="text-gray-600 mb-6 text-base">{activeBlock.description}</p>
+
+                                        {showStartQuizButton && (
+                                            <Button
+                                                onClick={handleStartQuiz}
+                                                className="bg-purple-600 hover:bg-purple-700"
+                                            >
+                                                Start Quiz
+                                            </Button>
+                                        )}
+                                    </div>
+                                </div>
+                            ) : (
                             <div className="flex items-center justify-center h-full p-8">
                                 <div className="text-center max-w-md">
-                                    <div className="w-24 h-24 bg-gradient-to-br from-yellow-100 to-orange-100 rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg">
-                                        <HelpCircle className="w-12 h-12 text-orange-600" />
+                                    <div className="w-24 h-24 bg-gradient-to-br from-gray-100 to-gray-200 rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg">
+                                        <FileText className="w-12 h-12 text-gray-600" />
                                     </div>
                                     <h2 className="text-2xl font-bold mb-3 text-gray-900">{activeBlock.title}</h2>
                                     <p className="text-gray-600 mb-6 text-base">{activeBlock.description}</p>
-
-                                    {showStartQuizButton && (
-                                        <Button
-                                            onClick={handleStartQuiz}
-                                            className="bg-purple-600 hover:bg-purple-700"
-                                        >
-                                            Start Quiz
-                                        </Button>
-                                    )}
+                                    <p className="text-sm text-gray-500">Block type: {activeBlock.type}</p>
                                 </div>
                             </div>
                         )
@@ -607,12 +654,14 @@ export default function LearningPage() {
                 </div>
             </div>
 
-            {sidebarOpen && (
-                <div
-                    className="fixed inset-0 bg-black/50 z-10 md:hidden"
-                    onClick={() => setSidebarOpen(false)}
-                />
-            )}
+            {
+                sidebarOpen && (
+                    <div
+                        className="fixed inset-0 bg-black/50 z-10 md:hidden"
+                        onClick={() => setSidebarOpen(false)}
+                    />
+                )
+            }
 
             <QuizModal
                 open={showQuizModal}
@@ -629,6 +678,6 @@ export default function LearningPage() {
                 onRetry={handleRetryQuiz}
                 onContinue={handleContinue}
             />
-        </div>
+        </div >
     );
 }

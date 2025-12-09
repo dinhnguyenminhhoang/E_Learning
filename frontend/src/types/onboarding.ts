@@ -1,12 +1,14 @@
+import { LucideIcon } from "lucide-react";
+
 export interface Feature {
-  key: string;
-  label: string;
-  icon: string;
+  icon: LucideIcon;
+  title: string;
   description: string;
+  color: string;
 }
 
 export interface OnboardingOption {
-  value: string;
+  key: string;
   label: string;
   icon?: string;
   description?: string;
@@ -23,11 +25,24 @@ export interface OnboardingQuestion {
   status: string;
 }
 
-export interface Answer {
+export interface OnboardingResponse {
+  status: string;
+  message: string;
+  data: OnboardingQuestion[];
+  code: number;
+  timestamp: string;
+}
+
+export interface UserAnswer {
   questionKey: string;
   answerKeys: string[];
 }
 
-export interface OnboardingSubmitData {
-  answers: Answer[];
+export interface OnboardingSubmitPayload {
+  answers: UserAnswer[];
+}
+
+export interface AgeRange {
+  value: string;
+  label: string;
 }

@@ -125,7 +125,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         rememberMe,
       });
 
-      const { user, tokens, session } = response;
+      const { user, tokens } = response;
       const isAdminUser = checkIsAdmin(user.roles);
 
       saveAuthData(tokens.accessToken, user);
@@ -133,7 +133,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       setAuthState({
         user,
         tokens,
-        session,
+        session: null,
         isAuthenticated: true,
         isAdmin: isAdminUser,
         isLoading: false,

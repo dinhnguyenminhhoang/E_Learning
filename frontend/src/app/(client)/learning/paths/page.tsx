@@ -13,7 +13,7 @@ interface LearningPathCard {
     title: string;
     description?: string;
     level: string;
-    target: {
+    target: string | {
         _id: string;
         name: string;
     };
@@ -57,11 +57,12 @@ export default function BrowseLearningPathsPage() {
     const filteredPaths =
         selectedTarget === "all"
             ? paths
-            : paths.filter(
-                (path) =>
-                    path.target?._id === selectedTarget ||
-                    path.target === selectedTarget
-            );
+            : paths.filter((path) => {
+                if (typeof path.target === "string") {
+                    return path.target === selectedTarget;
+                }
+                return path.target?._id === selectedTarget;
+            });
 
     const getLevelColor = (level: string) => {
         switch (level.toLowerCase()) {
@@ -104,8 +105,8 @@ export default function BrowseLearningPathsPage() {
                         <button
                             onClick={() => setSelectedTarget("all")}
                             className={`px-6 py-2.5 rounded-full font-medium transition-all ${selectedTarget === "all"
-                                    ? "bg-blue-600 text-white shadow-lg scale-105"
-                                    : "bg-white text-gray-700 border border-gray-300 hover:border-blue-400"
+                                ? "bg-blue-600 text-white shadow-lg scale-105"
+                                : "bg-white text-gray-700 border border-gray-300 hover:border-blue-400"
                                 }`}
                         >
                             All Paths
@@ -115,8 +116,8 @@ export default function BrowseLearningPathsPage() {
                                 key={target._id}
                                 onClick={() => setSelectedTarget(target._id)}
                                 className={`px-6 py-2.5 rounded-full font-medium transition-all ${selectedTarget === target._id
-                                        ? "bg-blue-600 text-white shadow-lg scale-105"
-                                        : "bg-white text-gray-700 border border-gray-300 hover:border-blue-400"
+                                    ? "bg-blue-600 text-white shadow-lg scale-105"
+                                    : "bg-white text-gray-700 border border-gray-300 hover:border-blue-400"
                                     }`}
                             >
                                 {target.name}
@@ -167,7 +168,7 @@ export default function BrowseLearningPathsPage() {
                                     <h3 className="text-xl font-bold mb-2">
                                         {path.title}
                                     </h3>
-                                    {path.target?.name && (
+                                    {typeof path.target !== "string" && path.target?.name && (
                                         <div className="inline-flex items-center gap-1 text-sm bg-white/20 px-3 py-1 rounded-full">
                                             <TargetIcon className="w-3 h-3" />
                                             <span>{path.target.name}</span>

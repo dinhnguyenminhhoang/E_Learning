@@ -41,6 +41,7 @@ export interface Block {
   explanation?: string;
   examples?: string[];
   videoUrl?: string;
+  cardDeck?: string;  // NEW: For vocabulary blocks
 }
 
 export interface SubTopic {
@@ -55,6 +56,8 @@ export interface SubTopic {
   lastAccessedAt?: string | null;
   completedAt?: string | null;
   isLocked?: boolean;
+  totalBlocks?: number;        // NEW: Total number of blocks in this lesson
+  completedBlocks?: number;    // NEW: Number of completed blocks
 }
 
 export interface TopicList {

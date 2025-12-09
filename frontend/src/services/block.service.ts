@@ -7,10 +7,10 @@ import type {
     StartQuizResponse,
     QuizAnswer,
     SubmitQuizResponse,
-} from "@/Types/block.types";
+} from "@/types/block.types";
 
 class BlockService {
-    async startBlock(blockId: string, learningPathId?: string) {
+    async startBlock(blockId: string, learningPathId?: string): Promise<any> {
         const url = `/v1/api/block/${blockId}/start${learningPathId ? `?learningPathId=${learningPathId}` : ""
             }`;
         return await apiClient.post<StartBlockResponse>(url);
@@ -20,7 +20,7 @@ class BlockService {
         blockId: string,
         maxWatchedTime: number,
         videoDuration: number
-    ) {
+    ): Promise<any> {
         return await apiClient.post<VideoHeartbeatResponse>(
             `/v1/api/block/${blockId}/video-heartbeat`,
             {
@@ -30,22 +30,29 @@ class BlockService {
         );
     }
 
-    async startQuiz(blockId: string) {
+    async startQuiz(blockId: string): Promise<any> {
         return await apiClient.get<StartQuizResponse>(
             `/v1/api/blocks/${blockId}/quiz/start`
         );
     }
 
-    async submitQuiz(attemptId: string, answers: QuizAnswer[]) {
+    async submitQuiz(attemptId: string, answers: QuizAnswer[]): Promise<any> {
         return await apiClient.post<SubmitQuizResponse>(
             `/v1/api/quiz-attempts/${attemptId}/submit`,
             { answers }
         );
     }
 
+    async completeBlock(blockId: string, learningPathId: string): Promise<any> {
+        return await apiClient.post(
+            `/v1/api/block/${blockId}/complete`,
+            { learningPathId }
+        );
+    }
+
     // ===== ADMIN METHODS =====
 
-    async getAllBlocks(filters: any = {}) {
+    async getAllBlocks(filters: any = {}): Promise<any> {
         const params = new URLSearchParams();
 
         if (filters.type) params.append('type', filters.type);
@@ -60,31 +67,21 @@ class BlockService {
         return await apiClient.get(`/v1/api/lesson/blocks/all?${params.toString()}`);
     }
 
-    async getBlockById(id: string) {
+    async getBlockById(id: string): Promise<any> {
         return await apiClient.get(`/v1/api/block/${id}`);
     }
 
-    async createBlock(data: any) {
+    async createBlock(data: any): Promise<any> {
         return await apiClient.post('/v1/api/lesson/blocks', data);
     }
 
-    async updateBlock(id: string, data: any) {
+    async updateBlock(id: string, data: any): Promise<any> {
         return await apiClient.put(`/v1/api/lesson/blocks/${id}`, data);
     }
 
-    async deleteBlock(id: string) {
+    async deleteBlock(id: string): Promise<any> {
         return await apiClient.delete(`/v1/api/lesson/blocks/${id}`);
     }
 }
 
 export const blockService = new BlockService();
-
-export type {
-    StartBlockResponse,
-    VideoHeartbeatResponse,
-    QuizQuestion,
-    QuizAttempt,
-    StartQuizResponse,
-    QuizAnswer,
-    SubmitQuizResponse,
-};

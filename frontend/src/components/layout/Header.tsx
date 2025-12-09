@@ -1,6 +1,6 @@
 'use client'
 
-import { tokenManager } from '@/configs/instance'
+import { authService } from '@/services/auth.service'
 import { AnimatePresence, motion } from 'framer-motion'
 import {
   Bell,
@@ -39,7 +39,7 @@ export default function Header() {
   }, [])
 
   useEffect(() => {
-    setIsAuthenticated(tokenManager.isAuthenticated())
+    setIsAuthenticated(authService.isAuthenticated())
   }, [])
 
   const navigation = [
@@ -62,11 +62,10 @@ export default function Header() {
     <motion.header
       initial={{ y: -100 }}
       animate={{ y: 0 }}
-      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-        isScrolled
+      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${isScrolled
           ? 'bg-slate-900/80 backdrop-blur-xl border-b border-teal-500/20 shadow-lg shadow-sky-500/10'
           : 'bg-transparent'
-      }`}
+        }`}
     >
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="flex h-16 items-center justify-between lg:h-20">
@@ -98,11 +97,10 @@ export default function Header() {
               <Link
                 key={item.name}
                 href={item.href}
-                className={`rounded-xl px-4 py-2 text-sm font-medium transition-all duration-200 ${
-                  item.active
+                className={`rounded-xl px-4 py-2 text-sm font-medium transition-all duration-200 ${item.active
                     ? 'border border-teal-400/40 bg-sky-900/40 text-sky-200'
                     : 'text-teal-100/85 hover:bg-slate-800/50 hover:text-teal-50'
-                }`}
+                  }`}
               >
                 {item.name}
               </Link>
@@ -311,11 +309,10 @@ export default function Header() {
                   <Link
                     key={item.name}
                     href={item.href}
-                    className={`block rounded-xl px-4 py-3 text-base font-medium transition-all duration-200 ${
-                      item.active
+                    className={`block rounded-xl px-4 py-3 text-base font-medium transition-all duration-200 ${item.active
                         ? 'border border-teal-400/40 bg-sky-900/40 text-sky-200'
                         : 'text-teal-100/85 hover:bg-slate-800/50 hover:text-teal-50'
-                    }`}
+                      }`}
                     onClick={() => setIsMobileMenuOpen(false)}
                   >
                     {item.name}

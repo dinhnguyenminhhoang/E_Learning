@@ -48,7 +48,7 @@ const wordSchema = z.object({
     "pronoun",
   ]),
   level: z.enum(["beginner", "intermediate", "advanced"]),
-  frequency: z.number().min(0).default(0),
+  frequency: z.number().min(0),
   definitions: z
     .array(
       z.object({
@@ -70,7 +70,7 @@ const wordSchema = z.object({
   categories: z.array(z.string()).min(1, "Select at least one category"),
   tags: z.array(z.string()).optional(),
   image: z.string().url().optional().or(z.literal("")),
-  difficulty: z.number().min(1).max(5).default(1),
+  difficulty: z.number().min(1).max(5),
 });
 
 type WordFormData = z.infer<typeof wordSchema>;
@@ -119,7 +119,7 @@ export default function CreateWordPage() {
   // Fetch categories
   const { data: categoriesData } = useQuery({
     queryKey: ["categories"],
-    queryFn: () => categoryService.listCategories(),
+    queryFn: () => categoryService.getAll(),
   });
 
   // Create mutation

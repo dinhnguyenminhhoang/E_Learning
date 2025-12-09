@@ -15,8 +15,8 @@ export interface User {
   roles: UserRole[];
   verified: boolean;
   avatar?: string;
-  lastLoginAt: string;
-  portfolioCount: number;
+  lastLoginAt?: string;
+  portfolioCount?: number;
 }
 
 export interface AuthTokens {
