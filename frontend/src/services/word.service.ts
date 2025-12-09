@@ -21,6 +21,35 @@ export interface Word {
   categories: string[];
   tags?: string[];
   image?: string;
+  difficulty?: number;
+  frequency?: number;
+  status?: string;
+  createdAt?: string;
+}
+
+export interface WordQueryParams {
+  pageNum?: number;
+  pageSize?: number;
+  search?: string;
+  level?: string; // 'beginner' | 'intermediate' | 'advanced' | 'expert' | 'master'
+  categories?: string | string[];
+  status?: string;
+  sortBy?: string;
+  sortOrder?: 'asc' | 'desc';
+}
+
+export interface PaginatedWordResponse {
+  status: string;
+  message: string;
+  data: Word[];
+  pagination: {
+    total: number;
+    pageNum: number;
+    pageSize: number;
+    totalPages: number;
+  };
+  code: number;
+  timestamp: string;
 }
 
 class WordService {
@@ -28,7 +57,7 @@ class WordService {
     return await apiClient.post("/v1/api/word/create", data);
   }
 
-  async getAllWords(query?: any) {
+  async getAllWords(query?: WordQueryParams): Promise<PaginatedWordResponse> {
     return await apiClient.get("/v1/api/word/", { params: query });
   }
 

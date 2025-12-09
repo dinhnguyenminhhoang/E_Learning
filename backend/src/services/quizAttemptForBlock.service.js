@@ -10,28 +10,19 @@ const UserProgressRepository = require("../repositories/userProgress.repo");
 const UserLearningPathRepository = require("../repositories/userLearningPath.repo");
 const BlockRepository = require("../repositories/block.repo");
 const QuizAttemptForBlockRepository = require("../repositories/quizAttemptForBlock.repo");
+const LeaderboardService = require("./leaderboard.service");
 
 class QuizAttemptForBlockService {
-  /**
-   * Bắt đầu làm quiz cho một block
-   * - Kiểm tra xem đã có quizAttemptForBlock chưa
-   * - Nếu có → return attempt đó kèm thông tin quiz
-   * - Nếu chưa có → tạo mới và return kèm thông tin quiz
-   * @param {String} userId - ID của user
-   * @param {String} blockId - ID của block
-   * @returns {Object} Response object với quiz attempt và quiz info
-   */
+
   async startQuizAttempt(userId, blockId) {
     try {
-      // Validate block tồn tại
+
       const block = await BlockRepository.getBlockById(toObjectId(blockId));
       if (!block) {
         return ResponseBuilder.notFoundError("Block not found");
       }
-      // Lấy lessonId từ block
       let lessonId = block.lessonId;
       if (!lessonId) {
-        // Nếu block không có lessonId, tìm từ Lesson
         const lessons = await LessonRepository.getLessonsByBlockId(blockId);
         if (lessons && lessons.length > 0) {
           lessonId = lessons[0]._id;
@@ -42,22 +33,18 @@ class QuizAttemptForBlockService {
         return ResponseBuilder.notFoundError("Lesson not found for this block");
       }
 
-      // Lấy lesson để kiểm tra block có quiz không
       const lesson = await LessonRepository.getLessonById(toObjectId(lessonId));
       if (!lesson) {
         return ResponseBuilder.notFoundError("Lesson not found");
       }
-
-      // Tìm block trong lesson để lấy exercise (quiz)
       const blockInLesson = lesson.blocks.find((b) => {
         const blockIdStr = b.block?.toString() || b.block?._id?.toString();
         return blockIdStr === blockId.toString();
       });
 
       if (!blockInLesson || !blockInLesson.exercise) {
-        // Đánh dấu block là completed vì không có bài tập
         await this._markBlockCompletedWhenNoExercise(userId, blockId, lessonId);
-        
+
         return ResponseBuilder.success("Đã hoàn thành block này. Block không có bài tập.", {
           hasExercise: false,
           blockCompleted: true,
@@ -66,28 +53,22 @@ class QuizAttemptForBlockService {
       }
       const quizId = blockInLesson.exercise;
 
-      // Lấy thông tin quiz
       const quiz = await QuizRepository.getQuizById(toObjectId(quizId));
       if (!quiz) {
         return ResponseBuilder.notFoundError("Quiz not found");
       }
 
-      // Kiểm tra xem đã có quizAttemptForBlock cho block này chưa
       const existingAttempt = await QuizAttemptForBlockRepo.findLatestAttempt(
         toObjectId(userId),
         toObjectId(blockId)
       );
-
-      // Nếu đã có attempt, populate quiz và return
       if (existingAttempt) {
         const attemptWithQuiz = await QuizAttemptForBlockRepo.findById(
           existingAttempt._id
         );
 
-        // Sanitize quiz để bỏ isCorrect từ options
         const sanitizedQuiz = this._sanitizeQuizForUser(quiz);
 
-        // Convert attempt to plain object và sanitize quiz trong attempt
         const attemptObj = attemptWithQuiz.toObject
           ? attemptWithQuiz.toObject()
           : { ...attemptWithQuiz };
@@ -102,30 +83,21 @@ class QuizAttemptForBlockService {
         });
       }
 
-      // Nếu chưa có attempt, tạo mới
-      // Note: userBlockProgress field vẫn required trong model QuizAttemptForBlock
-      // nhưng không sử dụng nữa (đã chuyển sang UserProgress)
-      // Temporary: sử dụng userId làm placeholder cho đến khi update model
       const attemptData = {
         user: toObjectId(userId),
         quiz: toObjectId(quizId),
         block: toObjectId(blockId),
-        userBlockProgress: toObjectId(userId), // Placeholder - không sử dụng
+        userBlockProgress: toObjectId(userId),
         totalQuestions: quiz.questions?.length || 0,
         status: "in_progress",
       };
-
       const newAttempt = await QuizAttemptForBlockRepo.create(attemptData);
-
-      // Populate quiz cho attempt mới tạo
       const attemptWithQuiz = await QuizAttemptForBlockRepo.findById(
         newAttempt._id
       );
 
-      // Sanitize quiz để bỏ isCorrect từ options
       const sanitizedQuiz = this._sanitizeQuizForUser(quiz);
 
-      // Convert attempt to plain object và sanitize quiz trong attempt
       const attemptObj = attemptWithQuiz.toObject
         ? attemptWithQuiz.toObject()
         : { ...attemptWithQuiz };
@@ -151,21 +123,8 @@ class QuizAttemptForBlockService {
     }
   }
 
-  /**
-   * Chấm điểm và lưu kết quả quiz attempt
-   * - Validate attempt và answers
-   * - Chấm điểm từng câu hỏi
-   * - Tính toán score, percentage, isPassed
-   * - Lưu kết quả vào attempt
-   * - Cập nhật UserProgress nếu pass quiz
-   * @param {String} userId - ID của user
-   * @param {String} attemptId - ID của quiz attempt
-   * @param {Array} answers - Mảng các câu trả lời của user
-   * @returns {Object} Response object với kết quả quiz
-   */
   async submitQuiz(userId, attemptId, answers) {
     try {
-      // Validate attempt tồn tại và thuộc về user
       const attempt = await QuizAttemptForBlockRepo.findById(attemptId);
       if (!attempt) {
         return ResponseBuilder.notFoundError("Không tìm thấy quiz attempt.");
@@ -181,18 +140,13 @@ class QuizAttemptForBlockService {
         return ResponseBuilder.badRequest("Quiz đã được nộp trước đó.");
       }
 
-      // Lấy quiz để chấm điểm
       const quiz = await QuizRepository.getQuizById(attempt.quiz);
       if (!quiz) {
         return ResponseBuilder.notFoundError("Không tìm thấy quiz.");
       }
-
-      // Validate answers tồn tại
       if (!answers) {
         return ResponseBuilder.badRequest("Answers không được để trống.");
       }
-
-      // Validate answers format và số lượng
       const validationError = this._validateAnswers(answers, quiz.questions);
       if (validationError) {
         return ResponseBuilder.badRequest(validationError);
@@ -225,6 +179,22 @@ class QuizAttemptForBlockService {
           updatedAttempt.block,
           updatedAttempt.quiz
         );
+
+        // Award XP for passing quiz
+        try {
+          const xpAmount = quiz.xpReward || 50; // Default 50 XP if not specified
+          await LeaderboardService.addXP(
+            userId,
+            xpAmount,
+            "quiz_completion"
+          );
+        } catch (xpError) {
+          // Log error but don't fail quiz submission
+          console.error(
+            `[QuizAttemptForBlockService] Error awarding XP for quiz ${quiz._id}:`,
+            xpError
+          );
+        }
       }
 
       // Tạo response message

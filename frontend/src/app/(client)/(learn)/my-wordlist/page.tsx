@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useCallback } from "react";
 import { BookMarked, Trophy, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -17,8 +17,10 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
-import { wordService } from "@/services/word.service";
+import { wordService, type Word, type WordQueryParams } from "@/services/word.service";
 import { toast } from "react-hot-toast";
+import { PaginationControls } from "@/components/ui/PaginationControls";
+import { SkeletonWordCard } from "@/components/ui/SkeletonWordCard";
 
 type WordItem = {
   id: string;
@@ -28,8 +30,39 @@ type WordItem = {
   status: "new" | "learning" | "mastered";
 };
 
-const LEVEL_TABS = ["all", "1", "2", "3", "4", "master"] as const;
+const LEVEL_TABS = ["all", "1", "2", "3", "4"] as const;
 type LevelTab = (typeof LEVEL_TABS)[number];
+
+// Map frontend level tabs to backend level strings
+const levelTabToBackend = (tab: LevelTab): string | undefined => {
+  const mapping: Record<LevelTab, string | undefined> = {
+    all: undefined,
+    "1": "beginner",
+    "2": "intermediate",
+    "3": "advanced",
+    "4": "expert",
+  };
+  return mapping[tab];
+};
+
+// Map backend level to frontend number
+const mapLevelToNumber = (level: any): 1 | 2 | 3 | 4 | "master" => {
+  if (typeof level === "string") {
+    const levelMap: Record<string, 1 | 2 | 3 | 4 | "master"> = {
+      beginner: 1,
+      intermediate: 2,
+      advanced: 3,
+      expert: 4,
+      master: "master",
+    };
+    return levelMap[level.toLowerCase()] || 1;
+  }
+  if (typeof level === "number") {
+    if (level >= 1 && level <= 4) return level as 1 | 2 | 3 | 4;
+    if (level >= 5) return "master";
+  }
+  return 1;
+};
 
 /* =======================
  * Card từ vựng
@@ -65,26 +98,54 @@ function WordCard({ item }: { item: WordItem }) {
 /* =======================
  * Empty state
  * ======================= */
-function EmptyState({ onLearn }: { onLearn: () => void }) {
+function EmptyState({
+  onLearn,
+  hasFilters
+}: {
+  onLearn: () => void;
+  hasFilters: boolean;
+}) {
   return (
     <div className="h-[520px] flex flex-col items-center justify-center text-center">
       <div className="mb-4 text-slate-400">
-        {/* icon trừu tượng */}
-        <div className="w-28 h-20 rounded-xl border-2 border-slate-300/60 flex items-center justify-center">
+        <div className="w-28 h-20 rounded-xl border-2 border-slate-300/60 flex items-center justify-center mx-auto">
           <BookMarked className="w-8 h-8" />
         </div>
       </div>
-      <p className="font-semibold text-slate-700 mb-1">There’s no word found</p>
-      <p className="text-sm text-slate-500 mb-5">
-        Start learning to add words to your list
+      <p className="font-semibold text-slate-700 mb-1">
+        {hasFilters ? "No words found" : "There's no word found"}
       </p>
-      <Button className="px-6" onClick={onLearn}>
-        Learn now
-      </Button>
+      <p className="text-sm text-slate-500 mb-5">
+        {hasFilters
+          ? "Try adjusting your filters or search terms"
+          : "Start learning to add words to your list"
+        }
+      </p>
+      {!hasFilters && (
+        <Button className="px-6" onClick={onLearn}>
+          Learn now
+        </Button>
+      )}
     </div>
   );
 }
 
+/* =======================
+ * Loading state
+ * ======================= */
+function LoadingGrid() {
+  return (
+    <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+      {Array.from({ length: 9 }).map((_, i) => (
+        <SkeletonWordCard key={i} />
+      ))}
+    </div>
+  );
+}
+
+/* =======================
+ * Overview Card
+ * ======================= */
 function OverviewCard({ data }: { data: WordItem[] }) {
   const summary = useMemo(() => {
     const groups = { "Lv.1": 0, "Lv.2": 0, "Lv.3": 0, "Lv.4": 0, Master: 0 };
@@ -141,95 +202,128 @@ function OverviewCard({ data }: { data: WordItem[] }) {
 
 export default function MyWordListPage() {
   const [active, setActive] = useState<LevelTab>("all");
-  const [q, setQ] = useState("");
+  const [searchInput, setSearchInput] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [words, setWords] = useState<WordItem[]>([]);
+  const [allWords, setAllWords] = useState<WordItem[]>([]); // For overview stats
   const [loading, setLoading] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
+  const pageSize = 12;
 
+  // Debounce search input
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchInput);
+      setCurrentPage(1); // Reset to first page on search
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [searchInput]);
+
+  // Fetch all words for overview stats (only once)
+  useEffect(() => {
+    fetchAllWordsForStats();
+  }, []);
+
+  // Fetch words when filters change
   useEffect(() => {
     fetchWords();
-  }, []);
+  }, [active, debouncedSearch, currentPage]);
+
+  const fetchAllWordsForStats = async () => {
+    try {
+      const response = await wordService.getAllWords({
+        pageSize: 10000, // Get all words for stats
+        status: "active",
+      });
+
+      if (response?.code === 200 && response?.data) {
+        const transformedWords: WordItem[] = response.data.map((word: Word) => ({
+          id: word._id || "",
+          word: word.word,
+          meaning: word.definitions?.[0]?.meaningVi || word.definitions?.[0]?.meaning || "",
+          level: mapLevelToNumber(word.level),
+          status: "new" as const, // TODO: Get from user progress
+        }));
+        setAllWords(transformedWords);
+      }
+    } catch (error: any) {
+      console.error("Error fetching stats:", error);
+    }
+  };
 
   const fetchWords = async () => {
     try {
       setLoading(true);
-      const response = await wordService.getAllWords() as any;
+
+      const queryParams: WordQueryParams = {
+        pageNum: currentPage,
+        pageSize: pageSize,
+        status: "active",
+      };
+
+      // Add level filter
+      const backendLevel = levelTabToBackend(active);
+      if (backendLevel) {
+        queryParams.level = backendLevel;
+      }
+
+      // Add search filter
+      if (debouncedSearch.trim()) {
+        queryParams.search = debouncedSearch.trim();
+      }
+
+      const response = await wordService.getAllWords(queryParams);
 
       if (response?.code === 200 && response?.data) {
-        // Transform backend Word model to WordItem format
-        const transformedWords: WordItem[] = response.data.map((word: any) => ({
-          id: word._id || word.id,
-          word: word.word, // Backend already lowercase
-          meaning: word.definitions?.[0]?.meaningVi || word.definitions?.[0]?.meaning || "", // First definition
+        const transformedWords: WordItem[] = response.data.map((word: Word) => ({
+          id: word._id || "",
+          word: word.word,
+          meaning: word.definitions?.[0]?.meaningVi || word.definitions?.[0]?.meaning || "",
           level: mapLevelToNumber(word.level),
-          status: "new", // TODO: Need user word progress to determine actual status
+          status: "new" as const, // TODO: Get from user progress
         }));
+
         setWords(transformedWords);
+        setTotalPages(response.pagination?.totalPages || 1);
+        setTotalItems(response.pagination?.total || 0);
       }
     } catch (error: any) {
       console.error("Error fetching words:", error);
       toast.error("Không thể tải danh sách từ vựng");
+      setWords([]);
     } finally {
       setLoading(false);
     }
   };
 
-  const mapLevelToNumber = (level: any): 1 | 2 | 3 | 4 | "master" => {
-    // Backend uses: "beginner", "intermediate", "advanced"
-    // Frontend needs: 1, 2, 3, 4, "master"
-    if (typeof level === "string") {
-      const levelMap: Record<string, 1 | 2 | 3 | 4 | "master"> = {
-        beginner: 1,
-        intermediate: 2,
-        advanced: 3,
-        master: "master",
-      };
-      return levelMap[level.toLowerCase()] || 1;
-    }
-    if (typeof level === "number") {
-      if (level >= 1 && level <= 4) return level as 1 | 2 | 3 | 4;
-      if (level >= 5) return "master";
-    }
-    return 1; // default
+  const handleLevelChange = (level: string) => {
+    setActive(level as LevelTab);
+    setCurrentPage(1); // Reset to first page
   };
 
-  const filtered = useMemo(() => {
-    const byLevel =
-      active === "all"
-        ? words
-        : words.filter((w) =>
-          active === "master"
-            ? w.level === "master"
-            : String(w.level) === active
-        );
-    const byQuery = q.trim()
-      ? byLevel.filter(
-        (w) =>
-          w.word.toLowerCase().includes(q.toLowerCase()) ||
-          w.meaning.toLowerCase().includes(q.toLowerCase())
-      )
-      : byLevel;
-    return byQuery;
-  }, [active, q, words]);
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Đang tải từ vựng...</p>
-        </div>
-      </div>
-    );
-  }
+  const hasFilters = active !== "all" || debouncedSearch.trim() !== "";
 
   return (
-    <div className="bg-[radial-gradient(ellipse_at_bottom,_var(--tw-gradient-stops))] from-sky-50 to-white ">
+    <div className="bg-[radial-gradient(ellipse_at_bottom,_var(--tw-gradient-stops))] from-sky-50 to-white min-h-screen">
       <div className="mx-auto p-8">
         <div className="flex items-center gap-2 mb-4">
           <BookMarked className="w-5 h-5 text-slate-700" />
           <h1 className="text-2xl font-semibold text-slate-800">
             My word list
           </h1>
+          {totalItems > 0 && (
+            <span className="text-sm text-slate-500">
+              ({totalItems} {totalItems === 1 ? "word" : "words"})
+            </span>
+          )}
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
@@ -239,16 +333,14 @@ export default function MyWordListPage() {
               <CardHeader className="pb-3">
                 <Tabs
                   value={active}
-                  onValueChange={(v) => setActive(v as LevelTab)}
+                  onValueChange={handleLevelChange}
                 >
                   <TabsList className="flex flex-wrap">
                     {LEVEL_TABS.map((lv) => (
                       <TabsTrigger key={lv} value={lv} className="capitalize">
                         {lv === "all"
                           ? "All"
-                          : lv === "master"
-                            ? "Master"
-                            : `Level ${lv}`}
+                          : `Level ${lv}`}
                       </TabsTrigger>
                     ))}
                   </TabsList>
@@ -258,8 +350,8 @@ export default function MyWordListPage() {
                   <div className="relative w-full sm:max-w-xs">
                     <Search className="absolute left-2 top-2.5 h-4 w-4 text-slate-400" />
                     <Input
-                      value={q}
-                      onChange={(e) => setQ(e.target.value)}
+                      value={searchInput}
+                      onChange={(e) => setSearchInput(e.target.value)}
                       placeholder="Search your words..."
                       className="pl-8"
                     />
@@ -268,14 +360,30 @@ export default function MyWordListPage() {
               </CardHeader>
 
               <CardContent>
-                {filtered.length === 0 ? (
-                  <EmptyState onLearn={() => (window.location.href = "/learn")} />
+                {loading ? (
+                  <LoadingGrid />
+                ) : words.length === 0 ? (
+                  <EmptyState
+                    onLearn={() => (window.location.href = "/learn")}
+                    hasFilters={hasFilters}
+                  />
                 ) : (
-                  <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {filtered.map((item) => (
-                      <WordCard key={item.id} item={item} />
-                    ))}
-                  </div>
+                  <>
+                    <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {words.map((item) => (
+                        <WordCard key={item.id} item={item} />
+                      ))}
+                    </div>
+
+                    {totalPages > 1 && (
+                      <PaginationControls
+                        currentPage={currentPage}
+                        totalPages={totalPages}
+                        onPageChange={handlePageChange}
+                        disabled={loading}
+                      />
+                    )}
+                  </>
                 )}
               </CardContent>
             </Card>
@@ -283,7 +391,7 @@ export default function MyWordListPage() {
 
           {/* Right: overview */}
           <div className="lg:col-span-4">
-            <OverviewCard data={words} />
+            <OverviewCard data={allWords} />
           </div>
         </div>
       </div>
