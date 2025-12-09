@@ -23,5 +23,6 @@ router.use(`/v1/api/admin/users`, require("./userAdmin.route"));
 router.use(`/v1/api/analytics`, require("./analytics.route"));
 router.use(`/v1/api/upload`, require("./upload.route"));
 router.use(`/v1/api/leaderboard`, require("./leaderboard.route"));
+router.use(`/v1/api/achievements`, require("./achievement.route"));
 
 module.exports = router;

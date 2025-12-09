@@ -193,7 +193,14 @@ class AuthService {
         lastLoginAt: new Date(),
       });
 
-      // 13. Prepare response
+      // Track login streak for achievements
+      try {
+        const AchievementTracker = require("../helpers/achievementTracker.helper");
+        await AchievementTracker.trackLoginStreak(user._id);
+      } catch (achievementError) {
+        console.error("[Auth] Error tracking login streak:", achievementError);
+      }
+
       const response = {
         user: {
           id: user._id,

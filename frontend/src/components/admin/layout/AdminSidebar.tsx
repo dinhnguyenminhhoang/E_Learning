@@ -1,5 +1,3 @@
-"use client";
-
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -17,6 +15,7 @@ import {
   ChevronRight,
   Target,
   ClipboardList,
+  Award,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -69,6 +68,12 @@ const menuItems: MenuItem[] = [
         label: "Kỳ thi",
         href: "/admin/exams",
         icon: ClipboardList,
+      },
+      {
+        id: "achievements",
+        label: "Thành tích",
+        href: "/admin/achievements",
+        icon: Award,
       },
     ],
   },
