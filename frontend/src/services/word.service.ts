@@ -24,33 +24,33 @@ export interface Word {
 }
 
 class WordService {
-  async createWord(data: Partial<Word>) {
+  async createWord(data: Partial<Word>): Promise<any> {
     return await apiClient.post("/v1/api/word/create", data);
   }
 
-  async getAllWords(query?: any) {
+  async getAllWords(query?: any): Promise<any> {
     return await apiClient.get("/v1/api/word/", { params: query });
   }
 
-  async getWordById(wordId: string) {
+  async getWordById(wordId: string): Promise<any> {
     return await apiClient.get(`/v1/api/word/${wordId}`);
   }
 
-  async getWordsByCategory(categoryId: string, query?: any) {
+  async getWordsByCategory(categoryId: string, query?: any): Promise<any> {
     return await apiClient.get(`/v1/api/word/category/${categoryId}`, {
       params: query,
     });
   }
 
-  async updateWord(wordId: string, data: Partial<Word>) {
+  async updateWord(wordId: string, data: Partial<Word>): Promise<any> {
     return await apiClient.put(`/v1/api/word/${wordId}`, data);
   }
 
-  async deleteWord(wordId: string) {
+  async deleteWord(wordId: string): Promise<any> {
     return await apiClient.delete(`/v1/api/word/delete/${wordId}`);
   }
 
-  async importWords(file: File) {
+  async importWords(file: File): Promise<any> {
     const formData = new FormData();
     formData.append("file", file);
 
@@ -61,7 +61,7 @@ class WordService {
     });
   }
 
-  async exportSample() {
+  async exportSample(): Promise<any> {
     return await apiClient.get("/v1/api/word/export-sample", {
       responseType: "blob",
     });

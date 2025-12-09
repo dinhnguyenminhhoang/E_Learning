@@ -1,4 +1,4 @@
-import { apiClient } from "@/config/api.config";
+5import { apiClient } from "@/config/api.config";
 import { LearningPath, CreateLearningPathInput } from "@/types/admin";
 
 class LearningPathAdminService {
@@ -32,7 +32,7 @@ class LearningPathAdminService {
         data: any | null;
     }> {
         try {
-            const response = await apiClient.get(`/v1/api/learning-path/${id}/detail`);
+            const response = await apiClient.get<any>(`/v1/api/learning-path/${id}/detail`);
             return response;
         } catch (error) {
             return { code: 500, message: "Failed to fetch details", data: null };

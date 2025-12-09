@@ -2,7 +2,7 @@
 
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { QuizAttempt } from "@/services/block.service";
+import { QuizAttempt } from "@/types/block.types";
 import { CheckCircle, XCircle, Award, TrendingUp, RotateCcw } from "lucide-react";
 import { cn } from "@/lib/utils";
 

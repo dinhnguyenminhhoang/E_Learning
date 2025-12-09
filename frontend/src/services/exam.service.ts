@@ -6,7 +6,7 @@ import type {
     ExamResponse,
     ExamListResponse,
     DeleteExamResponse,
-} from "@/Types/exam.types";
+} from "@/types/exam.types";
 
 class ExamService {
     async createExam(data: CreateExamRequest) {
@@ -36,12 +36,3 @@ class ExamService {
 }
 
 export const examService = new ExamService();
-
-export type {
-    Exam,
-    CreateExamRequest,
-    UpdateExamRequest,
-    ExamResponse,
-    ExamListResponse,
-    DeleteExamResponse,
-};

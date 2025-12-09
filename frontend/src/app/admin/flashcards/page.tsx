@@ -205,7 +205,7 @@ export default function FlashcardsPage() {
                                         </td>
                                         <td className="px-6 py-4">
                                             <p className="font-semibold text-gray-900">
-                                                {deck.title || deck.name || "Untitled"}
+                                                {deck.name || "Untitled"}
                                             </p>
                                             <p className="text-sm text-gray-500">
                                                 {deck.description || "No description"}
@@ -213,7 +213,7 @@ export default function FlashcardsPage() {
                                         </td>
                                         <td className="px-6 py-4">
                                             <span className="text-sm text-gray-700">
-                                                {deck.categoryId?.name || deck.category || "Uncategorized"}
+                                                {(deck.category as any)?.name || deck.category || "Uncategorized"}
                                             </span>
                                         </td>
                                         <td className="px-6 py-4">

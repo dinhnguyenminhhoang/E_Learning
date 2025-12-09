@@ -6,7 +6,7 @@ import type {
     SubmitSectionResponse,
     CompleteExamResponse,
     ExamResultResponse,
-} from "@/Types/examAttempt.types";
+} from "@/types/examAttempt.types";
 
 class ExamAttemptService {
     async startExam(examId: string) {
@@ -46,12 +46,3 @@ class ExamAttemptService {
 }
 
 export const examAttemptService = new ExamAttemptService();
-
-export type {
-    StartExamResponse,
-    SectionQuestionsResponse,
-    SubmitSectionRequest,
-    SubmitSectionResponse,
-    CompleteExamResponse,
-    ExamResultResponse,
-};

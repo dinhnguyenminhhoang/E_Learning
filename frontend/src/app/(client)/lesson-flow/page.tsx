@@ -40,7 +40,9 @@ const LESSON: LessonWord[] = [
   },
 ];
 
-export default function LessonFlow() {
+import { Suspense } from "react";
+
+function LessonFlowContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const { user } = useAuth();
@@ -70,7 +72,7 @@ export default function LessonFlow() {
     try {
       setLoading(true);
 
-      const response = await lessonService.getLessonById(lessonId, user.id);
+      const response = await lessonService.getById(lessonId);
 
       if (response.code === 200 && response.data) {
         console.log("Lesson data:", response.data);
@@ -169,5 +171,13 @@ export default function LessonFlow() {
         </Button>
       </div>
     </SlideContainer>
+  );
+}
+
+export default function LessonFlow() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <LessonFlowContent />
+    </Suspense>
   );
 }

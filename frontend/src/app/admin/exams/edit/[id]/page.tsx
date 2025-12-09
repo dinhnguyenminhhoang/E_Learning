@@ -3,7 +3,8 @@
 import { useState, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { useForm, useFieldArray } from "react-hook-form";
-import { examService, UpdateExamRequest, Exam } from "@/services/exam.service";
+import { examService } from "@/services/exam.service";
+import { CreateExamRequest, UpdateExamRequest, Exam } from "@/types/exam.types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -218,40 +219,56 @@ export default function EditExamPage() {
                             </Label>
                             <div className="flex gap-2">
                                 <div className="flex-1">
+                                    <Label>Hours</Label>
                                     <Input
                                         type="number"
                                         placeholder="Hours"
                                         min={0}
-                                        defaultValue={Math.floor(form.watch("totalTimeLimit") / 3600)}
+                                        defaultValue={Math.floor((form.watch("totalTimeLimit") || 0) / 3600)}
                                         onChange={(e) => {
                                             const hours = parseInt(e.target.value) || 0;
-                                            const minutes =
-                                                Math.floor((form.watch("totalTimeLimit") % 3600) / 60) || 0;
-                                            form.setValue("totalTimeLimit", formatTimeToSeconds(hours, minutes));
+                                            const minutes = Math.floor(((form.watch("totalTimeLimit") || 0) % 3600) / 60);
+                                            const seconds = (form.watch("totalTimeLimit") || 0) % 60;
+                                            form.setValue("totalTimeLimit", hours * 3600 + minutes * 60 + seconds);
                                         }}
                                     />
-                                    <span className="text-xs text-gray-500">Hours</span>
                                 </div>
                                 <div className="flex-1">
+                                    <Label>Minutes</Label>
                                     <Input
                                         type="number"
                                         placeholder="Minutes"
                                         min={0}
                                         max={59}
-                                        defaultValue={Math.floor((form.watch("totalTimeLimit") % 3600) / 60)}
+                                        defaultValue={Math.floor(((form.watch("totalTimeLimit") || 0) % 3600) / 60)}
                                         onChange={(e) => {
                                             const minutes = parseInt(e.target.value) || 0;
-                                            const hours =
-                                                Math.floor(form.watch("totalTimeLimit") / 3600) || 0;
-                                            form.setValue("totalTimeLimit", formatTimeToSeconds(hours, minutes));
+                                            const hours = Math.floor((form.watch("totalTimeLimit") || 0) / 3600);
+                                            const seconds = (form.watch("totalTimeLimit") || 0) % 60;
+                                            form.setValue("totalTimeLimit", hours * 3600 + minutes * 60 + seconds);
                                         }}
                                     />
-                                    <span className="text-xs text-gray-500">Minutes</span>
+                                </div>
+                                <div className="flex-1">
+                                    <Label>Seconds</Label>
+                                    <Input
+                                        type="number"
+                                        placeholder="Seconds"
+                                        min={0}
+                                        max={59}
+                                        defaultValue={(form.watch("totalTimeLimit") || 0) % 60}
+                                        onChange={(e) => {
+                                            const seconds = parseInt(e.target.value) || 0;
+                                            const hours = Math.floor((form.watch("totalTimeLimit") || 0) / 3600);
+                                            const minutes = Math.floor(((form.watch("totalTimeLimit") || 0) % 3600) / 60);
+                                            form.setValue("totalTimeLimit", hours * 3600 + minutes * 60 + seconds);
+                                        }}
+                                    />
                                 </div>
                             </div>
                             <p className="text-sm text-gray-600 mt-1">
-                                Total time: {Math.floor(form.watch("totalTimeLimit") / 3600)}h{" "}
-                                {Math.floor((form.watch("totalTimeLimit") % 3600) / 60)}m
+                                Total time: {Math.floor((form.watch("totalTimeLimit") || 0) / 3600)}h{" "}
+                                {Math.floor(((form.watch("totalTimeLimit") || 0) % 3600) / 60)}m
                             </p>
                         </div>
                     </CardContent>
@@ -274,6 +291,7 @@ export default function EditExamPage() {
                             fields.map((field, index) => {
                                 const currentQuizId = form.watch(`sections.${index}.quiz`);
                                 const currentSkill = form.watch(`sections.${index}.skill`);
+                                const quizId = typeof currentQuizId === "object" ? (currentQuizId as any)._id : currentQuizId;
 
                                 return (
                                     <Card key={field.id} className="border-2">
@@ -324,26 +342,36 @@ export default function EditExamPage() {
                                                             <Label>Time Limit (optional)</Label>
                                                             <Input
                                                                 type="number"
-                                                                {...form.register(`sections.${index}.timeLimit`, {
-                                                                    valueAsNumber: true,
-                                                                })}
-                                                                placeholder="Seconds"
+                                                                placeholder="Minutes"
+                                                                min={0}
+                                                                defaultValue={Math.floor(((form.watch(`sections.${index}.timeLimit`) || 0) / 60))}
+                                                                onChange={(e) => {
+                                                                    const minutes = parseInt(e.target.value) || 0;
+                                                                    form.setValue(
+                                                                        `sections.${index}.timeLimit`,
+                                                                        minutes * 60
+                                                                    );
+                                                                }}
                                                             />
                                                         </div>
                                                     </div>
 
-                                                    <div>
+                                                    <div className="space-y-2">
                                                         <Label>
                                                             Quiz <span className="text-red-500">*</span>
                                                         </Label>
                                                         <QuizPicker
-                                                            value={currentQuizId}
+                                                            value={quizId}
                                                             onChange={(quizId) =>
                                                                 form.setValue(`sections.${index}.quiz`, quizId)
                                                             }
-                                                            skill={currentSkill}
-                                                            initialQuiz={currentQuizId && quizCache[currentQuizId]}
                                                         />
+                                                        {currentQuizId && (
+                                                            <div className="text-sm text-gray-500">
+                                                                Selected:{" "}
+                                                                {quizCache[quizId]?.title || "Loading..."}
+                                                            </div>
+                                                        )}
                                                     </div>
                                                 </div>
 

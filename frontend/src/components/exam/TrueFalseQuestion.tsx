@@ -1,6 +1,6 @@
 "use client";
 
-import { Question, Answer } from "@/Types/examAttempt.types";
+import { Question, Answer } from "@/types/examAttempt.types";
 import { Button } from "@/components/ui/button";
 import { CheckCircle, XCircle } from "lucide-react";
 import { cn } from "@/lib/utils";

@@ -73,7 +73,15 @@ export default function EditLessonPage() {
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [lesson, setLesson] = useState<LessonData | null>(null);
-    const [formData, setFormData] = useState({
+    const [formData, setFormData] = useState<{
+        title: string;
+        description: string;
+        skill: "reading" | "writing" | "listening" | "speaking";
+        topic: string;
+        level: "beginner" | "intermediate" | "advanced";
+        status: "draft" | "active" | "archived";
+        duration_minutes: number;
+    }>({
         title: "",
         description: "",
         skill: "reading",

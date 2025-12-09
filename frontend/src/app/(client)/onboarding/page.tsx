@@ -8,8 +8,8 @@ import { Progress } from "@/components/ui/progress";
 import {
   getQuestionOnboarding,
   submitOnboarding,
-  OnboardingQuestion,
 } from "@/services/onboarding.service";
+import { OnboardingQuestion } from "@/types/onboarding";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { AnimatePresence } from "framer-motion";
 import { ArrowRight, Gamepad2, Lightbulb, Sparkles } from "lucide-react";
@@ -19,7 +19,7 @@ import { useForm } from "react-hook-form";
 import * as z from "zod";
 import { toast } from "react-hot-toast";
 
-export const FEATURES = [
+const FEATURES = [
   {
     icon: Sparkles,
     title: "Broaden",

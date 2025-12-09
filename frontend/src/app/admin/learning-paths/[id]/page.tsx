@@ -95,9 +95,9 @@ export default function EditLearningPathPage() {
                 setFormData({
                     title: path.title,
                     description: path.description || "",
-                    target: typeof path.target === "object" ? path.target.name : path.target,
+                    target: typeof path.target === "object" ? path.target?.name : path.target,
                     targetId:
-                        typeof path.target === "object" ? path.target._id : path.target,
+                        typeof path.target === "object" ? path.target?._id : path.target,
                     key: path.key,
                     level: path.level,
                     status: path.status,

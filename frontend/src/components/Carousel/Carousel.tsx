@@ -5,7 +5,12 @@ import { motion } from 'framer-motion'
 import { Button } from "../ui/button"
 import { ChevronLeft, ChevronRight } from "lucide-react"
 
-export default function Carousel({ children, className = "" }) {
+interface CarouselProps {
+  children: React.ReactNode[];
+  className?: string;
+}
+
+export default function Carousel({ children, className = "" }: CarouselProps) {
   const [currentIndex, setCurrentIndex] = useState(0)
   const [itemsPerView, setItemsPerView] = useState(1)
 
@@ -84,11 +89,10 @@ export default function Carousel({ children, className = "" }) {
             <button
               key={index}
               onClick={() => setCurrentIndex(index)}
-              className={`w-2 h-2 rounded-full transition-all ${
-                index === currentIndex 
-                  ? 'bg-gradient-to-r from-sky-400 to-emerald-400 w-6' 
+              className={`w-2 h-2 rounded-full transition-all ${index === currentIndex
+                  ? 'bg-gradient-to-r from-sky-400 to-emerald-400 w-6'
                   : 'bg-white/30 hover:bg-white/50'
-              }`}
+                }`}
             />
           ))}
         </div>

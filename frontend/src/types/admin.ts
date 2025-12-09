@@ -182,6 +182,7 @@ export interface CardDeck {
     _id: string;
     name: string;
     description?: string;
+    thumbnail?: string;
     category?: string;
     cards: FlashCard[];
     status: 'active' | 'inactive';
@@ -204,4 +205,5 @@ export interface CreateCardDeckInput {
     description?: string;
     category?: string;
     status: 'active' | 'inactive';
+    cards?: any[];
 }
