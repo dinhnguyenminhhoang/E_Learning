@@ -11,18 +11,9 @@ const UserProgressRepository = require("../repositories/userProgress.repo");
 const AppError = require("../utils/appError");
 const QuizAttemptRepository = require("../repositories/quizAttempt.repo");
 const GrammarNlpService = require("./grammarNlp.service");
+const ExamAttempt = require("../models/ExamAttempt");
 
 class ExamService {
-  // ===== ADMIN METHODS =====
-
-  /**
-   * Lấy tất cả exams (cho admin)
-   * Query params:
-   * - page: số trang (default: 1)
-   * - limit: số items per page (default: 20)
-   * - status: filter theo status
-   * - search: tìm kiếm theo title
-   */
   async getAllExams(req) {
     const {
       page = 1,
@@ -875,10 +866,6 @@ class ExamService {
     });
   }
 
-  /**
-   * Lấy kết quả exam sau khi hoàn thành
-   * GET /exam-attempts/:attemptId
-   */
   async getExamAttemptResult(req) {
     const { attemptId } = req.params;
     const userId = req.user?._id;
@@ -890,20 +877,17 @@ class ExamService {
       return ResponseBuilder.notFoundError("Không tìm thấy exam attempt.");
     }
 
-    // Kiểm tra quyền truy cập
     if (attempt.user.toString() !== userId.toString()) {
       return ResponseBuilder.forbiddenError(
         "Bạn không có quyền truy cập attempt này."
       );
     }
 
-    // Lấy exam để lấy thông tin section (skill)
     const exam = await ExamRepository.findExamById(attempt.exam);
     if (!exam) {
       return ResponseBuilder.notFoundError("Không tìm thấy exam.");
     }
 
-    // Build response với skill từ exam.sections
     const sectionsResult = (attempt.sections || []).map((sectionAttempt) => {
       const sectionMeta = exam.sections?.find(
         (s) => s._id?.toString() === sectionAttempt.sectionId?.toString()
@@ -930,12 +914,6 @@ class ExamService {
     });
   }
 
-  /**
-   * Helper method: Chấm điểm writing bằng API grammar-nlp-service
-   * @private
-   * @param {string} text - Text cần chấm điểm
-   * @returns {Promise<object>} Kết quả chấm điểm từ API
-   */
   async _gradeWritingText(text) {
     try {
       const result = await GrammarNlpService.gradeWriting(text);
@@ -1116,6 +1094,235 @@ class ExamService {
       sections: sectionsResult,
     };
   }
+
+  async getMyExamAttempts(req) {
+    const userId = req.user?._id;
+    const { page = 1, limit = 10 } = req.query || {};
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+    try {
+      const [attempts, total] = await Promise.all([
+        ExamAttempt.find({ user: toObjectId(userId) })
+          .populate({
+            path: "exam",
+            select: "title description sections maxScore",
+          })
+          .sort({ createdAt: -1 })
+          .skip(skip)
+          .limit(parseInt(limit))
+          .lean(),
+        ExamAttempt.countDocuments({ user: toObjectId(userId) }),
+      ]);
+      const enrichedAttempts = [];
+      for (const attempt of attempts) {
+        if (!attempt.exam) continue;
+
+        const learningPath = await LearningPathRepository.findByFinalExam(
+          attempt.exam._id
+        );
+
+        let levelInfo = null;
+        if (learningPath) {
+          const level = learningPath.levels?.find(
+            (lvl) => lvl.finalQuiz?.toString() === attempt.exam._id.toString()
+          );
+          if (level) {
+            levelInfo = {
+              levelOrder: level.order,
+              levelTitle: level.title,
+              learningPathTitle: learningPath.title,
+            };
+          }
+        }
+
+        enrichedAttempts.push({
+          attemptId: attempt._id,
+          exam: {
+            id: attempt.exam._id,
+            title: attempt.exam.title,
+            description: attempt.exam.description,
+            sectionsCount: attempt.exam.sections?.length || 0,
+            maxScore: attempt.exam.maxScore || 100,
+          },
+          levelInfo,
+          status: attempt.status,
+          totalScore: attempt.totalScore || 0,
+          totalPercentage: attempt.totalPercentage || 0,
+          totalTimeSpent: attempt.totalTimeSpent || 0,
+          startedAt: attempt.startedAt,
+          completedAt: attempt.completedAt,
+        });
+      }
+
+      return ResponseBuilder.success(
+        "Lấy lịch sử exam thành công.",
+        {
+          attempts: enrichedAttempts,
+          pagination: {
+            page: parseInt(page),
+            limit: parseInt(limit),
+            total,
+            totalPages: Math.ceil(total / parseInt(limit)),
+          },
+        }
+      );
+    } catch (error) {
+      console.error("[ExamService] Error getting exam attempts:", error);
+      return ResponseBuilder.error(
+        "Lỗi khi lấy lịch sử exam.",
+        500,
+        error.message
+      );
+    }
+  }
+
+
+  async getAvailableExams(req) {
+    const userId = req.user?._id;
+    const UserLearningPathRepository = require("../repositories/userLearningPath.repo");
+
+    try {
+      // Get user's active learning path
+      const userPaths = await UserLearningPathRepository.findByUserId(userId);
+
+      if (!userPaths || userPaths.length === 0) {
+        return ResponseBuilder.success(
+          "Chưa có lộ trình học.",
+          {
+            exams: [],
+            message: "Vui lòng hoàn thành onboarding để bắt đầu học.",
+          }
+        );
+      }
+
+      const userLearningPath = userPaths[0];
+      const learningPathId = userLearningPath.learningPath;
+
+      // Get learning path with full details
+      const learningPath = await LearningPathRepository.findByIdWithFullDetails(
+        learningPathId
+      );
+
+      if (!learningPath) {
+        return ResponseBuilder.success(
+          "Lấy danh sách exam thành công.",
+          {
+            exams: [],
+            learningPath: null,
+            message: "Learning path không tồn tại hoặc chưa có exam nào.",
+          }
+        );
+      }
+
+      // Get user progress
+      const userProgress = await UserProgressRepository.findByUserAndPath(
+        userId,
+        learningPathId
+      );
+
+      const availableExams = [];
+
+      // Loop through each level
+      for (const level of learningPath.levels || []) {
+        if (!level.finalQuiz) continue; // Skip levels without exam
+
+        // Get exam details
+        const exam = await ExamRepository.findExamById(level.finalQuiz);
+        if (!exam || exam.status === "deleted") continue;
+
+        // Get required lessons in this level
+        const requiredLessonIds = (level.lessons || [])
+          .map((l) => l.lesson?.toString())
+          .filter(Boolean);
+
+        // Check completion status
+        const completedLessonMap = new Map();
+        if (userProgress?.lessonProgress) {
+          userProgress.lessonProgress.forEach((lp) => {
+            if (lp.isCompleted) {
+              completedLessonMap.set(lp.lessonId.toString(), true);
+            }
+          });
+        }
+
+        const incompleteLessons = requiredLessonIds.filter(
+          (lessonId) => !completedLessonMap.has(lessonId)
+        );
+
+        // Check if user has already taken this exam
+        const existingAttempt = await ExamAttempt.findOne({
+          user: toObjectId(userId),
+          exam: exam._id,
+        })
+          .sort({ createdAt: -1 })
+          .lean();
+
+        let status = "locked";
+        let lastScore = null;
+        let lastPercentage = null;
+        let lastAttemptId = null;
+
+        if (incompleteLessons.length === 0) {
+          // All lessons completed
+          if (existingAttempt?.status === "completed") {
+            status = "completed";
+            lastScore = existingAttempt.totalScore;
+            lastPercentage = existingAttempt.totalPercentage;
+            lastAttemptId = existingAttempt._id;
+          } else if (existingAttempt?.status === "in_progress") {
+            status = "in_progress";
+            lastAttemptId = existingAttempt._id;
+          } else {
+            status = "available";
+          }
+        }
+
+        availableExams.push({
+          exam: {
+            id: exam._id,
+            title: exam.title,
+            description: exam.description,
+            sectionsCount: exam.sections?.length || 0,
+            totalTimeLimit: exam.totalTimeLimit,
+            maxScore: exam.maxScore || 100,
+          },
+          level: {
+            order: level.order,
+            title: level.title,
+            totalLessons: requiredLessonIds.length,
+            completedLessons: requiredLessonIds.length - incompleteLessons.length,
+            incompleteLessonsCount: incompleteLessons.length,
+          },
+          status, // available | locked | completed | in_progress
+          lastAttempt: lastAttemptId
+            ? {
+              attemptId: lastAttemptId,
+              score: lastScore,
+              percentage: lastPercentage,
+            }
+            : null,
+        });
+      }
+
+      return ResponseBuilder.success(
+        "Lấy danh sách exam thành công.",
+        {
+          learningPath: {
+            id: learningPath._id,
+            title: learningPath.title,
+          },
+          exams: availableExams,
+        }
+      );
+    } catch (error) {
+      console.error("[ExamService] Error getting available exams:", error);
+      return ResponseBuilder.error(
+        "Lỗi khi lấy danh sách exam.",
+        500,
+        error.message
+      );
+    }
+  }
 }
 
 module.exports = new ExamService();
+

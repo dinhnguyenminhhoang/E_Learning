@@ -37,7 +37,7 @@ const userSchema = new Schema(
       type: String,
       required: function () {
         return this.provider === "local";
-      }, // only required for local auth
+      },
       select: false,
     },
     phoneNumber: {
@@ -103,8 +103,18 @@ const userSchema = new Schema(
       totalWordsLearned: { type: Number, default: 0 },
       currentStreak: { type: Number, default: 0 },
       longestStreak: { type: Number, default: 0 },
+      lastStudyDate: { type: Date, default: null },
+      currentLoginStreak: { type: Number, default: 0 },
+      longestLoginStreak: { type: Number, default: 0 },
+      lastLoginDate: { type: Date, default: null },
       totalStudyTime: { type: Number, default: 0 },
       averageAccuracy: { type: Number, default: 0 },
+      totalXP: { type: Number, default: 0, index: true }, // Lifetime XP
+      weeklyXP: { type: Number, default: 0 },
+      monthlyXP: { type: Number, default: 0 },
+      lastXPUpdate: { type: Date, default: Date.now },
+      currentRank: { type: Number, default: null },
+      previousRank: { type: Number, default: null },
     },
     roles: [
       {
@@ -187,6 +197,11 @@ userSchema.index({ status: 1, "verification.emailVerified": 1 }); // Active veri
 userSchema.index({ roles: 1, status: 1 }); // Admin/role queries
 userSchema.index({ createdAt: -1, status: 1 }); // Recent users
 userSchema.index({ "security.lastLoginAt": -1 }); // Recent login sorting
+
+// Leaderboard indexes
+userSchema.index({ "statistics.totalXP": -1, createdAt: 1 }); // All-time leaderboard
+userSchema.index({ "statistics.weeklyXP": -1, createdAt: 1 }); // Weekly leaderboard
+userSchema.index({ "statistics.monthlyXP": -1, createdAt: 1 }); // Monthly leaderboard
 
 // Geospatial Index (nếu cần location-based features)
 userSchema.index({ "addresses.location": "2dsphere" });

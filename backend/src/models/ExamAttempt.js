@@ -54,7 +54,6 @@ const examAttemptSchema = new Schema(
       required: true,
       index: true,
     },
-
     user: {
       type: Schema.Types.ObjectId,
       ref: "User",

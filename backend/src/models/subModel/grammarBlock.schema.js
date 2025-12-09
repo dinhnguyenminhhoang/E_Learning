@@ -9,12 +9,7 @@ const GrammarBlock = ContentBlock.discriminator(
     explanation: { type: String, required: true },
     examples: [{ type: String }],
     videoUrl: { type: String },
-    sourceType: {
-      type: String,
-      enum: ["upload", "youtube"],
-      default: "upload",
-    },
-    duration: { type: Number, default: 0 },
+    sourceType: { type: String, enum: ["upload", "youtube"], default: "upload" },
   })
 );
 

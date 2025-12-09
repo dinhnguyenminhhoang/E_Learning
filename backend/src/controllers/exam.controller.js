@@ -54,10 +54,17 @@ class ExamController {
     const result = await examService.getExamAttemptResult(req);
     return res.status(result.code).json(result);
   }
+
+  async getMyExamAttempts(req, res) {
+    console.log("rning heare");
+    const result = await examService.getMyExamAttempts(req);
+    return res.status(result.code).json(result);
+  }
+
+  async getAvailableExams(req, res) {
+    const result = await examService.getAvailableExams(req);
+    return res.status(result.code).json(result);
+  }
 }
 
 module.exports = new ExamController();
-
-
-
-

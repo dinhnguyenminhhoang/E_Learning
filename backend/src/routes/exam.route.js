@@ -71,6 +71,16 @@ router.get(
   asynchandler(ExamController.getExamAttemptResult)
 );
 
+router.get(
+  "/user/my-attempts",
+  authenticate,
+  asynchandler(ExamController.getMyExamAttempts)
+);
+
+router.get(
+  "/user/available",
+  authenticate,
+  asynchandler(ExamController.getAvailableExams)
+);
+
 module.exports = router;
-
-
