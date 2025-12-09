@@ -33,6 +33,17 @@ class ExamService {
     async deleteExam(examId: string) {
         return await apiClient.delete<DeleteExamResponse>(`/v1/api/exam/${examId}`);
     }
+
+    async getMyExamAttempts(params?: {
+        page?: number;
+        limit?: number;
+    }): Promise<any> {
+        return await apiClient.get("/v1/api/exam/user/my-attempts", { params });
+    }
+
+    async getAvailableExams(): Promise<any> {
+        return await apiClient.get("/v1/api/exam/user/available");
+    }
 }
 
 export const examService = new ExamService();
