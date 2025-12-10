@@ -106,8 +106,8 @@ export default function TopicsPage() {
                 return {
                   id: lesson.lesson,
                   name: lesson.title,
-                  progress: lesson.isCompleted ? 100 : 0,
-                  total: 100,
+                  progress: completedLessons,
+                  total: totalLessons,
                   icon: lesson.isCompleted ? "✅" : "📚",
                   isCompleted: lesson.isCompleted || false,
                   isLearned: lesson.isLearned || false,

@@ -40,15 +40,10 @@ const userAchievementSchema = new Schema(
       index: true,
     },
 
-    updatedAt: {
+    deletedAt: {
       type: Date,
       default: null,
       index: true,
-    },
-
-    updatedBy: {
-      type: String,
-      default: null,
     },
   },
   {
@@ -59,34 +54,33 @@ const userAchievementSchema = new Schema(
   }
 );
 
-// ===== INDEXES =====
 userAchievementSchema.index({ user: 1, achievement: 1 }, { unique: true });
 userAchievementSchema.index({ isCompleted: 1, progress: 1 });
 
-// ===== VIRTUALS =====
 userAchievementSchema.virtual("completionRate").get(function () {
   return this.progress;
 });
 
-// ===== STATICS =====
 userAchievementSchema.statics.findByUser = function (userId) {
-  return this.find({ user: userId, updatedAt: null }).populate("achievement");
+  return this.find({ user: userId, deletedAt: null }).populate("achievement");
 };
 
-// ===== MIDDLEWARES =====
-// Soft delete
-userAchievementSchema.pre(["deleteOne", "deleteMany"], function () {
-  this.updateOne({}, { updatedAt: new Date() });
+userAchievementSchema.pre("find", function () {
+  if (this.getQuery().deletedAt === undefined) {
+    this.where({ deletedAt: null });
+  }
 });
 
-// Query middleware để loại bỏ record đã soft delete
-userAchievementSchema.pre(
-  ["find", "findOne", "findOneAndUpdate", "count", "countDocuments"],
-  function () {
-    if (!this.getQuery().updatedAt) {
-      this.where({ updatedAt: null });
-    }
+userAchievementSchema.pre("findOne", function () {
+  if (this.getQuery().deletedAt === undefined) {
+    this.where({ deletedAt: null });
   }
-);
+});
+
+userAchievementSchema.pre("countDocuments", function () {
+  if (this.getQuery().deletedAt === undefined) {
+    this.where({ deletedAt: null });
+  }
+});
 
 module.exports = model(DOCUMENT_NAME, userAchievementSchema);

@@ -249,7 +249,27 @@ export default function AchievementsPage() {
                                 </div>
 
                                 {/* Progress Section */}
-                                {isInProgress && (
+                                {(ua.isCompleted || ua.progress >= 100) ? (
+                                    <div className="mb-4">
+                                        <div className="flex justify-between text-sm mb-2">
+                                            <span className="font-semibold text-green-700">Đã hoàn thành</span>
+                                            <span className="font-bold text-green-600">
+                                                {targetValue} / {targetValue} {achievement?.criteria?.unit}
+                                            </span>
+                                        </div>
+                                        <div className="relative">
+                                            <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
+                                                <div
+                                                    className="bg-gradient-to-r from-green-400 to-green-600 h-3 rounded-full transition-all duration-500"
+                                                    style={{ width: '100%' }}
+                                                />
+                                            </div>
+                                            <div className="text-xs text-center font-bold text-green-600 mt-1">
+                                                100%
+                                            </div>
+                                        </div>
+                                    </div>
+                                ) : isInProgress && (
                                     <div className="mb-4">
                                         <div className="flex justify-between text-sm mb-2">
                                             <span className="font-semibold text-gray-700">Tiến độ</span>

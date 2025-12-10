@@ -5,6 +5,7 @@ const HTTP_STATUS = require("../constants/httpStatus");
 const UserWordRepository = require("../repositories/userWord.repo");
 const UserWordBookmarkRepository = require("../repositories/userWordBookmark.repo");
 const WordRepository = require("../repositories/word.repo");
+const achievementTracker = require("../helpers/achievementTracker.helper");
 
 class UserVocabularyService {
     async getMyCustomWords(req) {
@@ -56,6 +57,13 @@ class UserVocabularyService {
             }
 
             const newWord = await UserWordRepository.createUserWord(userId, wordData);
+
+            // Track word learned for achievements
+            try {
+                await achievementTracker.trackWordLearned(userId);
+            } catch (e) {
+                console.error("[UserVocabulary] Error tracking word learned:", e);
+            }
 
             return ResponseBuilder.success("Thêm từ mới thành công", newWord);
         } catch (error) {
@@ -184,6 +192,14 @@ class UserVocabularyService {
                     source,
                     sourceBlock
                 );
+
+                // Track word learned for achievements
+                try {
+                    await achievementTracker.trackWordLearned(userId);
+                } catch (e) {
+                    console.error("[UserVocabulary] Error tracking word learned:", e);
+                }
+
                 return ResponseBuilder.success("Đã bookmark từ", {
                     bookmarked: true,
                     bookmark,

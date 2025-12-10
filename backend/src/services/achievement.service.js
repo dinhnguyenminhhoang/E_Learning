@@ -14,10 +14,14 @@ class AchievementService {
         try {
             const allAchievements = await AchievementRepository.getAllAchievements();
 
-            const userAchievements = await UserAchievementRepository.getUserAchievements(userId);
-
             const user = await User.findById(userId);
             const userStats = user?.statistics || {};
+
+            // First, run checkAndUnlockAchievements to sync any pending achievements
+            await this.checkAndUnlockAchievements(userId, userStats);
+
+            // Now get updated user achievements
+            const userAchievements = await UserAchievementRepository.getUserAchievements(userId);
 
             const userAchievementMap = new Map();
             userAchievements.forEach((ua) => {
@@ -53,6 +57,7 @@ class AchievementService {
                     }
 
                     const progress = Math.min(100, Math.round((currentValue / targetValue) * 100));
+                    const isCompleted = currentValue >= targetValue;
 
                     return {
                         _id: null,
@@ -60,8 +65,8 @@ class AchievementService {
                         achievement: achievement,
                         progress: progress,
                         currentValue: currentValue,
-                        isCompleted: false,
-                        unlockedAt: null,
+                        isCompleted: isCompleted,
+                        unlockedAt: isCompleted ? new Date() : null,
                         createdAt: new Date(),
                     };
                 }
@@ -98,6 +103,7 @@ class AchievementService {
                 error.message
             );
         }
+
     }
 
     async getAchievementDetails(req) {
@@ -128,80 +134,91 @@ class AchievementService {
 
     async checkAndUnlockAchievements(userId, userStats) {
         try {
+            console.log(`[Achievement] checkAndUnlockAchievements called for user ${userId}`);
             const unlockedAchievements = [];
 
             const allAchievements = await AchievementRepository.getAllAchievements();
+            console.log(`[Achievement] Found ${allAchievements.length} total achievements to check`);
 
             for (const achievement of allAchievements) {
-                const userAchievement = await UserAchievementRepository.findOrCreate(
-                    userId,
-                    achievement._id
-                );
-
-                // Skip if already completed
-                if (userAchievement.isCompleted) continue;
-
-                let currentValue = 0;
-                let shouldUnlock = false;
-
-                // Check based on achievement type
-                switch (achievement.type) {
-                    case "streak":
-                        currentValue = userStats.currentStreak || 0;
-                        break;
-
-                    case "login_streak":
-                        currentValue = userStats.currentLoginStreak || 0;
-                        console.log(`[Achievement] login_streak check - currentLoginStreak: ${currentValue}, target: ${achievement.criteria?.target}`);
-                        break;
-
-                    case "words_learned":
-                        currentValue = userStats.totalWordsLearned || 0;
-                        break;
-
-                    case "quiz_score":
-                        continue;
-
-                    case "sessions":
-                        currentValue = Math.floor((userStats.totalStudyTime || 0) / 600);
-                        break;
-
-                    default:
-                        continue;
-                }
-
-                const targetValue = achievement.criteria?.target || 1;
-                const progress = Math.min(100, Math.round((currentValue / targetValue) * 100));
-
-                if (currentValue >= targetValue) {
-                    shouldUnlock = true;
-                    console.log(`[Achievement] Should unlock ${achievement.name}: currentValue=${currentValue} >= targetValue=${targetValue}`);
-                }
-
-                // Update progress
-                if (shouldUnlock && !userAchievement.isCompleted) {
-                    const unlocked = await UserAchievementRepository.unlockAchievement(
+                try {
+                    const userAchievement = await UserAchievementRepository.findOrCreate(
                         userId,
                         achievement._id
                     );
 
-                    if (unlocked) {
-                        unlockedAchievements.push(unlocked);
-
-                        // Award points to user (if points system exists)
-                        if (achievement.points > 0) {
-                            await this._awardPoints(userId, achievement.points);
-                        }
+                    // Skip if findOrCreate failed or already completed
+                    if (!userAchievement) {
+                        console.log(`[Achievement] Skipping ${achievement.name} - findOrCreate returned null`);
+                        continue;
                     }
-                } else if (progress !== userAchievement.progress) {
-                    await UserAchievementRepository.updateProgress(
-                        userId,
-                        achievement._id,
-                        progress
-                    );
+
+                    if (userAchievement.isCompleted) {
+                        continue;
+                    }
+
+                    let currentValue = 0;
+                    let shouldUnlock = false;
+
+                    switch (achievement.type) {
+                        case "streak":
+                            currentValue = userStats.currentStreak || 0;
+                            break;
+
+                        case "login_streak":
+                            currentValue = userStats.currentLoginStreak || 0;
+                            break;
+
+                        case "words_learned":
+                            currentValue = userStats.totalWordsLearned || 0;
+                            break;
+
+                        case "quiz_score":
+                            continue;
+
+                        case "sessions":
+                            currentValue = Math.floor((userStats.totalStudyTime || 0) / 600);
+                            break;
+
+                        default:
+                            continue;
+                    }
+
+                    const targetValue = achievement.criteria?.target || 1;
+                    const progress = Math.min(100, Math.round((currentValue / targetValue) * 100));
+
+                    if (currentValue >= targetValue) {
+                        shouldUnlock = true;
+                        console.log(`[Achievement] SHOULD UNLOCK "${achievement.name}": ${currentValue} >= ${targetValue}`);
+                    }
+
+                    if (shouldUnlock) {
+                        const unlocked = await UserAchievementRepository.unlockAchievement(
+                            userId,
+                            achievement._id
+                        );
+
+                        if (unlocked) {
+                            unlockedAchievements.push(unlocked);
+
+                            if (achievement.points > 0) {
+                                console.log(`[Achievement] Awarding ${achievement.points} XP for "${achievement.name}"`);
+                                await this._awardPoints(userId, achievement.points);
+                            }
+                        }
+                    } else if (progress !== userAchievement.progress && progress > 0) {
+                        await UserAchievementRepository.updateProgress(
+                            userId,
+                            achievement._id,
+                            progress
+                        );
+                    }
+                } catch (innerError) {
+                    console.error(`[Achievement] Error processing ${achievement.name}:`, innerError.message);
                 }
             }
 
+            console.log(`[Achievement] Unlocked ${unlockedAchievements.length} achievements for user ${userId}`);
             return unlockedAchievements;
         } catch (error) {
             console.error("[AchievementService] Error checking achievements:", error);
@@ -211,38 +228,50 @@ class AchievementService {
 
     async checkQuizAchievements(userId, quizData) {
         try {
+            console.log(`[Achievement] checkQuizAchievements called for user ${userId}, score: ${quizData.percentage}%`);
             const unlockedAchievements = [];
 
-            // Get quiz-type achievements
             const quizAchievements = await AchievementRepository.getAchievementsByType("quiz_score");
 
             for (const achievement of quizAchievements) {
-                const userAchievement = await UserAchievementRepository.findOrCreate(
-                    userId,
-                    achievement._id
-                );
-
-                if (userAchievement.isCompleted) continue;
-
-                // Check criteria (example: "perfect_score" = 100%, "high_score" = 90%+)
-                const criteriaTarget = achievement.criteria?.target || 100;
-
-                if (quizData.percentage >= criteriaTarget) {
-                    const unlocked = await UserAchievementRepository.unlockAchievement(
+                try {
+                    const userAchievement = await UserAchievementRepository.findOrCreate(
                         userId,
                         achievement._id
                     );
 
-                    if (unlocked) {
-                        unlockedAchievements.push(unlocked);
+                    if (!userAchievement) {
+                        console.log(`[Achievement] Skipping ${achievement.name} - findOrCreate returned null`);
+                        continue;
+                    }
 
-                        if (achievement.points > 0) {
-                            await this._awardPoints(userId, achievement.points);
+                    if (userAchievement.isCompleted) continue;
+
+                    const criteriaTarget = achievement.criteria?.target || 100;
+
+                    if (quizData.percentage >= criteriaTarget) {
+                        console.log(`[Achievement] SHOULD UNLOCK "${achievement.name}": ${quizData.percentage}% >= ${criteriaTarget}%`);
+
+                        const unlocked = await UserAchievementRepository.unlockAchievement(
+                            userId,
+                            achievement._id
+                        );
+
+                        if (unlocked) {
+                            unlockedAchievements.push(unlocked);
+
+                            if (achievement.points > 0) {
+                                console.log(`[Achievement] Awarding ${achievement.points} XP for "${achievement.name}"`);
+                                await this._awardPoints(userId, achievement.points);
+                            }
                         }
                     }
+                } catch (innerError) {
+                    console.error(`[Achievement] Error processing quiz achievement ${achievement.name}:`, innerError.message);
                 }
             }
 
+            console.log(`[Achievement] Unlocked ${unlockedAchievements.length} quiz achievements for user ${userId}`);
             return unlockedAchievements;
         } catch (error) {
             console.error("[AchievementService] Error checking quiz achievements:", error);
@@ -252,9 +281,28 @@ class AchievementService {
 
 
     async _awardPoints(userId, points) {
+        console.log(`[Achievement] _awardPoints called - userId: ${userId}, points: ${points}`);
         try {
-            // TODO: Implement points system in User model if needed
-            console.log(`[Achievement] Awarded ${points} points to user ${userId}`);
+            const result = await User.findByIdAndUpdate(
+                userId,
+                {
+                    $inc: {
+                        'statistics.totalXP': points,
+                        'statistics.weeklyXP': points,
+                        'statistics.monthlyXP': points,
+                    },
+                    $set: {
+                        'statistics.lastXPUpdate': new Date(),
+                    }
+                },
+                { new: true }
+            );
+
+            if (result) {
+                console.log(`[Achievement] SUCCESS - Awarded ${points} XP to user ${userId}. New totalXP: ${result.statistics?.totalXP}`);
+            } else {
+                console.error(`[Achievement] FAILED - user ${userId} not found`);
+            }
         } catch (error) {
             console.error("[AchievementService] Error awarding points:", error);
         }
