@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { X } from "lucide-react";
+import { X, Sparkles, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -35,8 +35,38 @@ export function AddWordModal({ isOpen, onClose, onSuccess, editWord }: AddWordMo
         tags: editWord?.tags?.join(", ") || "",
     });
     const [loading, setLoading] = useState(false);
+    const [aiLoading, setAiLoading] = useState(false);
 
     if (!isOpen) return null;
+
+    const handleAIGenerate = async () => {
+        if (!formData.word.trim()) {
+            toast.error("Vui lòng nhập từ tiếng Anh trước!");
+            return;
+        }
+
+        setAiLoading(true);
+        try {
+            const result = await wordService.generateWordWithAI(formData.word.trim());
+
+            setFormData(prev => ({
+                ...prev,
+                pronunciation: result.pronunciation || prev.pronunciation,
+                meaningVi: result.meaningVi || prev.meaningVi,
+                type: (result.type as typeof prev.type) || prev.type,
+                example: result.example || prev.example,
+                exampleVi: result.exampleVi || prev.exampleVi,
+                level: (result.level as typeof prev.level) || prev.level,
+            }));
+
+            toast.success("🪄 AI đã sinh thông tin thành công!");
+        } catch (error: any) {
+            console.error("AI generation error:", error);
+            toast.error(error?.message || "Không thể sinh thông tin từ AI");
+        } finally {
+            setAiLoading(false);
+        }
+    };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -79,25 +109,49 @@ export function AddWordModal({ isOpen, onClose, onSuccess, editWord }: AddWordMo
                 </div>
 
                 <form onSubmit={handleSubmit} className="p-6 space-y-4">
-                    <div className="grid grid-cols-2 gap-4">
-                        <div>
-                            <Label>Từ (English) *</Label>
+                    <div>
+                        <Label>Từ (English) *</Label>
+                        <div className="flex gap-2">
                             <Input
                                 value={formData.word}
                                 onChange={(e) => setFormData({ ...formData, word: e.target.value })}
                                 placeholder="happiness"
                                 required
+                                className="flex-1"
                             />
+                            <Button
+                                type="button"
+                                variant="outline"
+                                onClick={handleAIGenerate}
+                                disabled={aiLoading || !formData.word.trim()}
+                                className="shrink-0 bg-gradient-to-r from-purple-500 to-pink-500 text-white border-0 hover:from-purple-600 hover:to-pink-600 disabled:opacity-50"
+                            >
+                                {aiLoading ? (
+                                    <>
+                                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                        Đang sinh...
+                                    </>
+                                ) : (
+                                    <>
+                                        <Sparkles className="w-4 h-4 mr-2" />
+                                        AI Sinh
+                                    </>
+                                )}
+                            </Button>
                         </div>
-                        <div>
-                            <Label>Nghĩa (Tiếng Việt) *</Label>
-                            <Input
-                                value={formData.meaningVi}
-                                onChange={(e) => setFormData({ ...formData, meaningVi: e.target.value })}
-                                placeholder="sự hạnh phúc"
-                                required
-                            />
-                        </div>
+                        <p className="text-xs text-gray-500 mt-1">
+                            Nhập từ rồi bấm AI Sinh để tự động điền các trường
+                        </p>
+                    </div>
+
+                    <div>
+                        <Label>Nghĩa (Tiếng Việt) *</Label>
+                        <Input
+                            value={formData.meaningVi}
+                            onChange={(e) => setFormData({ ...formData, meaningVi: e.target.value })}
+                            placeholder="sự hạnh phúc"
+                            required
+                        />
                     </div>
 
                     <div>
@@ -132,7 +186,7 @@ export function AddWordModal({ isOpen, onClose, onSuccess, editWord }: AddWordMo
                     <div className="grid grid-cols-2 gap-4">
                         <div>
                             <Label>Loại từ</Label>
-                            <Select value={formData.type} onValueChange={(v) => setFormData({ ...formData, type: v })}>
+                            <Select value={formData.type} onValueChange={(v) => setFormData({ ...formData, type: v as typeof formData.type })}>
                                 <SelectTrigger>
                                     <SelectValue />
                                 </SelectTrigger>
@@ -148,7 +202,7 @@ export function AddWordModal({ isOpen, onClose, onSuccess, editWord }: AddWordMo
                         </div>
                         <div>
                             <Label>Cấp độ</Label>
-                            <Select value={formData.level} onValueChange={(v) => setFormData({ ...formData, level: v })}>
+                            <Select value={formData.level} onValueChange={(v) => setFormData({ ...formData, level: v as typeof formData.level })}>
                                 <SelectTrigger>
                                     <SelectValue />
                                 </SelectTrigger>
@@ -171,10 +225,10 @@ export function AddWordModal({ isOpen, onClose, onSuccess, editWord }: AddWordMo
                     </div>
 
                     <div className="flex gap-3 pt-4">
-                        <Button type="submit" disabled={loading} className="flex-1">
+                        <Button type="submit" disabled={loading || aiLoading} className="flex-1">
                             {loading ? "Đang xử lý..." : editWord ? "Cập nhật" : "Thêm từ"}
                         </Button>
-                        <Button type="button" variant="outline" onClick={onClose} disabled={loading}>
+                        <Button type="button" variant="outline" onClick={onClose} disabled={loading || aiLoading}>
                             Hủy
                         </Button>
                     </div>

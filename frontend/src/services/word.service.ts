@@ -168,6 +168,19 @@ class WordService {
   async getAllVocabulary() {
     return await apiClient.get("/v1/api/vocabulary/all");
   }
+
+  async generateWordWithAI(word: string): Promise<{
+    word: string;
+    pronunciation: string;
+    meaningVi: string;
+    type: string;
+    example: string;
+    exampleVi: string;
+    level: string;
+  }> {
+    const response = await apiClient.post("/v1/api/ai/generate-word", { word });
+    return (response as any).data;
+  }
 }
 
 

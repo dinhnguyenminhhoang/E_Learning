@@ -1,6 +1,7 @@
 "use client";
 
-import { Star, Bookmark, Edit, Trash2, BookmarkCheck } from "lucide-react";
+import { useState } from "react";
+import { Star, Bookmark, Edit, Trash2, BookmarkCheck, Volume2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
@@ -25,6 +26,8 @@ export function WordCard({
     onEdit,
     onDelete,
 }: WordCardProps) {
+    const [isSpeaking, setIsSpeaking] = useState(false);
+
     const getWordText = () => {
         if ("word" in word) return word.word;
         return "";
@@ -48,6 +51,25 @@ export function WordCard({
         return "beginner";
     };
 
+    const handleSpeak = () => {
+        const text = getWordText();
+        if (!text) return;
+
+        // Cancel any ongoing speech
+        window.speechSynthesis.cancel();
+
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.lang = "en-US";
+        utterance.rate = 0.9;
+        utterance.pitch = 1;
+
+        utterance.onstart = () => setIsSpeaking(true);
+        utterance.onend = () => setIsSpeaking(false);
+        utterance.onerror = () => setIsSpeaking(false);
+
+        window.speechSynthesis.speak(utterance);
+    };
+
     const levelColors = {
         beginner: "bg-green-100 text-green-700",
         intermediate: "bg-blue-100 text-blue-700",
@@ -60,7 +82,22 @@ export function WordCard({
             {/* Header */}
             <div className="flex items-start justify-between mb-3">
                 <div className="flex-1">
-                    <h3 className="text-xl font-bold text-gray-900">{getWordText()}</h3>
+                    <div className="flex items-center gap-2">
+                        <h3 className="text-xl font-bold text-gray-900">{getWordText()}</h3>
+                        <button
+                            onClick={handleSpeak}
+                            disabled={isSpeaking}
+                            className={cn(
+                                "p-2 rounded-full transition-all duration-300",
+                                isSpeaking
+                                    ? "bg-blue-500 text-white animate-pulse scale-110 shadow-lg shadow-blue-500/50"
+                                    : "bg-gray-100 hover:bg-blue-100 text-gray-600 hover:text-blue-600"
+                            )}
+                            title="Nghe phát âm"
+                        >
+                            <Volume2 className={cn("w-4 h-4", isSpeaking && "animate-bounce")} />
+                        </button>
+                    </div>
                     {"pronunciation" in word && word.pronunciation && (
                         <p className="text-sm text-gray-500">{word.pronunciation}</p>
                     )}

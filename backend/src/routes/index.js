@@ -26,5 +26,6 @@ router.use(`/v1/api/leaderboard`, require("./leaderboard.route"));
 router.use(`/v1/api/achievements`, require("./achievement.route"));
 router.use(`/v1/api/vocabulary`, require("./userVocabulary.route"));
 router.use(`/v1/api/profile`, require("./profile.route"));
+router.use(`/v1/api/ai`, require("./ai.route"));
 
 module.exports = router;
