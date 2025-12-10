@@ -182,7 +182,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         isLoading: false,
       });
 
-      router.push("/login");
+      router.push("/signin");
     }
   };
 

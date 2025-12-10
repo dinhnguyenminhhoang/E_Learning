@@ -11,61 +11,6 @@ import { useSearchParams } from "next/navigation";
 import { toast } from "react-hot-toast";
 import { useUserProgress } from "@/hooks/useUserProgress";
 
-const TOPICS_DATA: TopicList[] = [
-  {
-    id: 1,
-    name: "Daily Communication",
-    totalTopics: 8,
-    progressPercent: 0,
-    subTopics: [
-      { id: "greeting", name: "Greeting", progress: 0, total: 38, icon: "💬" },
-      {
-        id: "thank-apology",
-        name: "Thank & Apology",
-        progress: 0,
-        total: 28,
-        icon: "🙏",
-      },
-      {
-        id: "introduction",
-        name: "Introduction",
-        progress: 0,
-        total: 18,
-        icon: "👋",
-      },
-      {
-        id: "directions",
-        name: "Directions",
-        progress: 0,
-        total: 27,
-        icon: "🧭",
-      },
-      {
-        id: "common-imperative",
-        name: "Common Imperative",
-        progress: 0,
-        total: 31,
-        icon: "💪",
-      },
-      {
-        id: "time-date",
-        name: "Time & Date",
-        progress: 0,
-        total: 84,
-        icon: "📅",
-      },
-      {
-        id: "number-money",
-        name: "Number & Money",
-        progress: 0,
-        total: 45,
-        icon: "💰",
-      },
-      { id: "weather", name: "Weather", progress: 0, total: 29, icon: "🌤️" },
-    ],
-  },
-];
-
 export default function TopicsPage() {
   const searchParams = useSearchParams();
   const pathId = searchParams.get("pathId");
@@ -73,7 +18,7 @@ export default function TopicsPage() {
   const { progress } = useUserProgress();
 
   const [activeTopicId, setActiveTopicId] = useState(1);
-  const [topicsData, setTopicsData] = useState<TopicList[]>(TOPICS_DATA);
+  const [topicsData, setTopicsData] = useState<TopicList[]>([]);
   const [loading, setLoading] = useState(true);
   const [isOpen, setIsOpen] = useState(false);
 
@@ -94,14 +39,14 @@ export default function TopicsPage() {
 
     try {
       setLoading(true);
-
+      console.log("ok");
       const levelsResponse = await learningPathService.getLearningPathHierarchy({
         learningPathId,
         isLevel: true,
       });
 
-      if (levelsResponse.code === 200 && levelsResponse.data) {
-        const levels = levelsResponse.data;
+      if (levelsResponse && (levelsResponse as any).code === 200 && (levelsResponse as any).data) {
+        const levels = (levelsResponse as any).data;
 
         const levelsWithLessons = await Promise.all(
           levels.map(async (level: any) => {
@@ -114,11 +59,11 @@ export default function TopicsPage() {
                 });
 
               let lessonsData = [];
-              if (lessonsResponse.code === 200 && lessonsResponse.data) {
+              if (lessonsResponse && (lessonsResponse as any).code === 200 && (lessonsResponse as any).data) {
                 if (lessonsResponse.data.lessons) {
-                  lessonsData = lessonsResponse.data.lessons;
+                  lessonsData = (lessonsResponse as any).data.lessons;
                 } else {
-                  lessonsData = Array.isArray(lessonsResponse.data)
+                  lessonsData = Array.isArray((lessonsResponse as any).data)
                     ? lessonsResponse.data
                     : [];
                 }
@@ -264,7 +209,7 @@ export default function TopicsPage() {
                 className="scroll-mt-6"
               >
                 <TopicHeader
-                  topic={topic}
+                  topic={topic as any}
                   isActive={activeTopicId === topic.id}
                 />
 

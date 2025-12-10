@@ -187,13 +187,13 @@ export default function OnboardingPage() {
 
       const response = await submitOnboarding(formattedData);
 
-      if (response.code === 200) {
+      if (response && (response as any).code === 200) {
         toast.success("Hoàn thành onboarding thành công!");
         setTimeout(() => {
           router.push("/learn");
         }, 1000);
       } else {
-        toast.error(response.message || "Có lỗi xảy ra");
+        toast.error((response as any).message || "Có lỗi xảy ra");
       }
     } catch (error: any) {
       console.error("Error submitting onboarding:", error);
@@ -222,7 +222,7 @@ export default function OnboardingPage() {
 
   const renderStepComponent = () => {
     if (step === 0) {
-      return <WelcomeStep key="welcome" features={FEATURES} />;
+      return <WelcomeStep key="welcome" features={FEATURES as any} />;
     }
 
     const currentStepData = onboardingSteps[step - 1];
