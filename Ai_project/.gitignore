@@ -1,0 +1,30 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+.env
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# Model checkpoints and large files
+*.bin
+*.pt
+*.pth
+*.gguf
+*.safetensors
+*.h5
+*.ckpt
+checkpoint-*/
+t5_large_final_model/
+
+# API Server
+APIServer/venv/
+
+# Evaluation results
+*.csv
+*.jsonl
