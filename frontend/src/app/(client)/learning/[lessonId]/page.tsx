@@ -51,6 +51,7 @@ export default function LearningPage() {
     const [sidebarOpen, setSidebarOpen] = useState(true);
     const [totalBlocks, setTotalBlocks] = useState(0);
     const [completedCount, setCompletedCount] = useState(0);
+    const [isLessonCompleted, setIsLessonCompleted] = useState(false);
 
     const [quizAttempt, setQuizAttempt] = useState<QuizAttempt | null>(null);
     const [showQuizModal, setShowQuizModal] = useState(false);
@@ -117,6 +118,11 @@ export default function LearningPage() {
                 setBlocks(blocksWithLock);
                 setTotalBlocks(response.data.totalBlocks || blocksWithLock.length);
                 setCompletedCount(response.data.completedBlocks || 0);
+                
+                // Update lesson completion status if available
+                if (response.data.isLessonCompleted !== undefined) {
+                    setIsLessonCompleted(response.data.isLessonCompleted);
+                }
 
                 if (blocksWithLock.length > 0) {
                     setActiveBlockId(blocksWithLock[0]._id);
@@ -303,8 +309,17 @@ export default function LearningPage() {
                 setShowResultsModal(true);
 
                 if (response.data.isBlockCompleted) {
-                    toast.success("Bài học đã hoàn thành!");
+                    toast.success("Block đã hoàn thành!");
                     await fetchBlocks();
+                }
+
+                // Check and update lesson completion status
+                if (response.data.isLessonCompleted) {
+                    setIsLessonCompleted(true);
+                    toast.success("🎉 Chúc mừng! Bạn đã hoàn thành bài học này!", {
+                        duration: 5000,
+                        icon: "🎉",
+                    });
                 }
             }
         } catch (error) {
@@ -386,9 +401,17 @@ export default function LearningPage() {
                         <ChevronLeft className="w-5 h-5" />
                     </Button>
                     <div className="hidden md:block w-px h-6 bg-gray-300" />
-                    <div>
-                        <h1 className="font-bold text-base md:text-lg text-gray-900">{lessonTitle}</h1>
-                        <p className="text-xs text-gray-500 hidden md:block">
+                    <div className="flex-1">
+                        <div className="flex items-center gap-3">
+                            <h1 className="font-bold text-base md:text-lg text-gray-900">{lessonTitle}</h1>
+                            {isLessonCompleted && (
+                                <div className="flex items-center gap-2 bg-green-100 text-green-700 px-3 py-1 rounded-full text-xs font-semibold">
+                                    <CheckCircle className="w-4 h-4" />
+                                    <span>Đã hoàn thành</span>
+                                </div>
+                            )}
+                        </div>
+                        <p className="text-xs text-gray-500 hidden md:block mt-1">
                             {blocks.length > 0 && `Bài ${activeBlockIndex + 1} / ${blocks.length}`}
                         </p>
                     </div>

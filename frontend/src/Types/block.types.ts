@@ -170,6 +170,7 @@ export interface SubmitQuizResponse {
   data: {
     attempt: QuizAttempt;
     isBlockCompleted: boolean;
+    isLessonCompleted?: boolean;
   };
   code: number;
 }

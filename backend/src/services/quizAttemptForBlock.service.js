@@ -32,12 +32,12 @@ class QuizAttemptForBlockService {
       }
 
       if (!lessonId) {
-        return ResponseBuilder.notFoundError("Lesson not found for this block");
+        return ResponseBuilder.notFoundError("Không tìm thấy bài học cho nội dung này");
       }
 
       const lesson = await LessonRepository.getLessonById(toObjectId(lessonId));
       if (!lesson) {
-        return ResponseBuilder.notFoundError("Lesson not found");
+        return ResponseBuilder.notFoundError("Không tìm thấy bài học cho nội dung này");
       }
       const blockInLesson = lesson.blocks.find((b) => {
         const blockIdStr = b.block?.toString() || b.block?._id?.toString();
@@ -57,7 +57,7 @@ class QuizAttemptForBlockService {
 
       const quiz = await QuizRepository.getQuizById(toObjectId(quizId));
       if (!quiz) {
-        return ResponseBuilder.notFoundError("Quiz not found");
+        return ResponseBuilder.notFoundError("Không tìm thấy bài tập cho nội dung này");
       }
 
       const existingAttempt = await QuizAttemptForBlockRepo.findLatestAttempt(
@@ -68,6 +68,9 @@ class QuizAttemptForBlockService {
         const attemptWithQuiz = await QuizAttemptForBlockRepo.findById(
           existingAttempt._id
         );
+
+        console.log("attemptWithQuiz", attemptWithQuiz);
+        console.log("quiz", quiz);
 
         const sanitizedQuiz = this._sanitizeQuizForUser(quiz);
 
@@ -138,14 +141,11 @@ class QuizAttemptForBlockService {
         );
       }
 
-      if (attempt.status === "completed") {
-        return ResponseBuilder.badRequest("Quiz đã được nộp trước đó.");
-      }
-
       const quiz = await QuizRepository.getQuizById(attempt.quiz);
       if (!quiz) {
         return ResponseBuilder.notFoundError("Không tìm thấy quiz.");
       }
+      console.log("quiz", quiz);
       if (!answers) {
         return ResponseBuilder.badRequest("Answers không được để trống.");
       }
@@ -211,6 +211,47 @@ class QuizAttemptForBlockService {
         }
       }
 
+      // Check if lesson is completed after quiz pass
+      let isLessonCompleted = false;
+      if (isPassed) {
+        try {
+          const block = await BlockRepository.getBlockById(toObjectId(updatedAttempt.block));
+          if (block) {
+            let lessonId = block.lessonId;
+            if (!lessonId) {
+              const lessons = await LessonRepository.getLessonsByBlockId(updatedAttempt.block);
+              if (lessons && lessons.length > 0) {
+                lessonId = lessons[0]._id;
+              }
+            }
+
+            if (lessonId) {
+              const userPaths = await UserLearningPathRepository.findByUserId(toObjectId(userId));
+              if (userPaths && userPaths.length > 0) {
+                const learningPathId = userPaths[0].learningPath.toString();
+                const progress = await UserProgressRepository.findByUserAndPath(
+                  userId,
+                  learningPathId
+                );
+
+                if (progress) {
+                  const lessonProgress = progress.getLessonProgress(toObjectId(lessonId));
+                  if (lessonProgress) {
+                    isLessonCompleted = lessonProgress.isCompleted || false;
+                  }
+                }
+              }
+            }
+          }
+        } catch (error) {
+          console.error(
+            `[QuizAttemptForBlockService] Error checking lesson completion:`,
+            error
+          );
+          // Don't fail the request if lesson check fails
+        }
+      }
+
       const PASS_THRESHOLD = 65;
       const message = isPassed
         ? `Chúc mừng! Bạn đã hoàn thành quiz với ${updatedAttempt.percentage.toFixed(1)}%!`
@@ -219,6 +260,8 @@ class QuizAttemptForBlockService {
       return ResponseBuilder.success(message, {
         attempt: updatedAttempt,
         isPassed,
+        isBlockCompleted: isPassed,
+        isLessonCompleted,
         score: updatedAttempt.percentage,
         correctAnswers: correctCount,
         totalQuestions: totalCount,
@@ -231,6 +274,123 @@ class QuizAttemptForBlockService {
       );
       return ResponseBuilder.error("Failed to submit quiz", 500, error.message);
     }
+  }
+
+  /**
+   * Parse matching answer from string format to array format
+   * String format: "left-0:right-1|left-1:right-0"
+   * Array format: [{key: "leftText", value: "rightText"}, ...]
+   * @param {string} answerString - Answer string in format "leftId:rightId|leftId:rightId"
+   * @param {Array} options - Question options array
+   * @returns {Array} Parsed answer array
+   */
+  _parseMatchingAnswer(answerString, options) {
+    if (!answerString || typeof answerString !== "string") {
+      return [];
+    }
+
+    const result = [];
+    const pairs = answerString.split("|").filter(Boolean);
+
+    pairs.forEach((pair) => {
+      const [leftId, rightId] = pair.split(":");
+      if (!leftId || !rightId) return;
+
+      // Extract index from IDs: "left-0" -> 0, "right-1" -> 1
+      const leftMatch = leftId.match(/left-(\d+)/);
+      const rightMatch = rightId.match(/right-(\d+)/);
+
+      if (leftMatch && rightMatch) {
+        const leftIndex = parseInt(leftMatch[1], 10);
+        const rightIndex = parseInt(rightMatch[1], 10);
+
+        // Get option text and parse "leftText - rightText"
+        if (options && options[leftIndex] && options[rightIndex]) {
+          const leftOption = options[leftIndex];
+          const rightOption = options[rightIndex];
+
+          // Parse option text format: "leftText - rightText" or "leftText-rightText"
+          const leftText = this._extractLeftText(leftOption.text);
+          const rightText = this._extractRightText(rightOption.text);
+
+          if (leftText && rightText) {
+            result.push({
+              key: leftText.trim(),
+              value: rightText.trim(),
+            });
+          }
+        }
+      }
+    });
+
+    return result;
+  }
+
+  /**
+   * Extract left text from option text (e.g., "ticket - vé" -> "ticket")
+   * @param {string} text - Option text
+   * @returns {string} Left text
+   */
+  _extractLeftText(text) {
+    if (!text) return "";
+    const separators = [" - ", " – ", " — ", "-"];
+    for (const sep of separators) {
+      const parts = text.split(sep);
+      if (parts.length >= 2) {
+        return parts[0].trim();
+      }
+    }
+    return text.trim();
+  }
+
+  /**
+   * Extract right text from option text (e.g., "ticket - vé" -> "vé")
+   * @param {string} text - Option text
+   * @returns {string} Right text
+   */
+  _extractRightText(text) {
+    if (!text) return "";
+    const separators = [" - ", " – ", " — ", "-"];
+    for (const sep of separators) {
+      const parts = text.split(sep);
+      if (parts.length >= 2) {
+        return parts.slice(1).join(sep).trim();
+      }
+    }
+    return "";
+  }
+
+  /**
+   * Get correct matching pairs from question options
+   * @param {Object} question - Question object
+   * @returns {Array} Correct pairs array
+   */
+  _getCorrectMatchingPairs(question) {
+    if (!question.options || !Array.isArray(question.options)) {
+      return [];
+    }
+
+    // If question has correctAnswer as array, use it
+    if (Array.isArray(question.correctAnswer)) {
+      return question.correctAnswer;
+    }
+
+    // Otherwise, extract from options with isCorrect=true
+    const correctPairs = [];
+    question.options.forEach((option) => {
+      if (option.isCorrect && option.text) {
+        const leftText = this._extractLeftText(option.text);
+        const rightText = this._extractRightText(option.text);
+        if (leftText && rightText) {
+          correctPairs.push({
+            key: leftText.trim(),
+            value: rightText.trim(),
+          });
+        }
+      }
+    });
+
+    return correctPairs;
   }
 
   _gradeAnswers(questions, userAnswers) {
@@ -299,19 +459,49 @@ class QuizAttemptForBlockService {
             break;
 
           case "matching":
+            // Convert string format to array format if needed
+            let userMatchingAnswer = userAnswer?.selectedAnswer;
+            if (typeof userMatchingAnswer === "string") {
+              userMatchingAnswer = this._parseMatchingAnswer(
+                userMatchingAnswer,
+                question.options
+              );
+            }
+
+            // Get correct pairs
+            const correctPairs = this._getCorrectMatchingPairs(question);
+
+            // Compare answers
             if (
-              Array.isArray(userAnswer?.selectedAnswer) &&
-              Array.isArray(question.correctAnswer)
+              Array.isArray(userMatchingAnswer) &&
+              Array.isArray(correctPairs) &&
+              userMatchingAnswer.length > 0 &&
+              correctPairs.length > 0
             ) {
-              if (
-                userAnswer.selectedAnswer.length ===
-                question.correctAnswer.length
-              ) {
-                isCorrect = userAnswer.selectedAnswer.every((pair) => {
-                  const correctPair = question.correctAnswer.find(
-                    (cp) => cp.key === pair.key
+              // Check if all user pairs match correct pairs (each pair only once)
+              if (userMatchingAnswer.length === correctPairs.length) {
+                const usedCorrectPairs = new Set();
+                isCorrect = userMatchingAnswer.every((userPair) => {
+                  const userKey = userPair.key?.trim().toLowerCase();
+                  const userValue = userPair.value?.trim().toLowerCase();
+
+                  // Find matching correct pair that hasn't been used
+                  const correctPairIndex = correctPairs.findIndex(
+                    (cp, idx) => {
+                      if (usedCorrectPairs.has(idx)) return false;
+                      const correctKey = cp.key?.trim().toLowerCase();
+                      const correctValue = cp.value?.trim().toLowerCase();
+                      return (
+                        correctKey === userKey && correctValue === userValue
+                      );
+                    }
                   );
-                  return correctPair && correctPair.value === pair.value;
+
+                  if (correctPairIndex !== -1) {
+                    usedCorrectPairs.add(correctPairIndex);
+                    return true;
+                  }
+                  return false;
                 });
               }
             }
@@ -335,9 +525,16 @@ class QuizAttemptForBlockService {
         pointsEarned = question.points || 1;
       }
 
+      // Store answer in original format (string for matching if it was string)
+      const storedAnswer =
+        question.type === "matching" &&
+        typeof userAnswer?.selectedAnswer === "string"
+          ? userAnswer.selectedAnswer
+          : userAnswer?.selectedAnswer || "";
+
       return {
         questionId: question._id,
-        selectedAnswer: userAnswer?.selectedAnswer || "",
+        selectedAnswer: storedAnswer,
         isCorrect,
         pointsEarned,
         timeSpent: userAnswer?.timeSpent || 0,
@@ -381,7 +578,7 @@ class QuizAttemptForBlockService {
         if (!answer.questionId) {
           return `Câu trả lời thứ ${i + 1} thiếu questionId.`;
         }
-
+        console.log("ok", answer)
         const questionIdStr = answer.questionId.toString();
         if (!questionMap.has(questionIdStr)) {
           return `Câu trả lời thứ ${i + 1} có questionId không hợp lệ: ${questionIdStr}.`;
@@ -399,9 +596,15 @@ class QuizAttemptForBlockService {
         return `Không tìm thấy câu hỏi cho câu trả lời thứ ${i + 1}.`;
       }
 
+      // Matching questions can accept both string and array formats
       if (question.type === "matching") {
-        if (!Array.isArray(answer.selectedAnswer)) {
-          return `Câu trả lời thứ ${i + 1} (matching) phải có selectedAnswer là một mảng.`;
+        if (
+          answer.selectedAnswer === undefined ||
+          answer.selectedAnswer === null ||
+          (typeof answer.selectedAnswer !== "string" &&
+            !Array.isArray(answer.selectedAnswer))
+        ) {
+          return `Câu trả lời thứ ${i + 1} (matching) phải có selectedAnswer là string hoặc mảng.`;
         }
       } else {
         if (
