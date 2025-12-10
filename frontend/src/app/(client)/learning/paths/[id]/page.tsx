@@ -61,8 +61,8 @@ export default function LearningPathDetailPage() {
 
             // Fetch path basic info
             const pathResponse = await learningPathService.getAllPath();
-            if (pathResponse.code === 200) {
-                const foundPath = pathResponse.data.find(
+            if (pathResponse && (pathResponse as any).code === 200) {
+                const foundPath = (pathResponse as any).data.find(
                     (p: any) => p._id === pathId
                 );
                 if (foundPath) {
@@ -73,10 +73,10 @@ export default function LearningPathDetailPage() {
             // Fetch levels hierarchy
             const levelsResponse = await learningPathService.getLearningPathHierarchy({
                 learningPathId: pathId,
-                isLevel: "true",
+                isLevel: true,
             });
-            if (levelsResponse.code === 200) {
-                setLevels(levelsResponse.data);
+            if (levelsResponse && (levelsResponse as any).code === 200) {
+                setLevels((levelsResponse as any).data);
             }
 
             // Check if user is enrolled (you may need to implement this API)

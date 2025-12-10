@@ -1,6 +1,5 @@
-import { Progress } from "@/components/ui/progress";
 import { SubTopic } from "@/types/learning";
-import { ChevronRight, Lock } from "lucide-react";
+import { ChevronRight, Lock, CheckCircle2 } from "lucide-react";
 import React from "react";
 import Link from "next/link";
 
@@ -13,8 +12,6 @@ function SubTopicCard({
   learningPathId?: string;
   isLocked?: boolean;
 }) {
-  const progressPercent =
-    subTopic.total > 0 ? (subTopic.progress / subTopic.total) * 100 : 0;
 
   const href = learningPathId
     ? `/learning/${subTopic.id}?pathId=${learningPathId}`
@@ -49,14 +46,17 @@ function SubTopicCard({
               </span>
             )}
           </h3>
-          <div className="space-y-1">
-            <div className="flex items-center justify-between text-sm text-gray-600 mb-1">
-              <span>Progress</span>
-              <span className="font-medium">
-                {subTopic.progress}/{subTopic.total}
-              </span>
-            </div>
-            <Progress value={progressPercent} className="h-2" />
+          <div className="flex items-center gap-2">
+            {subTopic.isCompleted ? (
+              <div className="flex items-center gap-1.5 text-sm text-green-600">
+                <CheckCircle2 className="w-4 h-4" />
+                <span className="font-medium">Đã hoàn thành</span>
+              </div>
+            ) : (
+              <div className="flex items-center gap-1.5 text-sm text-gray-500">
+                <span className="font-medium">Chưa hoàn thành</span>
+              </div>
+            )}
           </div>
         </div>
 

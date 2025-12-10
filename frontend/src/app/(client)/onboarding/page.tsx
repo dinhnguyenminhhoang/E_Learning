@@ -12,33 +12,13 @@ import {
 } from "@/services/onboarding.service";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { AnimatePresence } from "framer-motion";
-import { ArrowRight, Gamepad2, Lightbulb, Sparkles } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
 import { toast } from "react-hot-toast";
-
-export const FEATURES = [
-  {
-    icon: Sparkles,
-    title: "Broaden",
-    description: "theme-based vocabularies.",
-    color: "bg-yellow-500",
-  },
-  {
-    icon: Gamepad2,
-    title: "Engage",
-    description: "many fun word games.",
-    color: "bg-green-500",
-  },
-  {
-    icon: Lightbulb,
-    title: "Study Less - Remember More",
-    description: "with scientific methods - Spaced Repetition.",
-    color: "bg-blue-500",
-  },
-];
+import { ONBOARDING_FEATURES } from "@/constants/onboarding.constants";
 
 const createOnboardingSchema = (steps: OnboardingQuestion[]) => {
   const schemaObj: any = {};
@@ -222,7 +202,7 @@ export default function OnboardingPage() {
 
   const renderStepComponent = () => {
     if (step === 0) {
-      return <WelcomeStep key="welcome" features={FEATURES as any} />;
+      return <WelcomeStep key="welcome" features={ONBOARDING_FEATURES as any} />;
     }
 
     const currentStepData = onboardingSteps[step - 1];
