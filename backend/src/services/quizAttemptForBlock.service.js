@@ -32,12 +32,12 @@ class QuizAttemptForBlockService {
       }
 
       if (!lessonId) {
-        return ResponseBuilder.notFoundError("Lesson not found for this block");
+        return ResponseBuilder.notFoundError("Không tìm thấy bài học cho nội dung này");
       }
 
       const lesson = await LessonRepository.getLessonById(toObjectId(lessonId));
       if (!lesson) {
-        return ResponseBuilder.notFoundError("Lesson not found");
+        return ResponseBuilder.notFoundError("Không tìm thấy bài học cho nội dung này");
       }
       const blockInLesson = lesson.blocks.find((b) => {
         const blockIdStr = b.block?.toString() || b.block?._id?.toString();
@@ -57,7 +57,7 @@ class QuizAttemptForBlockService {
 
       const quiz = await QuizRepository.getQuizById(toObjectId(quizId));
       if (!quiz) {
-        return ResponseBuilder.notFoundError("Quiz not found");
+        return ResponseBuilder.notFoundError("Không tìm thấy bài tập cho nội dung này");
       }
 
       const existingAttempt = await QuizAttemptForBlockRepo.findLatestAttempt(
@@ -68,6 +68,9 @@ class QuizAttemptForBlockService {
         const attemptWithQuiz = await QuizAttemptForBlockRepo.findById(
           existingAttempt._id
         );
+
+        console.log("attemptWithQuiz", attemptWithQuiz);
+        console.log("quiz", quiz);
 
         const sanitizedQuiz = this._sanitizeQuizForUser(quiz);
 
@@ -138,14 +141,11 @@ class QuizAttemptForBlockService {
         );
       }
 
-      if (attempt.status === "completed") {
-        return ResponseBuilder.badRequest("Quiz đã được nộp trước đó.");
-      }
-
       const quiz = await QuizRepository.getQuizById(attempt.quiz);
       if (!quiz) {
         return ResponseBuilder.notFoundError("Không tìm thấy quiz.");
       }
+      console.log("quiz", quiz);
       if (!answers) {
         return ResponseBuilder.badRequest("Answers không được để trống.");
       }
@@ -381,7 +381,7 @@ class QuizAttemptForBlockService {
         if (!answer.questionId) {
           return `Câu trả lời thứ ${i + 1} thiếu questionId.`;
         }
-
+        console.log("ok", answer)
         const questionIdStr = answer.questionId.toString();
         if (!questionMap.has(questionIdStr)) {
           return `Câu trả lời thứ ${i + 1} có questionId không hợp lệ: ${questionIdStr}.`;

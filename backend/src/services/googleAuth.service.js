@@ -2,9 +2,11 @@ const { OAuth2Client } = require("google-auth-library");
 const User = require("../models/User");
 const userRepository = require("../repositories/user.repo");
 const keyTokenRepository = require("../repositories/keyToken.repo");
+const userLearningPathRepo = require("../repositories/userLearningPath.repo");
 const jwtHelper = require("../helpers/jwtHelper");
 const client = new OAuth2Client(process.env.OAUTH2_CLIENT_ID);
 const jwt = require("jsonwebtoken");
+const { STATUS } = require("../constants/status.constans");
 
 class GoogleAuthService {
   async verifyToken(token) {
@@ -17,7 +19,12 @@ class GoogleAuthService {
   }
 
   async loginWithGoogle(token, sessionData = {}) {
-    const { deviceType = "web", userAgent, ipAddress } = sessionData;
+    const {
+      deviceType = "web",
+      userAgent,
+      ipAddress,
+      rememberMe = false,
+    } = sessionData;
     const payload = await this.verifyToken(token);
     let user = await User.findOne({ email: payload.email });
     if (!user) {
@@ -26,6 +33,16 @@ class GoogleAuthService {
         email: payload.email,
         picture: payload.picture,
         provider: "google",
+        status: STATUS.ACTIVE,
+        roles: ["USER"],
+        verification: {
+          emailVerified: true,
+          phoneVerified: false,
+          twoFactorEnabled: false,
+        },
+        profile: {
+          avatar: payload.picture,
+        },
       });
     }
 
@@ -37,7 +54,7 @@ class GoogleAuthService {
       await keyTokenRepository.revokeToken(existingToken._id, "new_login");
     }
 
-    const tokenExpiry = 7; // 30 days if remember me, 7 days otherwise
+    const tokenExpiry = rememberMe ? 30 : 7; // 30 days if remember me, 7 days otherwise
 
     const { keyToken, publicKey, refreshToken } =
       await keyTokenRepository.createWithKeyPair(
@@ -73,7 +90,10 @@ class GoogleAuthService {
     await userRepository.updatePortfolioStats(user._id, {
       lastLoginAt: new Date(),
     });
-
+    console.log("user._id", user._id);
+    const learningPath = await userLearningPathRepo.findByUserId(user._id);
+    console.log("learningPath", learningPath ?? "no learning path");
+    
     // 13. Prepare response
     const response = {
       user: {
@@ -86,6 +106,7 @@ class GoogleAuthService {
         avatar: user.profile?.avatar,
         lastLoginAt: new Date(),
         portfolioCount: user.portfolios?.owned?.length || 0,
+        learningPathId: learningPath && learningPath.length > 0 ? learningPath[0].learningPath._id : "",
       },
       tokens: {
         accessToken,
@@ -97,6 +118,7 @@ class GoogleAuthService {
       session: {
         deviceId: keyToken.session?.deviceId,
         deviceType: keyToken.session?.deviceType,
+        rememberMe,
       },
     };
     return response;
