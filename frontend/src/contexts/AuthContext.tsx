@@ -16,9 +16,37 @@ import {
   getStoredAuthData,
   isAdmin as checkIsAdmin,
 } from "@/utils/auth.utils";
-import { authService } from "@/services/auth.service";
+import { authService, AuthResponse } from "@/services/auth.service";
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+// Helper function to convert string[] roles to UserRole[]
+const mapRolesToUserRoles = (roles: string[]): UserRole[] => {
+  return roles
+    .map((role) => {
+      const upperRole = role.toUpperCase();
+      if (Object.values(UserRole).includes(upperRole as UserRole)) {
+        return upperRole as UserRole;
+      }
+      return null;
+    })
+    .filter((role): role is UserRole => role !== null);
+};
+
+// Helper function to map AuthResponse user to User type
+const mapAuthResponseToUser = (authUser: AuthResponse["user"]): User => {
+  return {
+    id: authUser.id,
+    name: authUser.name,
+    email: authUser.email,
+    status: authUser.status,
+    roles: mapRolesToUserRoles(authUser.roles),
+    verified: authUser.verified,
+    avatar: authUser.avatar,
+    lastLoginAt: new Date().toISOString(), // Default to current time if not provided
+    portfolioCount: 0, // Default to 0 if not provided
+  };
+};
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
@@ -47,9 +75,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const checkAuth = useCallback(async () => {
     try {
-      const { accessToken, user } = getStoredAuthData();
+      const { accessToken, user: storedUser } = getStoredAuthData();
 
-      if (accessToken && user) {
+      if (accessToken && storedUser) {
+        // Ensure stored user has the correct type
+        const user: User = storedUser.roles?.every((r: any) => typeof r === 'string')
+          ? mapAuthResponseToUser(storedUser as AuthResponse["user"])
+          : storedUser as User;
+        
         const isAdminUser = checkIsAdmin(user.roles);
 
         setAuthState({
@@ -125,7 +158,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         rememberMe,
       });
 
-      const { user, tokens, session } = response;
+      const { user: authUser, tokens } = response;
+      const user = mapAuthResponseToUser(authUser);
       const isAdminUser = checkIsAdmin(user.roles);
 
       saveAuthData(tokens.accessToken, user);
@@ -133,7 +167,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       setAuthState({
         user,
         tokens,
-        session,
+        session: null, // Session not provided in AuthResponse
         isAuthenticated: true,
         isAdmin: isAdminUser,
         isLoading: false,
@@ -190,8 +224,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     try {
       setAuthState((prev) => ({ ...prev, isLoading: true }));
 
-      const response = await authService.googleLogin(idToken);
-      const { user, tokens, session } = response;
+      const response = await authService.googleLogin(idToken) as AuthResponse;
+      const { user: authUser, tokens } = response;
+      const user = mapAuthResponseToUser(authUser);
       const isAdminUser = checkIsAdmin(user.roles);
 
       saveAuthData(tokens.accessToken, user);
@@ -199,7 +234,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       setAuthState({
         user,
         tokens,
-        session,
+        session: null, // Session not provided in AuthResponse
         isAuthenticated: true,
         isAdmin: isAdminUser,
         isLoading: false,
