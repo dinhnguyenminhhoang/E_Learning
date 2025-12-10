@@ -51,24 +51,59 @@ export function WordCard({
         return "beginner";
     };
 
-    const handleSpeak = () => {
-        const text = getWordText();
+    const speakText = async (text: string, setLoading: (v: boolean) => void) => {
         if (!text) return;
 
-        // Cancel any ongoing speech
-        window.speechSynthesis.cancel();
+        setLoading(true);
 
-        const utterance = new SpeechSynthesisUtterance(text);
-        utterance.lang = "en-US";
-        utterance.rate = 0.9;
-        utterance.pitch = 1;
+        try {
+            const token = localStorage.getItem("accessToken") || "";
+            const url = `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080"}/v1/api/tts/speak?text=${encodeURIComponent(text)}&lang=en`;
 
-        utterance.onstart = () => setIsSpeaking(true);
-        utterance.onend = () => setIsSpeaking(false);
-        utterance.onerror = () => setIsSpeaking(false);
+            const audio = new Audio();
 
-        window.speechSynthesis.speak(utterance);
+            const response = await fetch(url, {
+                headers: {
+                    "Authorization": `Bearer ${token}`
+                }
+            });
+
+            if (!response.ok) {
+                throw new Error("TTS request failed");
+            }
+
+            const blob = await response.blob();
+            audio.src = URL.createObjectURL(blob);
+            audio.volume = 1;
+
+            audio.onended = () => {
+                console.log('[TTS] Finished speaking:', text);
+                setLoading(false);
+                URL.revokeObjectURL(audio.src);
+            };
+
+            audio.onerror = (e) => {
+                console.error('[TTS] Audio error:', e);
+                setLoading(false);
+            };
+
+            console.log('[TTS] Playing:', text);
+            await audio.play();
+
+        } catch (error) {
+            console.error('[TTS] Error:', error);
+            setLoading(false);
+        }
     };
+
+    const handleSpeakWord = () => speakText(getWordText(), setIsSpeaking);
+    const handleSpeakExample = () => {
+        if ("example" in word && word.example) {
+            speakText(word.example, setIsSpeakingExample);
+        }
+    };
+
+    const [isSpeakingExample, setIsSpeakingExample] = useState(false);
 
     const levelColors = {
         beginner: "bg-green-100 text-green-700",
@@ -85,7 +120,7 @@ export function WordCard({
                     <div className="flex items-center gap-2">
                         <h3 className="text-xl font-bold text-gray-900">{getWordText()}</h3>
                         <button
-                            onClick={handleSpeak}
+                            onClick={handleSpeakWord}
                             disabled={isSpeaking}
                             className={cn(
                                 "p-2 rounded-full transition-all duration-300",
@@ -142,7 +177,22 @@ export function WordCard({
             {/* Example */}
             {"example" in word && word.example && (
                 <div className="bg-blue-50 rounded-lg p-3 mb-3">
-                    <p className="text-sm italic text-gray-700">&quot;{word.example}&quot;</p>
+                    <div className="flex items-start gap-2">
+                        <p className="text-sm italic text-gray-700 flex-1">&quot;{word.example}&quot;</p>
+                        <button
+                            onClick={handleSpeakExample}
+                            disabled={isSpeakingExample}
+                            className={cn(
+                                "p-1.5 rounded-full transition-all duration-300 shrink-0",
+                                isSpeakingExample
+                                    ? "bg-blue-500 text-white animate-pulse"
+                                    : "bg-white/80 hover:bg-blue-100 text-gray-500 hover:text-blue-600"
+                            )}
+                            title="Nghe câu ví dụ"
+                        >
+                            <Volume2 className={cn("w-3.5 h-3.5", isSpeakingExample && "animate-bounce")} />
+                        </button>
+                    </div>
                     {"exampleVi" in word && word.exampleVi && (
                         <p className="text-xs text-gray-600 mt-1">{word.exampleVi}</p>
                     )}

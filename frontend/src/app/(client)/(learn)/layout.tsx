@@ -1,5 +1,6 @@
 import Header from "@/components/layout/client/Header";
 import Sidebar from "@/components/layout/client/Sidebar";
+import { FloatingChatWidget } from "@/components/ai-assistant/FloatingChatWidget";
 
 export default function RootLayout({
   children,
@@ -13,6 +14,7 @@ export default function RootLayout({
         <Header />
         {children}
       </main>
+      <FloatingChatWidget />
     </div>
   );
 }
