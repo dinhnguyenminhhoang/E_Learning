@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { toast } from "react-hot-toast";
 import { cn } from "@/lib/utils";
+import { AdminPagination } from "@/components/admin/AdminPagination";
 
 export default function LearningPathsPage() {
     const router = useRouter();
@@ -59,13 +60,28 @@ export default function LearningPathsPage() {
         }
     };
 
+    const [currentPage, setCurrentPage] = useState(1);
+    const pageSize = 10;
+
     const filteredPaths = paths.filter((path) => {
         const matchesSearch = path.title
             .toLowerCase()
             .includes(searchTerm.toLowerCase());
-        const matchesLevel = levelFilter === "all" || path.level === levelFilter;
+        const matchesLevel = levelFilter === "all" || path.level?.toLowerCase() === levelFilter;
         return matchesSearch && matchesLevel;
     });
+
+    // Client-side pagination
+    const totalPages = Math.ceil(filteredPaths.length / pageSize);
+    const paginatedPaths = filteredPaths.slice(
+        (currentPage - 1) * pageSize,
+        currentPage * pageSize
+    );
+
+    // Reset page when filters change
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [searchTerm, levelFilter]);
 
     return (
         <div className="p-6 mx-auto">
@@ -182,7 +198,7 @@ export default function LearningPathsPage() {
                                         </div>
                                     </td>
                                 </tr>
-                            ) : filteredPaths.length === 0 ? (
+                            ) : paginatedPaths.length === 0 ? (
                                 <tr>
                                     <td colSpan={6} className="px-6 py-12 text-center">
                                         <GraduationCap className="w-12 h-12 mx-auto mb-3 text-gray-400 opacity-50" />
@@ -192,7 +208,7 @@ export default function LearningPathsPage() {
                                     </td>
                                 </tr>
                             ) : (
-                                filteredPaths.map((path) => (
+                                paginatedPaths.map((path) => (
                                     <tr
                                         key={path._id}
                                         className="hover:bg-gray-50 transition-colors"
@@ -221,14 +237,14 @@ export default function LearningPathsPage() {
                                             <span
                                                 className={cn(
                                                     "inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold",
-                                                    path.level === "beginner"
+                                                    path.level?.toLowerCase() === "beginner"
                                                         ? "bg-green-100 text-green-700"
-                                                        : path.level === "intermediate"
+                                                        : path.level?.toLowerCase() === "intermediate"
                                                             ? "bg-yellow-100 text-yellow-700"
                                                             : "bg-red-100 text-red-700"
                                                 )}
                                             >
-                                                {path.level === "beginner" ? "Sơ cấp" : path.level === "intermediate" ? "Trung cấp" : "Nâng cao"}
+                                                {path.level?.toLowerCase() === "beginner" ? "Sơ cấp" : path.level?.toLowerCase() === "intermediate" ? "Trung cấp" : "Nâng cao"}
                                             </span>
                                         </td>
                                         <td className="px-6 py-4 text-center">
@@ -286,6 +302,16 @@ export default function LearningPathsPage() {
                         </tbody>
                     </table>
                 </div>
+
+                {/* Pagination */}
+                <AdminPagination
+                    currentPage={currentPage}
+                    totalPages={totalPages}
+                    totalItems={filteredPaths.length}
+                    pageSize={pageSize}
+                    onPageChange={setCurrentPage}
+                    loading={loading}
+                />
             </div>
         </div>
     );

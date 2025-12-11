@@ -23,8 +23,10 @@ class ExamService {
     } = req.query || {};
 
     const filter = {};
-    if (status) {
+    if (status && status !== "all") {
       filter.status = status;
+    } else {
+      filter.status = { $ne: "deleted" };
     }
     if (search) {
       filter.title = { $regex: search, $options: "i" };

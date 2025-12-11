@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { lessonService } from "@/services/lesson.service";
 import { quizAdminService } from "@/services/quizAdmin.service";
+import { blockService } from "@/services/block.service";
 import { Quiz } from "@/types/admin";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -91,6 +92,13 @@ export default function EditLessonPage() {
     const [loadingQuizzes, setLoadingQuizzes] = useState(false);
     const [attachingQuiz, setAttachingQuiz] = useState(false);
 
+    // Block attachment dialog
+    const [showBlockDialog, setShowBlockDialog] = useState(false);
+    const [availableBlocks, setAvailableBlocks] = useState<any[]>([]);
+    const [blockSearch, setBlockSearch] = useState("");
+    const [loadingBlocks, setLoadingBlocks] = useState(false);
+    const [addingBlock, setAddingBlock] = useState(false);
+
     useEffect(() => {
         fetchLesson();
     }, [lessonId]);
@@ -151,7 +159,8 @@ export default function EditLessonPage() {
 
         try {
             setSaving(true);
-            const response = await lessonService.update(lessonId, formData);
+            const updateData: any = { ...formData };
+            const response = await lessonService.update(lessonId, updateData);
             if (response.code === 200) {
                 toast.success("Lesson updated successfully!");
                 router.push("/admin/lessons");
@@ -223,6 +232,68 @@ export default function EditLessonPage() {
             }
         } catch (error) {
             toast.error("Failed to detach quiz");
+        }
+    };
+
+    // Block management
+    const fetchAvailableBlocks = async () => {
+        try {
+            setLoadingBlocks(true);
+            const response = await blockService.getAllBlocks({
+                search: blockSearch,
+                pageSize: 50,
+            });
+            if ((response as any).code === 200) {
+                setAvailableBlocks((response as any).data || []);
+            }
+        } catch (error) {
+            console.error("Error fetching blocks:", error);
+        } finally {
+            setLoadingBlocks(false);
+        }
+    };
+
+    const openBlockDialog = () => {
+        setShowBlockDialog(true);
+        fetchAvailableBlocks();
+    };
+
+    const handleAddBlock = async (blockId: string) => {
+        try {
+            setAddingBlock(true);
+            const currentOrder = lesson?.blocks?.length ? lesson.blocks.length + 1 : 1;
+            const response = await lessonService.assignBlockToLesson({
+                lessonId,
+                blockId,
+                order: currentOrder,
+            });
+            if (response.code === 200) {
+                toast.success("Block added successfully!");
+                setShowBlockDialog(false);
+                fetchLesson();
+            } else {
+                toast.error(response.message || "Failed to add block");
+            }
+        } catch (error) {
+            toast.error("Failed to add block");
+        } finally {
+            setAddingBlock(false);
+        }
+    };
+
+    const handleRemoveBlock = async (blockId: string) => {
+        if (!confirm("Are you sure you want to remove this block from the lesson?")) return;
+
+        try {
+            const response = await lessonService.removeBlockFromLesson(blockId);
+            if (response.code === 200) {
+                toast.success("Block removed successfully!");
+                fetchLesson();
+            } else {
+                toast.error(response.message || "Failed to remove block");
+            }
+        } catch (error) {
+            toast.error("Failed to remove block");
         }
     };
 
@@ -404,11 +475,21 @@ export default function EditLessonPage() {
 
                 {/* Blocks Panel */}
                 <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
-                    <div className="p-4 border-b">
-                        <h3 className="font-semibold text-gray-900">
-                            Lesson Blocks ({lesson.blocks?.length || 0})
-                        </h3>
-                        <p className="text-sm text-gray-500">Manage blocks and attach quizzes</p>
+                    <div className="p-4 border-b flex items-center justify-between">
+                        <div>
+                            <h3 className="font-semibold text-gray-900">
+                                Lesson Blocks ({lesson.blocks?.length || 0})
+                            </h3>
+                            <p className="text-sm text-gray-500">Manage blocks and attach quizzes</p>
+                        </div>
+                        <Button
+                            onClick={openBlockDialog}
+                            size="sm"
+                            className="bg-blue-600 hover:bg-blue-700"
+                        >
+                            <Plus className="w-4 h-4 mr-2" />
+                            Add Block
+                        </Button>
                     </div>
 
                     <div className="p-4 space-y-3 max-h-[500px] overflow-y-auto">
@@ -416,7 +497,7 @@ export default function EditLessonPage() {
                             lesson.blocks.map((block, idx) => (
                                 <div
                                     key={block._id}
-                                    className="p-4 bg-gray-50 rounded-lg border hover:border-blue-300 transition-colors"
+                                    className="p-4 bg-gray-50 rounded-lg border hover:border-blue-300 transition-colors relative group"
                                 >
                                     <div className="flex items-start justify-between mb-2">
                                         <div className="flex-1">
@@ -432,6 +513,13 @@ export default function EditLessonPage() {
                                                 {block.title}
                                             </p>
                                         </div>
+                                        <button
+                                            onClick={() => handleRemoveBlock(block._id)}
+                                            className="p-1 hover:bg-red-100 rounded text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
+                                            title="Remove Block"
+                                        >
+                                            <Trash2 className="w-4 h-4" />
+                                        </button>
                                     </div>
 
                                     {/* Quiz attachment section */}
@@ -546,6 +634,90 @@ export default function EditLessonPage() {
                             <Button
                                 variant="outline"
                                 onClick={() => setShowQuizDialog(false)}
+                                className="w-full"
+                            >
+                                Cancel
+                            </Button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Block Attachment Dialog */}
+            {showBlockDialog && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+                    <div className="bg-white rounded-xl shadow-xl max-w-2xl w-full mx-4 max-h-[80vh] flex flex-col">
+                        <div className="p-6 border-b flex items-center justify-between">
+                            <div>
+                                <h2 className="text-xl font-bold">Add Block to Lesson</h2>
+                                <p className="text-sm text-gray-500">Select a block to add</p>
+                            </div>
+                            <button
+                                onClick={() => setShowBlockDialog(false)}
+                                className="p-2 hover:bg-gray-100 rounded-lg"
+                            >
+                                <X className="w-5 h-5" />
+                            </button>
+                        </div>
+
+                        <div className="p-4 border-b">
+                            <div className="relative">
+                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                                <Input
+                                    placeholder="Search blocks..."
+                                    value={blockSearch}
+                                    onChange={(e) => {
+                                        setBlockSearch(e.target.value);
+                                        fetchAvailableBlocks();
+                                    }}
+                                    className="pl-10"
+                                />
+                            </div>
+                        </div>
+
+                        <div className="flex-1 overflow-y-auto p-4 space-y-2">
+                            {loadingBlocks ? (
+                                <div className="flex items-center justify-center py-8">
+                                    <div className="animate-spin w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full" />
+                                </div>
+                            ) : availableBlocks.length === 0 ? (
+                                <div className="text-center py-8 text-gray-500">
+                                    No blocks found
+                                </div>
+                            ) : (
+                                availableBlocks.map((block) => (
+                                    <button
+                                        key={block._id}
+                                        onClick={() => handleAddBlock(block._id)}
+                                        disabled={addingBlock}
+                                        className="w-full p-4 text-left bg-gray-50 rounded-lg border hover:border-blue-400 hover:bg-blue-50 transition-colors disabled:opacity-50"
+                                    >
+                                        <div className="flex items-center justify-between">
+                                            <div>
+                                                <p className="font-medium text-gray-900">{block.title}</p>
+                                                <div className="flex gap-2 mt-1">
+                                                    <span className="text-xs px-2 py-0.5 bg-gray-200 rounded capitalize">
+                                                        {block.type}
+                                                    </span>
+                                                    <span className="text-xs px-2 py-0.5 bg-gray-200 rounded capitalize">
+                                                        {block.skill}
+                                                    </span>
+                                                    <span className="text-xs px-2 py-0.5 bg-gray-200 rounded capitalize">
+                                                        {block.difficulty}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                            <Plus className="w-5 h-5 text-blue-500" />
+                                        </div>
+                                    </button>
+                                ))
+                            )}
+                        </div>
+
+                        <div className="p-4 border-t">
+                            <Button
+                                variant="outline"
+                                onClick={() => setShowBlockDialog(false)}
                                 className="w-full"
                             >
                                 Cancel

@@ -47,6 +47,7 @@ import {
 } from "lucide-react";
 import { toast } from "react-hot-toast";
 import { Skeleton } from "@/components/ui/skeleton";
+import { AdminPagination } from "@/components/admin/AdminPagination";
 
 export default function WordsListPage() {
   const queryClient = useQueryClient();
@@ -300,34 +301,14 @@ export default function WordsListPage() {
         </Table>
 
         {/* Pagination */}
-        {totalPages > 0 && (
-          <div className="flex items-center justify-between px-6 py-4 border-t">
-            <div className="text-sm text-gray-500">
-              Showing {((currentPage - 1) * pageSize) + 1} - {Math.min(currentPage * pageSize, pagination.total)} of {pagination.total} words
-            </div>
-            <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                disabled={currentPage <= 1}
-              >
-                Previous
-              </Button>
-              <span className="text-sm px-3">
-                Page {currentPage} of {totalPages}
-              </span>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                disabled={currentPage >= totalPages}
-              >
-                Next
-              </Button>
-            </div>
-          </div>
-        )}
+        <AdminPagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          totalItems={pagination.total}
+          pageSize={pageSize}
+          onPageChange={setCurrentPage}
+          loading={isLoading}
+        />
       </Card>
 
       {/* Delete Confirmation Dialog */}

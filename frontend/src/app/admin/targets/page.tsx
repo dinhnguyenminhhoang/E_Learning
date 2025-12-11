@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { toast } from "react-hot-toast";
 import { cn } from "@/lib/utils";
+import { AdminPagination } from "@/components/admin/AdminPagination";
 
 export default function TargetsPage() {
     const router = useRouter();
@@ -240,34 +241,15 @@ export default function TargetsPage() {
                     </table>
                 </div>
 
-                {!loading && totalPages > 1 && (
-                    <div className="px-6 py-4 border-t border-gray-200 flex items-center justify-between">
-                        <p className="text-sm text-gray-600">
-                            Showing {(pageNum - 1) * pageSize + 1} to{" "}
-                            {Math.min(pageNum * pageSize, total)} of {total} targets
-                        </p>
-                        <div className="flex gap-2">
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => setPageNum((p) => Math.max(1, p - 1))}
-                                disabled={pageNum === 1}
-                            >
-                                Previous
-                            </Button>
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() =>
-                                    setPageNum((p) => Math.min(totalPages, p + 1))
-                                }
-                                disabled={pageNum === totalPages}
-                            >
-                                Next
-                            </Button>
-                        </div>
-                    </div>
-                )}
+                {/* Pagination */}
+                <AdminPagination
+                    currentPage={pageNum}
+                    totalPages={Math.ceil(total / pageSize)}
+                    totalItems={total}
+                    pageSize={pageSize}
+                    onPageChange={setPageNum}
+                    loading={loading}
+                />
             </div>
         </div>
     );

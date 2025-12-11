@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { toast } from "react-hot-toast";
 import { cn } from "@/lib/utils";
+import { AdminPagination } from "@/components/admin/AdminPagination";
 
 export default function CategoriesPage() {
     const router = useRouter();
@@ -58,6 +59,9 @@ export default function CategoriesPage() {
         }
     };
 
+    const [currentPage, setCurrentPage] = useState(1);
+    const pageSize = 10;
+
     const filteredCategories = categories.filter((cat) => {
         const matchesSearch = cat.name
             .toLowerCase()
@@ -66,6 +70,18 @@ export default function CategoriesPage() {
             statusFilter === "all" || cat.status === statusFilter;
         return matchesSearch && matchesStatus;
     });
+
+    // Client-side pagination
+    const totalPages = Math.ceil(filteredCategories.length / pageSize);
+    const paginatedCategories = filteredCategories.slice(
+        (currentPage - 1) * pageSize,
+        currentPage * pageSize
+    );
+
+    // Reset page when filters change
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [searchTerm, statusFilter]);
 
     return (
         <div className="p-6 mx-auto">
@@ -181,15 +197,15 @@ export default function CategoriesPage() {
                         <tbody className="divide-y divide-gray-200">
                             {loading ? (
                                 <tr>
-                                    <td colSpan={4} className="px-6 py-12 text-center">
+                                    <td colSpan={5} className="px-6 py-12 text-center">
                                         <div className="flex items-center justify-center">
                                             <div className="animate-spin w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full" />
                                         </div>
                                     </td>
                                 </tr>
-                            ) : filteredCategories.length === 0 ? (
+                            ) : paginatedCategories.length === 0 ? (
                                 <tr>
-                                    <td colSpan={4} className="px-6 py-12 text-center">
+                                    <td colSpan={5} className="px-6 py-12 text-center">
                                         <div className="text-gray-400">
                                             <Filter className="w-12 h-12 mx-auto mb-3 opacity-50" />
                                             <p className="text-lg font-medium">No categories found</p>
@@ -200,7 +216,7 @@ export default function CategoriesPage() {
                                     </td>
                                 </tr>
                             ) : (
-                                filteredCategories.map((category) => (
+                                paginatedCategories.map((category) => (
                                     <tr
                                         key={category._id}
                                         className="hover:bg-gray-50 transition-colors"
@@ -275,6 +291,16 @@ export default function CategoriesPage() {
                         </tbody>
                     </table>
                 </div>
+
+                {/* Pagination */}
+                <AdminPagination
+                    currentPage={currentPage}
+                    totalPages={totalPages}
+                    totalItems={filteredCategories.length}
+                    pageSize={pageSize}
+                    onPageChange={setCurrentPage}
+                    loading={loading}
+                />
             </div>
         </div>
     );

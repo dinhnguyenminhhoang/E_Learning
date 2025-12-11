@@ -29,5 +29,6 @@ router.use(`/v1/api/profile`, require("./profile.route"));
 router.use(`/v1/api/ai`, require("./ai.route"));
 router.use(`/v1/api/tts`, require("./tts.route"));
 router.use(`/v1/api/ai-assistant`, require("./aiAssistant.route"));
+router.use(`/v1/api/stt`, require("./stt.route"));
 
 module.exports = router;

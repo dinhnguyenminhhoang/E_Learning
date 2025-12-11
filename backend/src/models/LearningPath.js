@@ -52,7 +52,7 @@ const learningPathSchema = new Schema(
     // Trình độ tổng quát của lộ trình
     level: {
       type: String,
-      enum: ["beginner", "intermediate", "advanced"],
+      enum: ["beginner", "intermediate", "advanced", "BEGINNER", "INTERMEDIATE", "ADVANCED"],
       default: "beginner",
       index: true,
     },

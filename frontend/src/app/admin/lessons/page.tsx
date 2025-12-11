@@ -21,6 +21,7 @@ import {
 import { toast } from "react-hot-toast";
 import { cn } from "@/lib/utils";
 import { STATUS } from "@/constants/status";
+import { AdminPagination } from "@/components/admin/AdminPagination";
 
 const SKILL_COLORS = {
     reading: "bg-blue-100 text-blue-700 border-blue-200",
@@ -281,7 +282,7 @@ export default function LessonsPage() {
                                                         SKILL_COLORS[lesson.skill]
                                                     )}
                                                 >
-                                                {lesson.skill}
+                                                    {lesson.skill}
                                                 </span>
                                             </div>
                                         </td>
@@ -347,54 +348,15 @@ export default function LessonsPage() {
                     </table>
                 </div>
                 {/* Pagination */}
-                {pagination && pagination.totalPages > 1 && (
-                    <div className="mt-6 flex items-center justify-between border-t pt-4 px-6">
-                        <div className="text-sm text-gray-600">
-                            Showing page {currentPage} of {pagination.totalPages} ({pagination.total} total lessons)
-                        </div>
-                        <div className="flex gap-2">
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-                                disabled={currentPage === 1}
-                            >
-                                Previous
-                            </Button>
-                            {Array.from({ length: pagination.totalPages }, (_, i) => i + 1)
-                                .filter(page => {
-                                    // Show first, last, current, and pages around current
-                                    return page === 1 ||
-                                        page === pagination!.totalPages ||
-                                        Math.abs(page - currentPage) <= 1;
-                                })
-                                .map((page, idx, arr) => {
-                                    // Add ellipsis if there's a gap
-                                    const showEllipsisBefore = idx > 0 && page - arr[idx - 1] > 1;
-                                    return (
-                                        <div key={page} className="flex items-center gap-2">
-                                            {showEllipsisBefore && <span className="px-2 text-gray-400">...</span>}
-                                            <Button
-                                                variant={page === currentPage ? "default" : "outline"}
-                                                size="sm"
-                                                onClick={() => setCurrentPage(page)}
-                                                className={page === currentPage ? "bg-blue-600 text-white" : ""}
-                                            >
-                                                {page}
-                                            </Button>
-                                        </div>
-                                    );
-                                })}
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => setCurrentPage(prev => Math.min(pagination!.totalPages, prev + 1))}
-                                disabled={currentPage === pagination.totalPages}
-                            >
-                                Next
-                            </Button>
-                        </div>
-                    </div>
+                {pagination && (
+                    <AdminPagination
+                        currentPage={currentPage}
+                        totalPages={pagination.totalPages}
+                        totalItems={pagination.total}
+                        pageSize={pageSize}
+                        onPageChange={setCurrentPage}
+                        loading={loading}
+                    />
                 )}
             </div>
         </div>

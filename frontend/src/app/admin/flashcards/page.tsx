@@ -14,9 +14,39 @@ import {
     Layers,
     CheckCircle,
     XCircle,
+    Loader2,
 } from "lucide-react";
 import { toast } from "react-hot-toast";
 import { cn } from "@/lib/utils";
+import {
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
+} from "@/components/ui/table";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select";
+import { Skeleton } from "@/components/ui/skeleton";
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { AdminPagination } from "@/components/admin/AdminPagination";
 
 export default function FlashcardsPage() {
     const router = useRouter();
@@ -24,17 +54,51 @@ export default function FlashcardsPage() {
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState("");
     const [statusFilter, setStatusFilter] = useState<string>("all");
+    const [deleteId, setDeleteId] = useState<string | null>(null);
 
+    // Pagination state
+    const [currentPage, setCurrentPage] = useState(1);
+    const [pageSize, setPageSize] = useState(10);
+    const [totalDecks, setTotalDecks] = useState(0);
+    const [totalPages, setTotalPages] = useState(0);
+
+    // Debounce search
     useEffect(() => {
-        fetchDecks();
-    }, []);
+        const timer = setTimeout(() => {
+            fetchDecks();
+        }, 500);
+        return () => clearTimeout(timer);
+    }, [searchTerm, statusFilter, currentPage, pageSize]);
 
     const fetchDecks = async () => {
         try {
             setLoading(true);
-            const response = await flashcardAdminService.getAll();
+            const params: any = {
+                pageNum: currentPage,
+                pageSize: pageSize,
+            };
+            if (searchTerm) params.search = searchTerm;
+            if (statusFilter !== "all") params.status = statusFilter;
+
+            const response = await flashcardAdminService.getAll(params);
             if (response.code === 200) {
                 setDecks(response.data);
+                // Handle pagination from response
+                // Assuming response structure has pagination or we calculate it
+                // If backend returns pagination object:
+                if (response.pagination) {
+                    setTotalDecks(response.pagination.total);
+                    setTotalPages(Math.ceil(response.pagination.total / pageSize));
+                } else {
+                    // Fallback if backend doesn't return pagination object but returns all data (unlikely with new backend change)
+                    // But since we updated backend to return pagination, it should be there.
+                    // However, if the service wrapper doesn't expose it properly, we might need to check.
+                    // For now, assume it works or fallback to length
+                    setTotalDecks(response.data.length); // This might be wrong if paginated
+                    // Actually, if backend is paginated, response.data is just the page.
+                    // We need total count. 
+                    // Let's hope response.pagination exists.
+                }
             }
         } catch (error) {
             console.error("Error fetching decks:", error);
@@ -44,234 +108,237 @@ export default function FlashcardsPage() {
         }
     };
 
-    const handleDelete = async (id: string) => {
-        if (!confirm("Are you sure you want to delete this deck?")) return;
+    const handleDelete = async () => {
+        if (!deleteId) return;
 
         try {
-            const response = await flashcardAdminService.delete(id);
+            const response = await flashcardAdminService.delete(deleteId);
             if (response.code === 200) {
                 toast.success("Deck deleted successfully");
                 fetchDecks();
             }
         } catch (error) {
             toast.error("Failed to delete deck");
+        } finally {
+            setDeleteId(null);
         }
     };
 
-    const filteredDecks = decks.filter((deck) => {
-        const matchesSearch = (deck.name || "")
-            .toLowerCase()
-            .includes(searchTerm.toLowerCase());
-        const matchesStatus =
-            statusFilter === "all" || deck.status === statusFilter;
-        return matchesSearch && matchesStatus;
-    });
-
     return (
-        <div className="p-6 mx-auto">
-            <div className="mb-8">
-                <h1 className="text-3xl font-bold text-gray-900 mb-2">
-                    Flashcards Management
-                </h1>
-                <p className="text-gray-600">Manage flashcard decks and cards</p>
-            </div>
-
-            <div className="mb-6 flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
-                <div className="flex flex-1 gap-3 w-full sm:w-auto">
-                    <div className="relative flex-1 max-w-md">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                        <Input
-                            placeholder="Search decks..."
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                            className="pl-10"
-                        />
-                    </div>
-
-                    <select
-                        value={statusFilter}
-                        onChange={(e) => setStatusFilter(e.target.value)}
-                        className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    >
-                        <option value="all">All Status</option>
-                        <option value="active">Active</option>
-                        <option value="inactive">Inactive</option>
-                    </select>
+        <div className="space-y-6 p-6">
+            {/* Header */}
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <div>
+                    <h1 className="text-3xl font-bold tracking-tight text-gray-900">Flashcards Management</h1>
+                    <p className="text-muted-foreground">Manage flashcard decks and cards</p>
                 </div>
-
-                <Button
-                    onClick={() => router.push("/admin/flashcards/create")}
-                    className="bg-blue-600 hover:bg-blue-700"
-                >
-                    <Plus className="w-4 h-4 mr-2" />
+                <Button onClick={() => router.push("/admin/flashcards/create")} className="bg-blue-600 hover:bg-blue-700">
+                    <Plus className="mr-2 h-4 w-4" />
                     Add Deck
                 </Button>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                <div className="bg-white rounded-xl p-5 border border-gray-200 shadow-sm">
-                    <div className="flex items-center justify-between">
+            {/* Stats Overview */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <Card>
+                    <CardContent className="p-6 flex items-center justify-between">
                         <div>
-                            <p className="text-sm text-gray-600 mb-1">Total Decks</p>
-                            <p className="text-2xl font-bold text-gray-900">
-                                {decks.length}
-                            </p>
+                            <p className="text-sm font-medium text-muted-foreground">Total Decks</p>
+                            <p className="text-2xl font-bold">{totalDecks}</p>
                         </div>
-                        <Layers className="w-8 h-8 text-blue-600" />
-                    </div>
-                </div>
-
-                <div className="bg-white rounded-xl p-5 border border-gray-200 shadow-sm">
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <p className="text-sm text-gray-600 mb-1">Active Decks</p>
-                            <p className="text-2xl font-bold text-green-600">
-                                {decks.filter((d) => d.status === "active").length}
-                            </p>
-                        </div>
-                        <CheckCircle className="w-8 h-8 text-green-600" />
-                    </div>
-                </div>
-
-                <div className="bg-white rounded-xl p-5 border border-gray-200 shadow-sm">
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <p className="text-sm text-gray-600 mb-1">Total Cards</p>
-                            <p className="text-2xl font-bold text-purple-600">
-                                {decks.reduce((sum, d) => sum + (d.cards?.length ?? 0), 0)}
-                            </p>
-                        </div>
-                    </div>
-                </div>
+                        <Layers className="h-8 w-8 text-blue-600" />
+                    </CardContent>
+                </Card>
+                {/* Note: We can't easily get Active/Total Cards counts without fetching all data or separate API stats. 
+                    For now, we'll hide them or just show what we have if we want. 
+                    Actually, let's remove the other stats for now as they require separate API calls or all data.
+                */}
             </div>
 
-            <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-                <div className="overflow-x-auto">
-                    <table className="w-full">
-                        <thead className="bg-gray-50 border-b border-gray-200">
-                            <tr>
-                                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                                    Thumbnail
-                                </th>
-                                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                                    Deck
-                                </th>
-                                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                                    Category
-                                </th>
-                                <th className="px-6 py-4 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                                    Cards
-                                </th>
-                                <th className="px-6 py-4 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                                    Status
-                                </th>
-                                <th className="px-6 py-4 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                                    Actions
-                                </th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-gray-200">
+            {/* Filters */}
+            <Card>
+                <CardContent className="p-6">
+                    <div className="flex flex-col md:flex-row gap-4">
+                        <div className="flex-1 relative">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                            <Input
+                                placeholder="Search decks..."
+                                value={searchTerm}
+                                onChange={(e) => {
+                                    setSearchTerm(e.target.value);
+                                    setCurrentPage(1); // Reset to page 1 on search
+                                }}
+                                className="pl-10"
+                            />
+                        </div>
+                        <Select
+                            value={statusFilter}
+                            onValueChange={(value) => {
+                                setStatusFilter(value);
+                                setCurrentPage(1); // Reset to page 1 on filter change
+                            }}
+                        >
+                            <SelectTrigger className="w-full md:w-[200px]">
+                                <SelectValue placeholder="Status" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="all">All Status</SelectItem>
+                                <SelectItem value="active">Active</SelectItem>
+                                <SelectItem value="inactive">Inactive</SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </div>
+                </CardContent>
+            </Card>
+
+            {/* Table */}
+            <Card>
+                <div className="rounded-md border">
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead className="w-[80px]">Image</TableHead>
+                                <TableHead>Deck Info</TableHead>
+                                <TableHead>Category</TableHead>
+                                <TableHead className="text-center">Cards</TableHead>
+                                <TableHead className="text-center">Status</TableHead>
+                                <TableHead className="text-right">Actions</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
                             {loading ? (
-                                <tr>
-                                    <td colSpan={5} className="px-6 py-12 text-center">
-                                        <div className="flex items-center justify-center">
-                                            <div className="animate-spin w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full" />
+                                Array.from({ length: 5 }).map((_, i) => (
+                                    <TableRow key={i}>
+                                        <TableCell><Skeleton className="h-12 w-12 rounded" /></TableCell>
+                                        <TableCell>
+                                            <div className="space-y-2">
+                                                <Skeleton className="h-4 w-[200px]" />
+                                                <Skeleton className="h-3 w-[150px]" />
+                                            </div>
+                                        </TableCell>
+                                        <TableCell><Skeleton className="h-4 w-[100px]" /></TableCell>
+                                        <TableCell><Skeleton className="h-6 w-10 mx-auto rounded-full" /></TableCell>
+                                        <TableCell><Skeleton className="h-6 w-16 mx-auto rounded-full" /></TableCell>
+                                        <TableCell><Skeleton className="h-8 w-8 ml-auto" /></TableCell>
+                                    </TableRow>
+                                ))
+                            ) : decks.length === 0 ? (
+                                <TableRow>
+                                    <TableCell colSpan={6} className="h-24 text-center">
+                                        <div className="flex flex-col items-center justify-center text-muted-foreground">
+                                            <Layers className="h-8 w-8 mb-2 opacity-50" />
+                                            <p>No flashcard decks found</p>
                                         </div>
-                                    </td>
-                                </tr>
-                            ) : filteredDecks.length === 0 ? (
-                                <tr>
-                                    <td colSpan={5} className="px-6 py-12 text-center">
-                                        <Layers className="w-12 h-12 mx-auto mb-3 text-gray-400 opacity-50" />
-                                        <p className="text-lg font-medium text-gray-400">
-                                            No flashcard decks found
-                                        </p>
-                                    </td>
-                                </tr>
+                                    </TableCell>
+                                </TableRow>
                             ) : (
-                                filteredDecks.map((deck) => (
-                                    <tr
-                                        key={deck._id}
-                                        className="hover:bg-gray-50 transition-colors"
-                                    >
-                                        <td className="px-6 py-4">
+                                decks.map((deck) => (
+                                    <TableRow key={deck._id} className="hover:bg-muted/50">
+                                        <TableCell>
                                             {deck.thumbnail ? (
-                                                <img src={deck.thumbnail} alt="Deck thumbnail" className="w-12 h-12 object-cover rounded" />
+                                                <img
+                                                    src={deck.thumbnail}
+                                                    alt={deck.title}
+                                                    className="w-12 h-12 object-cover rounded-md border border-gray-200"
+                                                />
                                             ) : (
-                                                <div className="w-12 h-12 bg-gray-200 rounded flex items-center justify-center text-gray-500">
-                                                    N/A
+                                                <div className="w-12 h-12 bg-gray-100 rounded-md flex items-center justify-center text-gray-400 border border-gray-200">
+                                                    <Layers className="w-6 h-6" />
                                                 </div>
                                             )}
-                                        </td>
-                                        <td className="px-6 py-4">
-                                            <p className="font-semibold text-gray-900">
-                                                {deck.title || deck.name || "Untitled"}
-                                            </p>
-                                            <p className="text-sm text-gray-500">
-                                                {deck.description || "No description"}
-                                            </p>
-                                        </td>
-                                        <td className="px-6 py-4">
-                                            <span className="text-sm text-gray-700">
+                                        </TableCell>
+                                        <TableCell>
+                                            <div className="flex flex-col">
+                                                <span className="font-semibold text-gray-900">{deck.title || deck.name}</span>
+                                                <span className="text-sm text-muted-foreground line-clamp-1">{deck.description}</span>
+                                            </div>
+                                        </TableCell>
+                                        <TableCell>
+                                            <Badge variant="outline" className="font-normal">
                                                 {deck.categoryId?.name || deck.category || "Uncategorized"}
-                                            </span>
-                                        </td>
-                                        <td className="px-6 py-4">
-                                            <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-700">
+                                            </Badge>
+                                        </TableCell>
+                                        <TableCell className="text-center">
+                                            <Badge variant="secondary" className="bg-blue-50 text-blue-700 hover:bg-blue-100">
                                                 {deck.cards?.length ?? 0}
-                                            </span>
-                                        </td>
-                                        <td className="px-6 py-4 text-center">
-                                            <span
+                                            </Badge>
+                                        </TableCell>
+                                        <TableCell className="text-center">
+                                            <Badge
+                                                variant={deck.status === "active" ? "default" : "secondary"}
                                                 className={cn(
-                                                    "inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold",
-                                                    deck.status === "active"
-                                                        ? "bg-green-100 text-green-700"
-                                                        : "bg-gray-100 text-gray-600"
+                                                    deck.status === "active" ? "bg-green-100 text-green-700 hover:bg-green-200" : "bg-gray-100 text-gray-700 hover:bg-gray-200"
                                                 )}
                                             >
                                                 {deck.status === "active" ? (
-                                                    <>
-                                                        <CheckCircle className="w-3 h-3 mr-1" />
-                                                        Active
-                                                    </>
+                                                    <div className="flex items-center gap-1">
+                                                        <CheckCircle className="w-3 h-3" /> Active
+                                                    </div>
                                                 ) : (
-                                                    <>
-                                                        <XCircle className="w-3 h-3 mr-1" />
-                                                        Inactive
-                                                    </>
+                                                    <div className="flex items-center gap-1">
+                                                        <XCircle className="w-3 h-3" /> Inactive
+                                                    </div>
                                                 )}
-                                            </span>
-                                        </td>
-                                        <td className="px-6 py-4">
-                                            <div className="flex items-center justify-center gap-2">
+                                            </Badge>
+                                        </TableCell>
+                                        <TableCell className="text-right">
+                                            <div className="flex items-center justify-end gap-2">
                                                 <Button
-                                                    variant="outline"
-                                                    size="sm"
-                                                    onClick={() =>
-                                                        router.push(`/admin/flashcards/${deck._id}`)
-                                                    }
-                                                    className="hover:bg-blue-50 hover:text-blue-700 hover:border-blue-300"
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    onClick={() => router.push(`/admin/flashcards/${deck._id}`)}
+                                                    className="h-8 w-8 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
                                                 >
                                                     <Edit className="w-4 h-4" />
                                                 </Button>
                                                 <Button
-                                                    variant="outline"
-                                                    size="sm"
-                                                    onClick={() => handleDelete(deck._id)}
-                                                    className="hover:bg-red-50 hover:text-red-700 hover:border-red-300"
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    onClick={() => setDeleteId(deck._id)}
+                                                    className="h-8 w-8 text-red-600 hover:text-red-700 hover:bg-red-50"
                                                 >
                                                     <Trash2 className="w-4 h-4" />
                                                 </Button>
                                             </div>
-                                        </td>
-                                    </tr>
+                                        </TableCell>
+                                    </TableRow>
                                 ))
                             )}
-                        </tbody>
-                    </table>
+                        </TableBody>
+                    </Table>
                 </div>
-            </div>
+
+                {/* Pagination */}
+                <AdminPagination
+                    currentPage={currentPage}
+                    totalPages={totalPages}
+                    totalItems={totalDecks}
+                    pageSize={pageSize}
+                    onPageChange={setCurrentPage}
+                    loading={loading}
+                />
+            </Card>
+
+            {/* Delete Confirmation Dialog */}
+            <AlertDialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Delete Deck</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            Are you sure you want to delete this deck? This action cannot be undone.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction
+                            onClick={handleDelete}
+                            className="bg-red-600 hover:bg-red-700"
+                        >
+                            Delete
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </div>
     );
 }

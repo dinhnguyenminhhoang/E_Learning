@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { toast } from "react-hot-toast";
 import { cn } from "@/lib/utils";
+import { AdminPagination } from "@/components/admin/AdminPagination";
 
 export default function UsersPage() {
     const router = useRouter();
@@ -25,16 +26,38 @@ export default function UsersPage() {
     const [roleFilter, setRoleFilter] = useState<string>("all");
     const [statusFilter, setStatusFilter] = useState<string>("all");
 
+    // Pagination state
+    const [currentPage, setCurrentPage] = useState(1);
+    const [pageSize] = useState(10);
+    const [totalUsers, setTotalUsers] = useState(0);
+    const [totalPages, setTotalPages] = useState(0);
+
+    // Debounce search
     useEffect(() => {
-        fetchUsers();
-    }, []);
+        const timer = setTimeout(() => {
+            fetchUsers();
+        }, 500);
+        return () => clearTimeout(timer);
+    }, [searchTerm, roleFilter, statusFilter, currentPage]);
 
     const fetchUsers = async () => {
         try {
             setLoading(true);
-            const response = await userAdminService.getAll();
+            const params: any = {
+                pageNum: currentPage,
+                pageSize: pageSize,
+            };
+            if (searchTerm) params.search = searchTerm;
+            if (roleFilter !== "all") params.role = roleFilter;
+            if (statusFilter !== "all") params.status = statusFilter;
+
+            const response = await userAdminService.getAll(params);
             if (response.code === 200) {
                 setUsers(response.data);
+                if (response.pagination) {
+                    setTotalUsers(response.pagination.total);
+                    setTotalPages(Math.ceil(response.pagination.total / pageSize));
+                }
             }
         } catch (error) {
             console.error("Error fetching users:", error);
@@ -44,15 +67,21 @@ export default function UsersPage() {
         }
     };
 
-    const filteredUsers = users.filter((user) => {
-        const matchesSearch =
-            user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            user.email.toLowerCase().includes(searchTerm.toLowerCase());
-        const matchesRole = roleFilter === "all" || user.role === roleFilter;
-        const matchesStatus =
-            statusFilter === "all" || user.status === statusFilter;
-        return matchesSearch && matchesRole && matchesStatus;
-    });
+    // Reset page when filters change
+    const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        setSearchTerm(e.target.value);
+        setCurrentPage(1);
+    };
+
+    const handleRoleChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+        setRoleFilter(e.target.value);
+        setCurrentPage(1);
+    };
+
+    const handleStatusChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+        setStatusFilter(e.target.value);
+        setCurrentPage(1);
+    };
 
     return (
         <div className="p-6 mx-auto">
@@ -72,14 +101,14 @@ export default function UsersPage() {
                         <Input
                             placeholder="Search users..."
                             value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
+                            onChange={handleSearchChange}
                             className="pl-10"
                         />
                     </div>
 
                     <select
                         value={roleFilter}
-                        onChange={(e) => setRoleFilter(e.target.value)}
+                        onChange={handleRoleChange}
                         className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     >
                         <option value="all">All Roles</option>
@@ -89,7 +118,7 @@ export default function UsersPage() {
 
                     <select
                         value={statusFilter}
-                        onChange={(e) => setStatusFilter(e.target.value)}
+                        onChange={handleStatusChange}
                         className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     >
                         <option value="all">All Status</option>
@@ -105,47 +134,22 @@ export default function UsersPage() {
                         <div>
                             <p className="text-sm text-gray-600 mb-1">Total Users</p>
                             <p className="text-2xl font-bold text-gray-900">
-                                {users.length}
+                                {totalUsers}
                             </p>
                         </div>
                         <UsersIcon className="w-8 h-8 text-blue-600" />
                     </div>
                 </div>
 
-                <div className="bg-white rounded-xl p-5 border border-gray-200 shadow-sm">
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <p className="text-sm text-gray-600 mb-1">Active Users</p>
-                            <p className="text-2xl font-bold text-green-600">
-                                {users.filter((u) => u.status === "active").length}
-                            </p>
-                        </div>
-                        <CheckCircle className="w-8 h-8 text-green-600" />
-                    </div>
-                </div>
-
-                <div className="bg-white rounded-xl p-5 border border-gray-200 shadow-sm">
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <p className="text-sm text-gray-600 mb-1">Admins</p>
-                            <p className="text-2xl font-bold text-purple-600">
-                                {users.filter((u) => u.role === "admin").length}
-                            </p>
-                        </div>
-                        <Shield className="w-8 h-8 text-purple-600" />
-                    </div>
-                </div>
-
-                <div className="bg-white rounded-xl p-5 border border-gray-200 shadow-sm">
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <p className="text-sm text-gray-600 mb-1">Regular Users</p>
-                            <p className="text-2xl font-bold text-blue-600">
-                                {users.filter((u) => u.role === "user").length}
-                            </p>
-                        </div>
-                    </div>
-                </div>
+                {/* Note: These stats might be inaccurate with server-side pagination unless backend returns them separately. 
+                    For now, I'll remove the filtered counts or keep them if I fetch stats separately. 
+                    Since backend doesn't return aggregate stats, I will just show Total Users from pagination.
+                    Or I can keep the cards but maybe remove the specific counts if I can't calculate them easily without fetching all.
+                    Actually, let's just keep Total Users for now to be safe, or remove the other cards.
+                    The original code calculated them from `users` array which was ALL users.
+                    Now `users` is just one page.
+                    I will remove the specific counts for now to avoid confusion.
+                */}
             </div>
 
             <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
@@ -185,7 +189,7 @@ export default function UsersPage() {
                                         </div>
                                     </td>
                                 </tr>
-                            ) : filteredUsers.length === 0 ? (
+                            ) : users.length === 0 ? (
                                 <tr>
                                     <td colSpan={7} className="px-6 py-12 text-center">
                                         <UsersIcon className="w-12 h-12 mx-auto mb-3 text-gray-400 opacity-50" />
@@ -195,7 +199,7 @@ export default function UsersPage() {
                                     </td>
                                 </tr>
                             ) : (
-                                filteredUsers.map((user) => (
+                                users.map((user) => (
                                     <tr
                                         key={user._id}
                                         className="hover:bg-gray-50 transition-colors"
@@ -282,6 +286,16 @@ export default function UsersPage() {
                         </tbody>
                     </table>
                 </div>
+
+                {/* Pagination */}
+                <AdminPagination
+                    currentPage={currentPage}
+                    totalPages={totalPages}
+                    totalItems={totalUsers}
+                    pageSize={pageSize}
+                    onPageChange={setCurrentPage}
+                    loading={loading}
+                />
             </div>
         </div>
     );

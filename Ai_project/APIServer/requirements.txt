@@ -4,3 +4,5 @@ transformers
 torch
 sentencepiece
 protobuf
+openai-whisper
+python-multipart

@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import type { Word, UserWord, UserWordBookmark } from "@/services/word.service";
+import { ttsService } from "@/services/tts.service";
 
 interface WordCardProps {
     word: Word | UserWord;
@@ -27,6 +28,7 @@ export function WordCard({
     onDelete,
 }: WordCardProps) {
     const [isSpeaking, setIsSpeaking] = useState(false);
+    const [isSpeakingExample, setIsSpeakingExample] = useState(false);
 
     const getWordText = () => {
         if ("word" in word) return word.word;
@@ -51,59 +53,18 @@ export function WordCard({
         return "beginner";
     };
 
-    const speakText = async (text: string, setLoading: (v: boolean) => void) => {
-        if (!text) return;
-
-        setLoading(true);
-
-        try {
-            const token = localStorage.getItem("accessToken") || "";
-            const url = `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080"}/v1/api/tts/speak?text=${encodeURIComponent(text)}&lang=en`;
-
-            const audio = new Audio();
-
-            const response = await fetch(url, {
-                headers: {
-                    "Authorization": `Bearer ${token}`
-                }
-            });
-
-            if (!response.ok) {
-                throw new Error("TTS request failed");
-            }
-
-            const blob = await response.blob();
-            audio.src = URL.createObjectURL(blob);
-            audio.volume = 1;
-
-            audio.onended = () => {
-                console.log('[TTS] Finished speaking:', text);
-                setLoading(false);
-                URL.revokeObjectURL(audio.src);
-            };
-
-            audio.onerror = (e) => {
-                console.error('[TTS] Audio error:', e);
-                setLoading(false);
-            };
-
-            console.log('[TTS] Playing:', text);
-            await audio.play();
-
-        } catch (error) {
-            console.error('[TTS] Error:', error);
-            setLoading(false);
+    const handleSpeakWord = () => {
+        const text = getWordText();
+        if (text) {
+            ttsService.speakWithLoading(text, setIsSpeaking, "en");
         }
     };
 
-    const handleSpeakWord = () => speakText(getWordText(), setIsSpeaking);
     const handleSpeakExample = () => {
         if ("example" in word && word.example) {
-            speakText(word.example, setIsSpeakingExample);
+            ttsService.speakWithLoading(word.example, setIsSpeakingExample, "en");
         }
     };
-
-    const [isSpeakingExample, setIsSpeakingExample] = useState(false);
 
     const levelColors = {
         beginner: "bg-green-100 text-green-700",

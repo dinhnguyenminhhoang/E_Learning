@@ -1,10 +1,14 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { CardDeckInfo, Flashcard } from "@/types/block.types";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight, Volume2, BookOpen, CheckCircle, X, FileText, Sparkles } from "lucide-react";
+import { ChevronLeft, ChevronRight, Volume2, BookOpen, CheckCircle, X, FileText, Sparkles, Mic, MicOff, Loader2, TestTube2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { ttsService } from "@/services/tts.service";
+import { sttService, type PronunciationResult } from "@/services/stt.service";
+import { toast } from "react-hot-toast";
+import { AudioTestModal } from "@/components/audio/AudioTestModal";
 
 interface VocabularyBlockProps {
     cardDeck: CardDeckInfo;
@@ -36,6 +40,17 @@ export function VocabularyBlock({
     const [currentIndex, setCurrentIndex] = useState(0);
     const [isFlipped, setIsFlipped] = useState(false);
     const [learnedCards, setLearnedCards] = useState<Set<string>>(new Set());
+    const [isSpeaking, setIsSpeaking] = useState(false);
+
+    // Pronunciation recording states
+    const [isRecording, setIsRecording] = useState(false);
+    const [isProcessing, setIsProcessing] = useState(false);
+    const [pronunciationResult, setPronunciationResult] = useState<PronunciationResult | null>(null);
+    const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+    const audioChunksRef = useRef<Blob[]>([]);
+
+    // Audio test modal state
+    const [isAudioTestModalOpen, setIsAudioTestModalOpen] = useState(false);
 
     // Add custom styles for 3D flip animation - only on client side after mount
     useEffect(() => {
@@ -94,7 +109,7 @@ export function VocabularyBlock({
 
     const handleLearned = (cardId: string) => {
         if (!cardId) return;
-        
+
         setLearnedCards((prev) => {
             const newSet = new Set(prev);
             if (newSet.has(cardId)) {
@@ -106,14 +121,78 @@ export function VocabularyBlock({
         });
     };
 
-    const playAudio = (audioUrl?: string) => {
-        if (audioUrl) {
-            const audio = new Audio(audioUrl);
-            audio.play().catch((error) => {
-                console.error("Error playing audio:", error);
-            });
+    const handleSpeak = (text?: string) => {
+        if (!text) return;
+        ttsService.speakWithLoading(text, setIsSpeaking, "en");
+    };
+
+    // Start recording for pronunciation practice
+    const startRecording = async () => {
+        try {
+            setPronunciationResult(null);
+            const stream = await sttService.requestMicrophonePermission();
+            const recorder = sttService.createRecorder(stream);
+            mediaRecorderRef.current = recorder;
+            audioChunksRef.current = [];
+
+            recorder.ondataavailable = (event) => {
+                if (event.data.size > 0) {
+                    audioChunksRef.current.push(event.data);
+                }
+            };
+
+            recorder.onstop = async () => {
+                const audioBlob = new Blob(audioChunksRef.current, { type: "audio/webm" });
+                stream.getTracks().forEach(track => track.stop());
+
+                // Process the recording
+                await processRecording(audioBlob);
+            };
+
+            recorder.start();
+            setIsRecording(true);
+            toast.success("Đang ghi âm... Hãy đọc từ vựng!");
+        } catch (error) {
+            console.error("[Recording] Error:", error);
+            toast.error("Không thể truy cập microphone");
         }
     };
+
+    // Stop recording
+    const stopRecording = () => {
+        if (mediaRecorderRef.current && isRecording) {
+            mediaRecorderRef.current.stop();
+            setIsRecording(false);
+        }
+    };
+
+    // Process the recorded audio
+    const processRecording = async (audioBlob: Blob) => {
+        const targetWord = word?.word || currentCard.frontText;
+        if (!targetWord) return;
+
+        setIsProcessing(true);
+        try {
+            const result = await sttService.checkPronunciation(audioBlob, targetWord);
+            setPronunciationResult(result);
+
+            if (result.isCorrect) {
+                toast.success(`Tuyệt vời! Độ chính xác: ${result.accuracy}%`);
+            } else {
+                toast("Hãy thử lại nhé!", { icon: "🎯" });
+            }
+        } catch (error) {
+            console.error("[STT] Error:", error);
+            toast.error("Không thể xử lý giọng nói");
+        } finally {
+            setIsProcessing(false);
+        }
+    };
+
+    // Reset pronunciation result when changing cards
+    useEffect(() => {
+        setPronunciationResult(null);
+    }, [currentIndex]);
 
     if (!currentCard) {
         return (
@@ -201,11 +280,11 @@ export function VocabularyBlock({
                             <Sparkles className="w-8 h-8 text-white/80 animate-pulse" />
                         </div>
                     </div>
-                    
+
                     {/* "Làm bài tập" button */}
                     <div className="flex justify-center">
                         <Button
-                            onClick={onContinue || onStartQuiz || (() => {})}
+                            onClick={onContinue || onStartQuiz || (() => { })}
                             className={cn(
                                 "w-full md:w-auto min-w-[280px]",
                                 "bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700",
@@ -218,7 +297,7 @@ export function VocabularyBlock({
                         >
                             <FileText className="w-6 h-6 mr-3" />
                             Tiếp tục
-                         </Button>
+                        </Button>
                     </div>
                 </div>
             )}
@@ -267,19 +346,109 @@ export function VocabularyBlock({
                                         <span className="text-xl text-gray-600">
                                             {word.pronunciation}
                                         </span>
-                                        {word.audio && (
+                                        {/* Speaker button - TTS */}
+                                        <button
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                handleSpeak(word.word || currentCard.frontText);
+                                            }}
+                                            disabled={isSpeaking}
+                                            className={cn(
+                                                "p-2 rounded-full transition-all duration-300 cursor-pointer",
+                                                isSpeaking
+                                                    ? "bg-blue-500 text-white animate-pulse scale-110 shadow-lg shadow-blue-500/50"
+                                                    : "bg-blue-100 hover:bg-blue-200 text-blue-600"
+                                            )}
+                                            title="Nghe phát âm"
+                                        >
+                                            <Volume2 className={cn("w-5 h-5", isSpeaking && "animate-bounce")} />
+                                        </button>
+
+                                        {/* Microphone button - Recording */}
+                                        <button
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                if (isRecording) {
+                                                    stopRecording();
+                                                } else {
+                                                    startRecording();
+                                                }
+                                            }}
+                                            disabled={isProcessing}
+                                            className={cn(
+                                                "p-2 rounded-full transition-all duration-300 cursor-pointer",
+                                                isRecording
+                                                    ? "bg-red-500 text-white animate-pulse scale-110 shadow-lg shadow-red-500/50"
+                                                    : isProcessing
+                                                        ? "bg-gray-400 text-white cursor-not-allowed"
+                                                        : "bg-green-100 hover:bg-green-200 text-green-600"
+                                            )}
+                                            title={isRecording ? "Dừng ghi âm" : "Đọc từ vựng"}
+                                        >
+                                            {isProcessing ? (
+                                                <Loader2 className="w-5 h-5 animate-spin" />
+                                            ) : isRecording ? (
+                                                <MicOff className="w-5 h-5 animate-bounce" />
+                                            ) : (
+                                                <Mic className="w-5 h-5" />
+                                            )}
+                                        </button>
+
+                                        {/* Audio Test button */}
+                                        <button
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                setIsAudioTestModalOpen(true);
+                                            }}
+                                            className="p-2 rounded-full transition-all duration-300 cursor-pointer bg-purple-100 hover:bg-purple-200 text-purple-600"
+                                            title="Kiểm tra âm thanh"
+                                        >
+                                            <TestTube2 className="w-5 h-5" />
+                                        </button>
+                                    </div>
+                                )}
+
+                                {/* Pronunciation Result Display */}
+                                {pronunciationResult && (
+                                    <div
+                                        onClick={(e) => e.stopPropagation()}
+                                        className={cn(
+                                            "mt-4 p-4 rounded-xl border-2 transition-all",
+                                            pronunciationResult.isCorrect
+                                                ? "bg-green-50 border-green-300"
+                                                : "bg-orange-50 border-orange-300"
+                                        )}
+                                    >
+                                        <div className="flex items-center justify-center gap-3 mb-2">
+                                            <span className={cn(
+                                                "text-3xl font-bold",
+                                                pronunciationResult.isCorrect ? "text-green-600" : "text-orange-600"
+                                            )}>
+                                                {pronunciationResult.accuracy}%
+                                            </span>
+                                            {pronunciationResult.isCorrect ? (
+                                                <CheckCircle className="w-8 h-8 text-green-500" />
+                                            ) : (
+                                                <span className="text-2xl">🎯</span>
+                                            )}
+                                        </div>
+                                        <p className="text-sm text-gray-600">
+                                            Bạn đã nói: <span className="font-semibold">"{pronunciationResult.transcription}"</span>
+                                        </p>
+                                        {!pronunciationResult.isCorrect && (
                                             <button
                                                 onClick={(e) => {
                                                     e.stopPropagation();
-                                                    playAudio(word.audio);
+                                                    startRecording();
                                                 }}
-                                                className="p-2 rounded-full bg-blue-100 hover:bg-blue-200 transition-colors cursor-pointer"
+                                                className="mt-2 text-sm text-blue-600 hover:text-blue-800 underline cursor-pointer"
                                             >
-                                                <Volume2 className="w-5 h-5 text-blue-600" />
+                                                Thử lại
                                             </button>
                                         )}
                                     </div>
                                 )}
+
                                 {word && word.partOfSpeech && (
                                     <p className="text-sm text-gray-500 italic capitalize">
                                         {word.partOfSpeech}
@@ -363,43 +532,43 @@ export function VocabularyBlock({
                                         {/* Synonyms & Antonyms */}
                                         {((word.synonyms && word.synonyms.length > 0) ||
                                             (word.antonyms && word.antonyms.length > 0)) && (
-                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                                {word.synonyms && word.synonyms.length > 0 && (
-                                                    <div className="bg-white/80 backdrop-blur p-4 rounded-lg border border-green-100">
-                                                        <h4 className="text-sm font-semibold text-gray-700 mb-2">
-                                                            Từ đồng nghĩa:
-                                                        </h4>
-                                                        <div className="flex flex-wrap gap-2">
-                                                            {word.synonyms.map((syn, idx) => (
-                                                                <span
-                                                                    key={idx}
-                                                                    className="px-2 py-1 bg-green-100 text-green-700 text-xs rounded-full"
-                                                                >
-                                                                    {syn}
-                                                                </span>
-                                                            ))}
+                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                    {word.synonyms && word.synonyms.length > 0 && (
+                                                        <div className="bg-white/80 backdrop-blur p-4 rounded-lg border border-green-100">
+                                                            <h4 className="text-sm font-semibold text-gray-700 mb-2">
+                                                                Từ đồng nghĩa:
+                                                            </h4>
+                                                            <div className="flex flex-wrap gap-2">
+                                                                {word.synonyms.map((syn, idx) => (
+                                                                    <span
+                                                                        key={idx}
+                                                                        className="px-2 py-1 bg-green-100 text-green-700 text-xs rounded-full"
+                                                                    >
+                                                                        {syn}
+                                                                    </span>
+                                                                ))}
+                                                            </div>
                                                         </div>
-                                                    </div>
-                                                )}
-                                                {word.antonyms && word.antonyms.length > 0 && (
-                                                    <div className="bg-white/80 backdrop-blur p-4 rounded-lg border border-green-100">
-                                                        <h4 className="text-sm font-semibold text-gray-700 mb-2">
-                                                            Từ trái nghĩa:
-                                                        </h4>
-                                                        <div className="flex flex-wrap gap-2">
-                                                            {word.antonyms.map((ant, idx) => (
-                                                                <span
-                                                                    key={idx}
-                                                                    className="px-2 py-1 bg-red-100 text-red-700 text-xs rounded-full"
-                                                                >
-                                                                    {ant}
-                                                                </span>
-                                                            ))}
+                                                    )}
+                                                    {word.antonyms && word.antonyms.length > 0 && (
+                                                        <div className="bg-white/80 backdrop-blur p-4 rounded-lg border border-green-100">
+                                                            <h4 className="text-sm font-semibold text-gray-700 mb-2">
+                                                                Từ trái nghĩa:
+                                                            </h4>
+                                                            <div className="flex flex-wrap gap-2">
+                                                                {word.antonyms.map((ant, idx) => (
+                                                                    <span
+                                                                        key={idx}
+                                                                        className="px-2 py-1 bg-red-100 text-red-700 text-xs rounded-full"
+                                                                    >
+                                                                        {ant}
+                                                                    </span>
+                                                                ))}
+                                                            </div>
                                                         </div>
-                                                    </div>
-                                                )}
-                                            </div>
-                                        )}
+                                                    )}
+                                                </div>
+                                            )}
 
                                         {/* Image */}
                                         {word.image && (
@@ -420,53 +589,53 @@ export function VocabularyBlock({
 
                 {/* Card Controls */}
                 <div className="flex items-center justify-center gap-4 mt-6">
-                <Button
-                    variant="outline"
-                    size="icon"
-                    onClick={handlePrevious}
-                    disabled={currentIndex === 0}
-                    className="rounded-full cursor-pointer"
-                >
-                    <ChevronLeft className="w-5 h-5" />
-                </Button>
+                    <Button
+                        variant="outline"
+                        size="icon"
+                        onClick={handlePrevious}
+                        disabled={currentIndex === 0}
+                        className="rounded-full cursor-pointer"
+                    >
+                        <ChevronLeft className="w-5 h-5" />
+                    </Button>
 
-                <Button
-                    variant={isLearned ? "default" : "outline"}
-                    onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        if (currentCard._id) {
-                            handleLearned(currentCard._id);
-                        }
-                    }}
-                    className={cn(
-                        "rounded-full cursor-pointer",
-                        isLearned &&
+                    <Button
+                        variant={isLearned ? "default" : "outline"}
+                        onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            if (currentCard._id) {
+                                handleLearned(currentCard._id);
+                            }
+                        }}
+                        className={cn(
+                            "rounded-full cursor-pointer",
+                            isLearned &&
                             "bg-green-600 hover:bg-green-700 text-white border-green-600"
-                    )}
-                >
-                    {isLearned ? (
-                        <>
-                            <CheckCircle className="w-5 h-5 mr-2" />
-                            Đã học
-                        </>
-                    ) : (
-                        <>
-                            <X className="w-5 h-5 mr-2" />
-                            Đánh dấu đã học
-                        </>
-                    )}
-                </Button>
+                        )}
+                    >
+                        {isLearned ? (
+                            <>
+                                <CheckCircle className="w-5 h-5 mr-2" />
+                                Đã học
+                            </>
+                        ) : (
+                            <>
+                                <X className="w-5 h-5 mr-2" />
+                                Đánh dấu đã học
+                            </>
+                        )}
+                    </Button>
 
-                <Button
-                    variant="outline"
-                    size="icon"
-                    onClick={handleNext}
-                    disabled={currentIndex === flashcards.length - 1}
-                    className="rounded-full cursor-pointer"
-                >
-                    <ChevronRight className="w-5 h-5" />
-                </Button>
+                    <Button
+                        variant="outline"
+                        size="icon"
+                        onClick={handleNext}
+                        disabled={currentIndex === flashcards.length - 1}
+                        className="rounded-full cursor-pointer"
+                    >
+                        <ChevronRight className="w-5 h-5" />
+                    </Button>
                 </div>
             </div>
 
@@ -510,6 +679,12 @@ export function VocabularyBlock({
                     <ChevronRight className="w-4 h-4 ml-2" />
                 </Button>
             </div>
+
+            {/* Audio Test Modal */}
+            <AudioTestModal
+                isOpen={isAudioTestModalOpen}
+                onClose={() => setIsAudioTestModalOpen(false)}
+            />
         </div>
     );
 }

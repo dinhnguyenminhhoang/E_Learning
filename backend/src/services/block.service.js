@@ -275,15 +275,15 @@ class BlockService {
         block,
         progress: blockProgress
           ? {
-              maxWatchedTime: blockProgress.maxWatchedTime,
-              videoDuration: blockProgress.videoDuration,
-              isCompleted: blockProgress.isCompleted,
-            }
+            maxWatchedTime: blockProgress.maxWatchedTime,
+            videoDuration: blockProgress.videoDuration,
+            isCompleted: blockProgress.isCompleted,
+          }
           : {
-              maxWatchedTime: 0,
-              videoDuration: 0,
-              isCompleted: false,
-            },
+            maxWatchedTime: 0,
+            videoDuration: 0,
+            isCompleted: false,
+          },
       },
     });
   }
@@ -447,10 +447,10 @@ class BlockService {
         progressPercentage:
           updatedBlockProgress?.videoDuration > 0
             ? Math.round(
-                (updatedBlockProgress.maxWatchedTime /
-                  updatedBlockProgress.videoDuration) *
-                  100
-              )
+              (updatedBlockProgress.maxWatchedTime /
+                updatedBlockProgress.videoDuration) *
+              100
+            )
             : 0,
       },
     });
@@ -605,18 +605,18 @@ class BlockService {
           tags: flashcard.tags || [],
           word: flashcard.word
             ? {
-                _id: flashcard.word._id,
-                word: flashcard.word.word,
-                pronunciation: flashcard.word.pronunciation,
-                audio: flashcard.word.audio,
-                partOfSpeech: flashcard.word.partOfSpeech,
-                definitions: flashcard.word.definitions || [],
-                level: flashcard.word.level,
-                image: flashcard.word.image,
-                synonyms: flashcard.word.synonyms || [],
-                antonyms: flashcard.word.antonyms || [],
-                tags: flashcard.word.tags || [],
-              }
+              _id: flashcard.word._id,
+              word: flashcard.word.word,
+              pronunciation: flashcard.word.pronunciation,
+              audio: flashcard.word.audio,
+              partOfSpeech: flashcard.word.partOfSpeech,
+              definitions: flashcard.word.definitions || [],
+              level: flashcard.word.level,
+              image: flashcard.word.image,
+              synonyms: flashcard.word.synonyms || [],
+              antonyms: flashcard.word.antonyms || [],
+              tags: flashcard.word.tags || [],
+            }
             : null,
         }));
 
@@ -886,7 +886,7 @@ class BlockService {
     if (
       blockUpdates.title &&
       blockUpdates.title.toLowerCase() !==
-        (existingBlock.title || "").toLowerCase()
+      (existingBlock.title || "").toLowerCase()
     ) {
       const lessonContext = blockUpdates.lessonId || existingBlock.lessonId;
       await this._ensureUniqueTitle(blockUpdates.title, lessonContext, blockId);

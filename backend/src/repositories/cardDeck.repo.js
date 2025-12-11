@@ -42,9 +42,15 @@ const hardDeleteCardDeck = async (cardDeckId) => {
 };
 
 const getAllCardDeck = async (query = {}) => {
-  const { pageNum = 1, pageSize = 10, target, level, category, search } = query;
+  const { pageNum = 1, pageSize = 10, target, level, category, search, status } = query;
 
-  const filter = { status: { $ne: STATUS.DELETED } };
+  const filter = {};
+
+  if (status && status !== "all") {
+    filter.status = status;
+  } else {
+    filter.status = { $ne: STATUS.DELETED };
+  }
 
   if (target) filter.target = target;
   if (level) filter.level = level;

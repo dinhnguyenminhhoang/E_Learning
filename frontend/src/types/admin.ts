@@ -180,9 +180,14 @@ export interface CreateUserInput {
 // Flashcard types
 export interface CardDeck {
     _id: string;
-    name: string;
+    title: string; // Backend uses title
+    name?: string; // Keep for backward compatibility if needed
     description?: string;
-    category?: string;
+    category?: string; // ID or name depending on usage
+    categoryId?: { _id: string; name: string }; // Populated category
+    thumbnail?: string;
+    level?: string;
+    target?: { _id: string; name: string };
     cards: FlashCard[];
     status: 'active' | 'inactive';
     createdAt: Date;

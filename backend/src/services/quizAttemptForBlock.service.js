@@ -64,7 +64,12 @@ class QuizAttemptForBlockService {
         toObjectId(userId),
         toObjectId(blockId)
       );
-      if (existingAttempt) {
+
+      // Check if existing attempt matches the current quiz
+      if (
+        existingAttempt &&
+        existingAttempt.quiz.toString() === quizId.toString()
+      ) {
         const attemptWithQuiz = await QuizAttemptForBlockRepo.findById(
           existingAttempt._id
         );
@@ -528,7 +533,7 @@ class QuizAttemptForBlockService {
       // Store answer in original format (string for matching if it was string)
       const storedAnswer =
         question.type === "matching" &&
-        typeof userAnswer?.selectedAnswer === "string"
+          typeof userAnswer?.selectedAnswer === "string"
           ? userAnswer.selectedAnswer
           : userAnswer?.selectedAnswer || "";
 

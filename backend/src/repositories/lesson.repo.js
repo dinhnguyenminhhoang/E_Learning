@@ -111,6 +111,18 @@ class LessonRepository {
     );
   }
 
+  async removeBlockFromLesson(lessonId, blockId) {
+    return await Lesson.findByIdAndUpdate(
+      lessonId,
+      {
+        $pull: {
+          blocks: { block: toObjectId(blockId) },
+        },
+      },
+      { new: true }
+    );
+  }
+
   async getLessonsByBlockId(blockId) {
     return Lesson.find({ "blocks.block": blockId });
   }

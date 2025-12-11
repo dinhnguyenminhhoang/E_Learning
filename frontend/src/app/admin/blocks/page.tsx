@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { toast } from "react-hot-toast";
 import { cn } from "@/lib/utils";
+import { AdminPagination } from "@/components/admin/AdminPagination";
 
 const TYPE_ICONS: Record<string, any> = {
     vocabulary: BookOpen,
@@ -331,34 +332,14 @@ export default function BlocksPage() {
                 </div>
 
                 {/* Pagination */}
-                {total > pageSize && (
-                    <div className="flex items-center justify-between px-6 py-4 border-t border-gray-200 bg-gray-50">
-                        <p className="text-sm text-gray-600">
-                            Hiển thị {(pageNum - 1) * pageSize + 1} đến{" "}
-                            {Math.min(pageNum * pageSize, total)} trong tổng số {total} block
-                        </p>
-                        <div className="flex gap-2">
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => setPageNum(Math.max(1, pageNum - 1))}
-                                disabled={pageNum === 1}
-                                className="cursor-pointer"
-                            >
-                                Trước
-                            </Button>
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => setPageNum(pageNum + 1)}
-                                disabled={pageNum * pageSize >= total}
-                                className="cursor-pointer"
-                            >
-                                Sau
-                            </Button>
-                        </div>
-                    </div>
-                )}
+                <AdminPagination
+                    currentPage={pageNum}
+                    totalPages={Math.ceil(total / pageSize)}
+                    totalItems={total}
+                    pageSize={pageSize}
+                    onPageChange={setPageNum}
+                    loading={loading}
+                />
             </div>
         </div>
     );

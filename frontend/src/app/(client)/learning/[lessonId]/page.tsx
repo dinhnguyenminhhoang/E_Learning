@@ -118,7 +118,7 @@ export default function LearningPage() {
                 setBlocks(blocksWithLock);
                 setTotalBlocks(response.data.totalBlocks || blocksWithLock.length);
                 setCompletedCount(response.data.completedBlocks || 0);
-                
+
                 // Update lesson completion status if available
                 if (response.data.isLessonCompleted !== undefined) {
                     setIsLessonCompleted(response.data.isLessonCompleted);
@@ -145,16 +145,16 @@ export default function LearningPage() {
             if (response.code === 200) {
                 // Response structure: response.message.data OR response.data
                 const responseData = (response as any).message?.data || response.data;
-                
+
                 // Store lessonContent from response
                 if (responseData?.lessonContent) {
                     setLessonContent(responseData.lessonContent);
                 }
 
                 // Store videoUrl from response (có thể ở data.videoUrl hoặc lessonContent.blockData.videoUrl)
-                const videoUrl = responseData?.videoUrl || 
-                                responseData?.lessonContent?.blockData?.videoUrl || 
-                                null;
+                const videoUrl = responseData?.videoUrl ||
+                    responseData?.lessonContent?.blockData?.videoUrl ||
+                    null;
                 if (videoUrl) {
                     setBlockVideoUrl(videoUrl);
                 }
@@ -176,8 +176,8 @@ export default function LearningPage() {
                 });
 
                 // Gửi heartbeat cho video/media blocks hoặc grammar block có videoUrl
-                if (activeBlock?.type === "video" || 
-                    activeBlock?.type === "media" || 
+                if (activeBlock?.type === "video" ||
+                    activeBlock?.type === "media" ||
                     (activeBlock?.type === "grammar" && videoUrl)) {
                     startVideoHeartbeat();
                 }
@@ -204,10 +204,10 @@ export default function LearningPage() {
             try {
                 // Tính maxWatchedTime = số giây đã trôi qua từ khi video được load
                 const currentTime = Date.now();
-                const elapsedSeconds = videoStartTimeRef.current 
+                const elapsedSeconds = videoStartTimeRef.current
                     ? Math.floor((currentTime - videoStartTimeRef.current) / 1000)
                     : 0;
-                
+
                 const videoDuration = videoDurationRef.current || 10;
 
                 const response = await blockService.sendVideoHeartbeat(
@@ -272,12 +272,12 @@ export default function LearningPage() {
                     } else {
                         toast.success(data.message || "Block này không có bài tập");
                     }
-                    
+
                     // Refresh blocks để cập nhật trạng thái completed
                     if (data.blockCompleted) {
                         fetchBlocks();
                     }
-                    
+
                     // Tự động chuyển sang block tiếp theo
                     setTimeout(() => {
                         handleNext();
@@ -519,12 +519,12 @@ export default function LearningPage() {
                                     cardDeck={(lessonContent as Extract<LessonContent, { type: "vocabulary" }>).cardDeck}
                                     flashcards={(lessonContent as Extract<LessonContent, { type: "vocabulary" }>).flashcards}
                                     onPrevious={handlePrevious}
-                                onNext={handleNext}
-                                onStartQuiz={handleStartQuiz}
-                                onContinue={handleBlockContinue}
-                                onAllLearnedChange={setVocabAllLearned}
-                                showStartQuizButton={showStartQuizButton}
-                                showContinueButton={showContinueButton}
+                                    onNext={handleNext}
+                                    onStartQuiz={handleStartQuiz}
+                                    onContinue={handleBlockContinue}
+                                    onAllLearnedChange={setVocabAllLearned}
+                                    showStartQuizButton={showStartQuizButton}
+                                    showContinueButton={showContinueButton}
                                     canGoPrevious={activeBlockIndex > 0}
                                     canGoNext={activeBlockIndex < blocks.length - 1 && !blocks[activeBlockIndex + 1]?.isLocked}
                                 />
@@ -615,23 +615,23 @@ export default function LearningPage() {
                                         Trước
                                     </Button>
 
-                                            {showStartQuizButton && (
-                                                <Button
-                                                    onClick={handleStartQuiz}
-                                                    className="flex-1 md:flex-none bg-purple-600 hover:bg-purple-700"
-                                                >
-                                                    Bắt đầu làm bài
-                                                </Button>
-                                            )}
+                                    {showStartQuizButton && (
+                                        <Button
+                                            onClick={handleStartQuiz}
+                                            className="flex-1 md:flex-none bg-purple-600 hover:bg-purple-700"
+                                        >
+                                            Bắt đầu làm bài
+                                        </Button>
+                                    )}
 
-                                            {showContinueButton && (
-                                                <Button
-                                                    onClick={handleBlockContinue}
-                                                    className="flex-1 md:flex-none bg-purple-600 hover:bg-purple-700"
-                                                >
-                                                    Tiếp tục
-                                                </Button>
-                                            )}
+                                    {showContinueButton && (
+                                        <Button
+                                            onClick={handleBlockContinue}
+                                            className="flex-1 md:flex-none bg-purple-600 hover:bg-purple-700"
+                                        >
+                                            Tiếp tục
+                                        </Button>
+                                    )}
 
                                     <Button
                                         onClick={handleNext}
@@ -655,76 +655,76 @@ export default function LearningPage() {
                                 {/* Video Player - Hiển thị nếu có videoUrl cho các block type khác */}
                                 {blockVideoUrl && (
                                     <div className="mb-6">
-                                            <VideoPlayer
-                                                videoUrl={blockVideoUrl}
-                                                title={activeBlock.title}
-                                                type={(activeBlock.type as string) === "media" ? "media" : "video"}
-                                                onLoad={() => {
-                                                    // Khởi tạo thời điểm bắt đầu xem video khi video được load
-                                                    if (videoStartTimeRef.current === null) {
-                                                        videoStartTimeRef.current = Date.now();
-                                                    }
-                                                }}
-                                                onDurationChange={(durationSeconds) => {
-                                                    const safeDuration = durationSeconds || 10;
-                                                    setVideoProgress(prev => ({
-                                                        ...prev,
-                                                        videoDuration: safeDuration
-                                                    }));
-                                                    videoDurationRef.current = safeDuration;
-                                                }}
-                                            />
+                                        <VideoPlayer
+                                            videoUrl={blockVideoUrl}
+                                            title={activeBlock.title}
+                                            type={(activeBlock.type as string) === "media" ? "media" : "video"}
+                                            onLoad={() => {
+                                                // Khởi tạo thời điểm bắt đầu xem video khi video được load
+                                                if (videoStartTimeRef.current === null) {
+                                                    videoStartTimeRef.current = Date.now();
+                                                }
+                                            }}
+                                            onDurationChange={(durationSeconds) => {
+                                                const safeDuration = durationSeconds || 10;
+                                                setVideoProgress(prev => ({
+                                                    ...prev,
+                                                    videoDuration: safeDuration
+                                                }));
+                                                videoDurationRef.current = safeDuration;
+                                            }}
+                                        />
                                     </div>
                                 )}
 
                                 {/* Hiển thị lessonContent nếu có (cho grammar và các type khác có blockData) */}
-                                {lessonContent && 
-                                 lessonContent.type !== "vocabulary" && 
-                                 "blockData" in lessonContent && (
-                                    <div className="space-y-6 mb-6">
-                                        {lessonContent.blockData?.explanation && (
-                                            <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-2xl p-6 md:p-8 border border-blue-200 shadow-sm">
-                                                <h3 className="text-xl font-bold mb-4 text-blue-900 flex items-center gap-3">
-                                                    <div className="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center">
-                                                        <FileText className="w-5 h-5 text-white" />
+                                {lessonContent &&
+                                    lessonContent.type !== "vocabulary" &&
+                                    "blockData" in lessonContent && (
+                                        <div className="space-y-6 mb-6">
+                                            {lessonContent.blockData?.explanation && (
+                                                <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-2xl p-6 md:p-8 border border-blue-200 shadow-sm">
+                                                    <h3 className="text-xl font-bold mb-4 text-blue-900 flex items-center gap-3">
+                                                        <div className="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center">
+                                                            <FileText className="w-5 h-5 text-white" />
+                                                        </div>
+                                                        Giải thích
+                                                    </h3>
+                                                    <div className="bg-white/80 backdrop-blur rounded-xl p-6 border border-blue-100">
+                                                        <p className="whitespace-pre-wrap leading-relaxed text-gray-700 text-base">
+                                                            {lessonContent.blockData.explanation}
+                                                        </p>
                                                     </div>
-                                                    Giải thích
-                                                </h3>
-                                                <div className="bg-white/80 backdrop-blur rounded-xl p-6 border border-blue-100">
-                                                    <p className="whitespace-pre-wrap leading-relaxed text-gray-700 text-base">
-                                                        {lessonContent.blockData.explanation}
-                                                    </p>
                                                 </div>
-                                            </div>
-                                        )}
+                                            )}
 
-                                        {lessonContent.blockData?.examples && 
-                                         Array.isArray(lessonContent.blockData.examples) && 
-                                         lessonContent.blockData.examples.length > 0 && (
-                                            <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-2xl p-6 md:p-8 border border-green-200 shadow-sm">
-                                                <h3 className="text-xl font-bold mb-4 text-green-900 flex items-center gap-3">
-                                                    <div className="w-10 h-10 rounded-xl bg-green-600 flex items-center justify-center">
-                                                        <CheckCircle className="w-5 h-5 text-white" />
+                                            {lessonContent.blockData?.examples &&
+                                                Array.isArray(lessonContent.blockData.examples) &&
+                                                lessonContent.blockData.examples.length > 0 && (
+                                                    <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-2xl p-6 md:p-8 border border-green-200 shadow-sm">
+                                                        <h3 className="text-xl font-bold mb-4 text-green-900 flex items-center gap-3">
+                                                            <div className="w-10 h-10 rounded-xl bg-green-600 flex items-center justify-center">
+                                                                <CheckCircle className="w-5 h-5 text-white" />
+                                                            </div>
+                                                            Ví dụ
+                                                        </h3>
+                                                        <ul className="space-y-3">
+                                                            {lessonContent.blockData.examples.map((ex: string, idx: number) => (
+                                                                <li
+                                                                    key={idx}
+                                                                    className="flex gap-4 bg-white/80 backdrop-blur p-5 rounded-xl border border-green-100 hover:shadow-md transition-shadow"
+                                                                >
+                                                                    <span className="text-green-600 font-bold text-xl flex-shrink-0">
+                                                                        {idx + 1}.
+                                                                    </span>
+                                                                    <span className="text-gray-700 text-base leading-relaxed">{ex}</span>
+                                                                </li>
+                                                            ))}
+                                                        </ul>
                                                     </div>
-                                                    Ví dụ
-                                                </h3>
-                                                <ul className="space-y-3">
-                                                    {lessonContent.blockData.examples.map((ex: string, idx: number) => (
-                                                        <li
-                                                            key={idx}
-                                                            className="flex gap-4 bg-white/80 backdrop-blur p-5 rounded-xl border border-green-100 hover:shadow-md transition-shadow"
-                                                        >
-                                                            <span className="text-green-600 font-bold text-xl flex-shrink-0">
-                                                                {idx + 1}.
-                                                            </span>
-                                                            <span className="text-gray-700 text-base leading-relaxed">{ex}</span>
-                                                        </li>
-                                                    ))}
-                                                </ul>
-                                            </div>
-                                        )}
-                                    </div>
-                                )}
+                                                )}
+                                        </div>
+                                    )}
 
                                 <div className="flex items-center justify-between gap-4 mt-8">
                                     <Button

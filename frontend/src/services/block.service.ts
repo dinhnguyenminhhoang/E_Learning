@@ -11,9 +11,8 @@ import type {
 
 class BlockService {
   async startBlock(blockId: string, learningPathId?: string) {
-    const url = `/v1/api/block/${blockId}/start${
-      learningPathId ? `?learningPathId=${learningPathId}` : ""
-    }`;
+    const url = `/v1/api/block/${blockId}/start${learningPathId ? `?learningPathId=${learningPathId}` : ""
+      }`;
     return await apiClient.post<StartBlockResponse>(url);
   }
 

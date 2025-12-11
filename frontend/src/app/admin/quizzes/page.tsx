@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { toast } from "react-hot-toast";
 import { cn } from "@/lib/utils";
+import { AdminPagination } from "@/components/admin/AdminPagination";
 
 const getDifficultyDisplay = (difficulty: string) => {
     const map: Record<string, { label: string; className: string }> = {
@@ -278,7 +279,7 @@ export default function QuizzesPage() {
                                                     {diffDisplay.label}
                                                 </span>
                                             </td>
-                                                <td className="px-6 py-4 text-center">
+                                            <td className="px-6 py-4 text-center">
                                                 <span className="text-sm font-medium text-gray-700">
                                                     {quiz.questions?.length || 0}
                                                 </span>
@@ -331,45 +332,14 @@ export default function QuizzesPage() {
             </div>
 
             {/* Pagination */}
-            {pagination.totalPages > 1 && (
-                <div className="flex items-center justify-between border-t border-gray-200 bg-white px-4 py-3 sm:px-6 rounded-lg shadow-sm mt-4">
-                    <div className="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between">
-                        <div>
-                            <p className="text-sm text-gray-700">
-                                Hiển thị{" "}
-                                <span className="font-medium">
-                                    {(pagination.pageNum - 1) * pagination.pageSize + 1}
-                                </span>{" "}
-                                đến{" "}
-                                <span className="font-medium">
-                                    {Math.min(
-                                        pagination.pageNum * pagination.pageSize,
-                                        pagination.total
-                                    )}
-                                </span>{" "}
-                                trong tổng số{" "}
-                                <span className="font-medium">{pagination.total}</span> kết quả
-                            </p>
-                        </div>
-                        <div className="flex gap-2">
-                            <Button
-                                variant="outline"
-                                onClick={() => fetchQuizzes(pagination.pageNum - 1)}
-                                disabled={pagination.pageNum === 1}
-                            >
-                                Trước
-                            </Button>
-                            <Button
-                                variant="outline"
-                                onClick={() => fetchQuizzes(pagination.pageNum + 1)}
-                                disabled={pagination.pageNum === pagination.totalPages}
-                            >
-                                Tiếp
-                            </Button>
-                        </div>
-                    </div>
-                </div>
-            )}
+            <AdminPagination
+                currentPage={pagination.pageNum}
+                totalPages={pagination.totalPages}
+                totalItems={pagination.total}
+                pageSize={pagination.pageSize}
+                onPageChange={(page) => fetchQuizzes(page)}
+                loading={loading}
+            />
         </div>
     );
 }

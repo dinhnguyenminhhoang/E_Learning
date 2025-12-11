@@ -1,19 +1,18 @@
 const ResponseBuilder = require("../types/response/baseResponse");
 const BlockRepository = require("../repositories/block.repo");
 const LessonRepository = require("../repositories/lesson.repo");
-const { AppError } = require("../utils/appError");
+const AppError = require("../utils/appError");
 const { toObjectId } = require("./idHelper");
 class LessonBlockHelper {
   async deleteBlockFromLesson(blockId) {
     const lessons = await LessonRepository.getLessonsByBlockId(
       toObjectId(blockId)
     );
-    lessons.forEach((lesson) => {
-      lesson.blocks = lesson.blocks.filter(
-        (b) => b.block.toString() !== blockId
-      );
-      lesson.save();
-    });
+    await Promise.all(
+      lessons.map((lesson) =>
+        LessonRepository.removeBlockFromLesson(lesson._id, blockId)
+      )
+    );
     return ResponseBuilder.success({
       message: "Block removed from lesson successfully",
     });

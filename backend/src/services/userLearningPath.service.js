@@ -198,16 +198,68 @@ class UserLearningPathService {
         }
       }
 
-      // Calculate vocabulary statistics (simplified)
-      // In a real app, you'd fetch from a word progress collection
+      // Calculate vocabulary statistics
+      const VocabularyBlock = require("../models/subModel/VocabularyBlock.schema");
+      const CardDeck = require("../models/CardDeck");
+      const Flashcard = require("../models/FlashCard");
+
+      // 1. Get all completed block IDs
+      const completedBlockIds = [];
+      userProgress?.lessonProgress?.forEach((lp) => {
+        lp.blockProgress?.forEach((bp) => {
+          if (bp.isCompleted) {
+            completedBlockIds.push(bp.blockId);
+          }
+        });
+      });
+
+      // 2. Find completed VocabularyBlocks
+      const completedVocabBlocks = await VocabularyBlock.find({
+        _id: { $in: completedBlockIds },
+      });
+
+      // 3. Get CardDeck IDs
+      const cardDeckIds = completedVocabBlocks.map((b) => b.cardDeck);
+
+      // 4. Get CardDecks to know the level
+      const cardDecks = await CardDeck.find({ _id: { $in: cardDeckIds } });
+      const deckLevelMap = {}; // deckId -> level
+      cardDecks.forEach((deck) => {
+        deckLevelMap[deck._id.toString()] = deck.level;
+      });
+
+      // 5. Count flashcards per deck
+      // We can aggregate to count flashcards by cardDeck
+      const flashcardCounts = await Flashcard.aggregate([
+        { $match: { cardDeck: { $in: cardDeckIds } } },
+        { $group: { _id: "$cardDeck", count: { $sum: 1 } } },
+      ]);
+
+      // 6. Map counts to levels
+      const statsByLevel = {
+        beginner: 0,
+        intermediate: 0,
+        advanced: 0,
+      };
+      let totalWordsLearned = 0;
+
+      flashcardCounts.forEach((item) => {
+        const deckId = item._id.toString();
+        const count = item.count;
+        const level = deckLevelMap[deckId] || "beginner"; // Default to beginner if not found
+
+        if (statsByLevel[level] !== undefined) {
+          statsByLevel[level] += count;
+          totalWordsLearned += count;
+        }
+      });
+
       const vocabularyStats = {
-        totalWords: completedLessons.length * 10, // Estimate: 10 words per lesson
+        totalWords: totalWordsLearned,
         byLevel: [
-          { level: "Beginner", count: Math.floor(completedLessons.length * 4) },
-          { level: "Elementary", count: Math.floor(completedLessons.length * 3) },
-          { level: "Intermediate", count: Math.floor(completedLessons.length * 2) },
-          { level: "Advanced", count: Math.floor(completedLessons.length * 0.8) },
-          { level: "Master", count: Math.floor(completedLessons.length * 0.2) },
+          { level: "Beginner", count: statsByLevel.beginner },
+          { level: "Intermediate", count: statsByLevel.intermediate },
+          { level: "Advanced", count: statsByLevel.advanced },
         ],
       };
 
