@@ -39,8 +39,47 @@ const answerSchema = new Schema(
       audioUrl: String,
       duration: Number,
     },
+
+    // Writing grading từ Grammar NLP Service
+    writingGrading: {
+      grading: {
+        score: Number,
+        level: String,
+        overall_comment: String,
+        suggestions: [String],
+      },
+      grammar_errors: [
+        {
+          message: String,
+          shortMessage: String,
+          replacements: [
+            {
+              value: String,
+            },
+          ],
+          offset: Number,
+          length: Number,
+          context: {
+            text: String,
+            offset: Number,
+            length: Number,
+          },
+          sentence: String,
+          rule: {
+            id: String,
+            description: String,
+            issueType: String,
+            category: {
+              id: String,
+              name: String,
+            },
+          },
+        },
+      ],
+      original_text: String,
+    },
   },
-  { _id: false }
+  { _id: false, strict: false } // strict: false để cho phép lưu fields động nếu cần
 );
 
 const quizAttemptSchema = new Schema(

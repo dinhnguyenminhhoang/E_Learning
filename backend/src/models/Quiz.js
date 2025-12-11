@@ -117,13 +117,15 @@ const quizSchema = new Schema(
     attachedTo: {
       kind: {
         type: String,
-        enum: ["Lesson", "Module", "LearningPath"],
-        required: true,
+        enum: ["Lesson", "Module", "LearningPath", "Block"],
+        required: false,
+        default: null,
       },
       item: {
         type: Schema.Types.ObjectId,
-        required: true,
+        required: false,
         refPath: "attachedTo.kind",
+        default: null,
       },
     },
     questions: {

@@ -19,7 +19,33 @@ class QuizAttemptRepository {
   }
 
   async findById(id) {
-    return QuizAttempt.findById(id);
+    return QuizAttempt.findById(id)
+      .populate({
+        path: "quiz",
+        select: "skill questions title", // Chỉ lấy các fields cần thiết
+      })
+      .lean();
+  }
+
+  /**
+   * Find by ID without lean (returns Mongoose document for saving)
+   */
+  async findByIdForUpdate(id) {
+    return QuizAttempt.findById(id).populate({
+      path: "quiz",
+      select: "skill questions title",
+    });
+  }
+
+  /**
+   * Update quiz attempt by ID
+   */
+  async updateById(id, updateData) {
+    return QuizAttempt.findByIdAndUpdate(
+      id,
+      { $set: updateData },
+      { new: true }
+    );
   }
 }
 

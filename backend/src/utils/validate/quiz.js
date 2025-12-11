@@ -11,8 +11,15 @@ const objectIdValidator = (value, helpers) => {
   return value;
 };
 
+// Default option schema – requires non-empty text
 const optionSchema = Joi.object({
   text: Joi.string().trim().required(),
+  isCorrect: Joi.boolean().default(false),
+});
+
+// For writing questions, options are optional/placeholder so text can be empty
+const writingOptionSchema = Joi.object({
+  text: Joi.string().allow("").optional(),
   isCorrect: Joi.boolean().default(false),
 });
 
@@ -26,7 +33,11 @@ const questionSchema = Joi.object({
 
   questionText: Joi.string().trim().required(),
 
-  options: Joi.array().items(optionSchema).default([]),
+  options: Joi.when("type", {
+    is: "writing",
+    then: Joi.array().items(writingOptionSchema).default([]),
+    otherwise: Joi.array().items(optionSchema).default([]),
+  }),
 
   correctAnswer: Joi.string().allow(null, "").optional(),
 
@@ -57,10 +68,10 @@ const createQuizSchema = Joi.object({
 
   difficulty: Joi.string().valid("EASY", "MEDIUM", "HARD").default("EASY"),
 
-  attachedTo: Joi.object({
-    kind: Joi.string().valid("Lesson", "Module", "LearningPath").required(),
-    item: Joi.string().custom(objectIdValidator).required(),
-  }).optional(),
+  // attachedTo: Joi.object({
+  //   kind: Joi.string().valid("Lesson", "Module", "LearningPath").required(),
+  //   item: Joi.string().custom(objectIdValidator).required(),
+  // }).optional(),
 
   questions: Joi.array().items(questionSchema).default([]),
 
@@ -92,10 +103,10 @@ const updateQuizSchema = Joi.object({
     )
     .optional(),
   difficulty: Joi.string().valid("EASY", "MEDIUM", "HARD").optional(),
-  attachedTo: Joi.object({
-    kind: Joi.string().valid("Lesson", "Module", "LearningPath").optional(),
-    item: Joi.string().custom(objectIdValidator).optional(),
-  }).optional(),
+  // attachedTo: Joi.object({
+  //   kind: Joi.string().valid("Lesson", "Module", "LearningPath").optional(),
+  //   item: Joi.string().custom(objectIdValidator).optional(),
+  // }).optional(),
   questions: Joi.array().items(questionSchema).optional(),
   xpReward: Joi.number().min(0).optional(),
   status: Joi.string()

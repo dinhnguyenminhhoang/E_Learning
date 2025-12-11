@@ -62,7 +62,7 @@ class QuizService {
   async addQuestions(req) {
     const quizId = req.params.id;
     const { questions } = req.body || {};
-
+    console.log("questions", questions);
     const existingQuiz = await QuizRepository.getQuizById(toObjectId(quizId));
     if (!existingQuiz) {
       return ResponseBuilder.error(
@@ -72,8 +72,6 @@ class QuizService {
     }
 
     const updatedQuiz = await QuizRepository.addQuestions(quizId, questions);
-
-
 
     return ResponseBuilder.success(
       "Thêm câu hỏi vào quiz thành công",

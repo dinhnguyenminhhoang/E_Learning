@@ -66,6 +66,30 @@ class ExamRepository {
     });
   }
 
+  /**
+   * Tìm exam attempt của user cho exam (cả in_progress và completed)
+   * Tự động update startedAt bằng thời gian hiện tại nếu chưa có
+   * @param {string} userId - ID của user
+   * @param {string} examId - ID của exam
+   * @returns {Promise<object|null>} ExamAttempt hoặc null
+   */
+  async findExamAttemptByUserAndExam(userId, examId) {
+    const attempt = await ExamAttempt.findOne({
+      user: toObjectId(userId),
+      exam: toObjectId(examId),
+    })
+      .sort({ createdAt: -1 }) // Lấy attempt mới nhất
+      .exec();
+
+    // Nếu tìm thấy attempt nhưng chưa có startedAt, update nó
+    if (attempt && (!attempt.startedAt || attempt.startedAt === null)) {
+      attempt.startedAt = new Date();
+      await attempt.save();
+    }
+
+    return attempt ? attempt.toObject() : null;
+  }
+
   async findExamAttemptById(id) {
     return ExamAttempt.findById(toObjectId(id));
   }

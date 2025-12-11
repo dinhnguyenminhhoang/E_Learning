@@ -65,6 +65,7 @@ export interface TopicList {
   totalTopics: number;
   progressPercent: number;
   subTopics: SubTopic[];
+  finalQuiz?: string | null; // ID của exam (finalQuiz) khi level đã completed
 }
 export interface Word {
   id: string;

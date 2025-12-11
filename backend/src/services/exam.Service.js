@@ -12,15 +12,10 @@ const AppError = require("../utils/appError");
 const QuizAttemptRepository = require("../repositories/quizAttempt.repo");
 const GrammarNlpService = require("./grammarNlp.service");
 const ExamAttempt = require("../models/ExamAttempt");
-
+const quizAttemptRepository = require("../repositories/quizAttempt.repo");
 class ExamService {
   async getAllExams(req) {
-    const {
-      page = 1,
-      limit = 20,
-      status,
-      search,
-    } = req.query || {};
+    const { page = 1, limit = 20, status, search } = req.query || {};
 
     const filter = {};
     if (status && status !== "all") {
@@ -43,18 +38,15 @@ class ExamService {
       ExamRepository.countExams(filter),
     ]);
 
-    return ResponseBuilder.success(
-      "Lấy danh sách exams thành công.",
-      {
-        exams,
-        pagination: {
-          page: parseInt(page),
-          limit: parseInt(limit),
-          total,
-          totalPages: Math.ceil(total / parseInt(limit)),
-        },
-      }
-    );
+    return ResponseBuilder.success("Lấy danh sách exams thành công.", {
+      exams,
+      pagination: {
+        page: parseInt(page),
+        limit: parseInt(limit),
+        total,
+        totalPages: Math.ceil(total / parseInt(limit)),
+      },
+    });
   }
 
   /**
@@ -72,10 +64,7 @@ class ExamService {
       return ResponseBuilder.notFoundError("Exam không tồn tại.");
     }
 
-    return ResponseBuilder.success(
-      "Lấy exam thành công.",
-      exam
-    );
+    return ResponseBuilder.success("Lấy exam thành công.", exam);
   }
 
   /**
@@ -92,9 +81,15 @@ class ExamService {
    * }
    */
   async createExam(req) {
-    const { title, description, maxScore, totalTimeLimit, sections } = req.body || {};
+    const { title, description, maxScore, totalTimeLimit, sections } =
+      req.body || {};
 
-    if (!title || !maxScore || !Array.isArray(sections) || sections.length === 0) {
+    if (
+      !title ||
+      !maxScore ||
+      !Array.isArray(sections) ||
+      sections.length === 0
+    ) {
       return ResponseBuilder.badRequest(
         "Tiêu đề exam, điểm số tối đa và danh sách sections là bắt buộc."
       );
@@ -177,7 +172,9 @@ class ExamService {
 
     // Nếu cập nhật sections, validate quizzes
     if (updateData.sections && Array.isArray(updateData.sections)) {
-      const quizIds = updateData.sections.map((sec) => sec.quiz).filter(Boolean);
+      const quizIds = updateData.sections
+        .map((sec) => sec.quiz)
+        .filter(Boolean);
 
       if (quizIds.length > 0) {
         const quizzes = await ExamRepository.findQuizzesByIds(quizIds);
@@ -216,10 +213,7 @@ class ExamService {
 
     const updatedExam = await ExamRepository.updateExam(examId, updateData);
 
-    return ResponseBuilder.success(
-      "Cập nhật exam thành công.",
-      updatedExam
-    );
+    return ResponseBuilder.success("Cập nhật exam thành công.", updatedExam);
   }
 
   /**
@@ -249,10 +243,7 @@ class ExamService {
       updatedAt: new Date(),
     });
 
-    return ResponseBuilder.success(
-      "Xóa exam thành công.",
-      { examId }
-    );
+    return ResponseBuilder.success("Xóa exam thành công.", { examId });
   }
 
   // ===== USER METHODS =====
@@ -282,7 +273,9 @@ class ExamService {
     // Bước 1: Tìm LearningPath chứa exam này
     const learningPath = await LearningPathRepository.findByFinalExam(exam._id);
     if (!learningPath) {
-      console.log(`[Level Validation] LearningPath not found for exam: ${exam._id}`);
+      console.log(
+        `[Level Validation] LearningPath not found for exam: ${exam._id}`
+      );
       throw new AppError("Exam không thuộc level nào.", HTTP_STATUS.FORBIDDEN);
     }
 
@@ -295,7 +288,10 @@ class ExamService {
       console.log(
         `[Level Validation] Level not found for exam: ${exam._id} in learningPath: ${learningPath._id}`
       );
-      throw new AppError("Không tìm thấy level chứa exam này.", HTTP_STATUS.FORBIDDEN);
+      throw new AppError(
+        "Không tìm thấy level chứa exam này.",
+        HTTP_STATUS.FORBIDDEN
+      );
     }
 
     // Bước 3: Lấy danh sách tất cả lesson trong level này
@@ -430,6 +426,76 @@ class ExamService {
     };
   }
 
+  /**
+   * Format exam attempt response với đầy đủ thông tin sections và questions
+   * @private
+   * @param {object} examAttempt - ExamAttempt object (có thể là lean hoặc mongoose doc)
+   * @param {object} exam - Exam object
+   * @returns {Promise<object>} Formatted response
+   */
+  async _formatExamAttemptResponse(examAttempt, exam) {
+    const sections = [];
+
+    // Lặp qua từng section trong examAttempt
+    for (const sectionAttempt of examAttempt.sections || []) {
+      // Lấy quizAttempt với quiz đã populate
+      const quizAttempt = await quizAttemptRepository.findById(
+        sectionAttempt.quizAttempt
+      );
+
+      if (!quizAttempt || !quizAttempt.quiz) {
+        continue; // Skip nếu không tìm thấy quizAttempt hoặc quiz
+      }
+
+      // Lấy questions từ quiz (không bao gồm correctAnswer, explanation, isCorrect)
+      const questions = (quizAttempt.quiz.questions || []).map((question) => {
+        // Format options: loại bỏ isCorrect
+        const options = (question.options || []).map((option) => ({
+          text: option.text,
+        }));
+
+        return {
+          _id: question._id,
+          type: question.type,
+          questionText: question.questionText,
+          options: options,
+          points: question.points || 1,
+          tags: question.tags || [],
+          thumbnail: question.thumbnail || null,
+          audio: question.audio || null,
+          sourceType: question.sourceType || null,
+          sourceId: question.sourceId || null,
+        };
+      });
+
+      sections.push({
+        sectionId: sectionAttempt.sectionId,
+        skill: quizAttempt.quiz.skill, // Lấy từ quiz
+        status: sectionAttempt.status,
+        score: sectionAttempt.score || 0,
+        percentage: sectionAttempt.percentage || 0,
+        timeSpent: sectionAttempt.timeSpent || 0,
+        questions: questions,
+      });
+    }
+
+    console.log("examAttempt", examAttempt);
+
+    return {
+      exam: {
+        _id: examAttempt._id,
+        attemptId: examAttempt._id,
+        timeSpent: examAttempt.totalTimeSpent || 0,
+        startAt: examAttempt.startedAt,
+        status: examAttempt.status,
+        totalScore: examAttempt.totalScore || 0,
+        totalPercentage: examAttempt.totalPercentage || 0,
+        totalTimeLimit: exam.totalTimeLimit ?? null, // Include totalTimeLimit from exam
+      },
+      sections: sections,
+    };
+  }
+
   async startExam(req) {
     const { examId } = req.params;
     const userId = req.user?._id;
@@ -438,18 +504,28 @@ class ExamService {
       return ResponseBuilder.notFoundError("Exam không tồn tại.");
     }
 
-    // Không cho start nếu đã có exam attempt đang in_progress
-    const existingAttempt = await ExamRepository.findActiveExamAttempt(
+    // Kiểm tra xem đã có exam attempt nào (cả in_progress và completed) chưa
+    const existingAttempt = await ExamRepository.findExamAttemptByUserAndExam(
       userId,
       exam._id
     );
+
     if (existingAttempt) {
-      return ResponseBuilder.success(
-        "Bạn đang có bài thi đang làm dở.",
-        existingAttempt
+      // Đã có attempt, format và return response
+      const formattedResponse = await this._formatExamAttemptResponse(
+        existingAttempt,
+        exam
       );
+
+      const message =
+        existingAttempt.status === "in_progress"
+          ? "Bạn đang có bài thi đang làm dở."
+          : "Bạn đã làm bài thi này trước đó.";
+
+      return ResponseBuilder.success(message, formattedResponse);
     }
 
+    // Chưa có attempt, tạo mới
     // Kiểm tra user đã hoàn thành level chứa exam này chưa
     await this._validateLevelCompletion(userId, exam);
 
@@ -466,16 +542,32 @@ class ExamService {
       quizAttempts
     );
 
-    const examAttempt = await ExamRepository.createExamAttempt(
-      examAttemptPayload
+    console.log("exam", exam);
+
+    const examAttempt = await ExamRepository.createExamAttempt({
+      ...examAttemptPayload,
+      totalTimeSpent: exam.totalTimeLimit,
+    });
+
+    // Convert mongoose document sang plain object nếu cần
+    const examAttemptObj = examAttempt.toObject
+      ? examAttempt.toObject()
+      : examAttempt;
+
+    // Format response cho attempt mới tạo
+    const formattedResponse = await this._formatExamAttemptResponse(
+      examAttemptObj,
+      exam
     );
 
     return ResponseBuilder.success(
       "Bắt đầu làm exam thành công.",
-      examAttempt,
+      formattedResponse,
       HTTP_STATUS.CREATED
     );
   }
+
+  async getSectionByExam(examAttemptId) {}
 
   /**
    * Lấy câu hỏi của section trong exam attempt
@@ -493,7 +585,9 @@ class ExamService {
     }
 
     if (attempt.user.toString() !== userId.toString()) {
-      return ResponseBuilder.forbiddenError("Bạn không có quyền truy cập attempt này.");
+      return ResponseBuilder.forbiddenError(
+        "Bạn không có quyền truy cập attempt này."
+      );
     }
 
     const sectionAttempt =
@@ -501,7 +595,9 @@ class ExamService {
         (s) => s.sectionId?.toString() === sectionId?.toString()
       ) || null;
     if (!sectionAttempt) {
-      return ResponseBuilder.notFoundError("Không tìm thấy section trong attempt.");
+      return ResponseBuilder.notFoundError(
+        "Không tìm thấy section trong attempt."
+      );
     }
 
     const exam = await ExamRepository.findExamById(attempt.exam);
@@ -513,11 +609,15 @@ class ExamService {
       exam.sections?.find((s) => s._id?.toString() === sectionId?.toString()) ||
       null;
     if (!sectionMeta) {
-      return ResponseBuilder.notFoundError("Không tìm thấy section trong exam.");
+      return ResponseBuilder.notFoundError(
+        "Không tìm thấy section trong exam."
+      );
     }
-
-    const quiz = await QuizRepository.getQuizById(sectionAttempt.quizAttempt);
-    if (!quiz) {
+    const quizAttempt = await quizAttemptRepository.findById(
+      sectionAttempt.quizAttempt
+    );
+    console.log("quizAttempt", quizAttempt);
+    if (!quizAttempt || !quizAttempt.quiz) {
       return ResponseBuilder.notFoundError("Không tìm thấy quiz.");
     }
 
@@ -526,24 +626,21 @@ class ExamService {
     const remainingTime =
       timeLimit != null ? Math.max(timeLimit - timeSpent, 0) : null;
 
-    return ResponseBuilder.success(
-      "Lấy câu hỏi section thành công.",
-      {
-        sectionId: sectionMeta._id,
-        skill: sectionMeta.skill,
-        timeLimit,
-        timeSpent,
-        remainingTime,
-        questions: quiz.questions || [],
-      }
-    );
+    return ResponseBuilder.success("Lấy câu hỏi section thành công.", {
+      sectionId: sectionMeta._id,
+      skill: sectionMeta.skill,
+      timeLimit,
+      timeSpent,
+      remainingTime,
+      questions: quizAttempt.quiz.questions || [],
+    });
   }
 
   /**
    * Submit một section trong exam attempt (chỉ lưu answers, chưa chấm điểm)
    * POST /exam-attempts/:attemptId/section/:sectionId/submit
    * Body: { answers: [...], timeSpent: number }
-   * 
+   *
    * Lưu ý: Chỉ lưu lại câu trả lời của user, chưa chấm điểm.
    * Chấm điểm sẽ được thực hiện khi complete exam.
    */
@@ -596,7 +693,7 @@ class ExamService {
     const quizAttempt = await QuizAttemptRepository.findById(
       sectionAttempt.quizAttempt
     );
-    console.log("ok")
+    console.log("ok");
 
     if (!quizAttempt) {
       return ResponseBuilder.notFoundError("Không tìm thấy quiz attempt.");
@@ -611,12 +708,20 @@ class ExamService {
       };
 
       // Chỉ thêm writingAnswer nếu có giá trị (không set null)
-      if (answer.writingAnswer && (answer.writingAnswer.text || answer.writingAnswer.wordCount !== undefined)) {
+      if (
+        answer.writingAnswer &&
+        (answer.writingAnswer.text ||
+          answer.writingAnswer.wordCount !== undefined)
+      ) {
         answerObj.writingAnswer = answer.writingAnswer;
       }
 
       // Chỉ thêm speakingAnswer nếu có giá trị (không set null)
-      if (answer.speakingAnswer && (answer.speakingAnswer.audioUrl || answer.speakingAnswer.duration !== undefined)) {
+      if (
+        answer.speakingAnswer &&
+        (answer.speakingAnswer.audioUrl ||
+          answer.speakingAnswer.duration !== undefined)
+      ) {
         answerObj.speakingAnswer = answer.speakingAnswer;
       }
 
@@ -661,7 +766,7 @@ class ExamService {
   /**
    * Complete exam khi tất cả section đã completed
    * POST /exam-attempts/:attemptId/submit
-   * 
+   *
    * Logic:
    * 1. Kiểm tra tất cả sections đã submit chưa
    * 2. Chấm điểm tất cả sections
@@ -670,6 +775,7 @@ class ExamService {
    */
   async completeExam(req) {
     const { attemptId } = req.params;
+    const { answers, timeSpent, autoSubmit } = req.body || {};
     const userId = req.user?._id;
 
     // Lấy exam attempt
@@ -688,21 +794,25 @@ class ExamService {
     }
 
     // Kiểm tra exam đã completed chưa
-    if (attempt.status === "completed") {
+    // Nếu đã completed nhưng KHÔNG có answers mới → trả về kết quả cũ
+    if (attempt.status === "completed" && (!answers || answers.length === 0)) {
       return ResponseBuilder.success(
         "Exam đã được hoàn thành trước đó.",
         await this._buildExamResult(attempt)
       );
     }
 
-    // Kiểm tra tất cả section đã submit chưa
-    const incompleteSections = attempt.sections?.filter(
-      (s) => s.status !== "completed"
-    );
-    if (incompleteSections && incompleteSections.length > 0) {
-      return ResponseBuilder.badRequest(
-        `Bạn cần hoàn thành tất cả ${incompleteSections.length} section còn lại trước khi nộp exam.`
+    // Nếu đã completed nhưng CÓ answers mới → chấm lại (regrade)
+    if (attempt.status === "completed" && answers && answers.length > 0) {
+      console.log(
+        `[ExamService] Attempt ${attemptId} đã completed nhưng có answers mới được gửi. Tiếp tục chấm điểm lại...`
       );
+      // Tiếp tục logic chấm điểm bên dưới
+    }
+
+    // Validate answers
+    if (!Array.isArray(answers)) {
+      return ResponseBuilder.badRequest("answers phải là một mảng.");
     }
 
     // Lấy exam để lấy thông tin sections
@@ -711,21 +821,73 @@ class ExamService {
       return ResponseBuilder.notFoundError("Không tìm thấy exam.");
     }
 
+    // Group answers by section
+    const answersBySection = new Map();
+    for (const answer of answers) {
+      const questionId = answer.questionId?.toString();
+      if (!questionId) continue;
+
+      // Tìm section chứa question này
+      for (const sectionMeta of exam.sections || []) {
+        const quiz = await QuizRepository.getQuizById(sectionMeta.quiz);
+        if (!quiz) continue;
+
+        const question = quiz.questions?.find(
+          (q) => q._id?.toString() === questionId
+        );
+        if (question) {
+          const sectionId = sectionMeta._id?.toString();
+          if (!answersBySection.has(sectionId)) {
+            answersBySection.set(sectionId, []);
+          }
+          answersBySection.get(sectionId).push(answer);
+          break;
+        }
+      }
+    }
+
+    // Kiểm tra tất cả section đã submit chưa (chỉ khi chưa completed và KHÔNG có answers trong request)
+    // Nếu có answers trong request, có nghĩa là user đang gửi tất cả answers để complete exam
+    // → Không cần kiểm tra status của sections nữa
+    if (attempt.status !== "completed" && (!answers || answers.length === 0)) {
+      const incompleteSections = attempt.sections?.filter(
+        (s) => s.status !== "completed"
+      );
+      if (incompleteSections && incompleteSections.length > 0) {
+        return ResponseBuilder.badRequest(
+          `Bạn cần hoàn thành tất cả ${incompleteSections.length} section còn lại trước khi nộp exam.`
+        );
+      }
+    }
+
+    // Nếu có answers trong request, kiểm tra xem có đủ answers cho tất cả sections không
+    if (answers && answers.length > 0) {
+      const sectionsWithAnswers = answersBySection.size;
+      const totalSections = (exam.sections || []).length;
+      
+      // Log để debug
+      console.log(
+        `[ExamService] completeExam: ${sectionsWithAnswers}/${totalSections} sections có answers trong request`
+      );
+      
+      // Nếu thiếu answers cho một số sections, có thể lấy từ QuizAttempt đã lưu
+      // (từ submitSection trước đó nếu có)
+    }
+
     // Chấm điểm tất cả sections
     const gradedSections = [];
     let totalScore = 0;
     let totalPercentage = 0;
     let totalTimeSpent = 0;
+    const totalTimeSpentFromRequest = timeSpent || 0;
 
     for (const sectionAttempt of attempt.sections || []) {
-      // Lấy quiz attempt
+      // Lấy quiz attempt (lean để đọc data)
       const quizAttempt = await QuizAttemptRepository.findById(
         sectionAttempt.quizAttempt
       );
       if (!quizAttempt) {
-        console.error(
-          `QuizAttempt not found: ${sectionAttempt.quizAttempt}`
-        );
+        console.error(`QuizAttempt not found: ${sectionAttempt.quizAttempt}`);
         continue;
       }
 
@@ -736,10 +898,63 @@ class ExamService {
         continue;
       }
 
-      // Chấm điểm từ raw answers đã lưu (bao gồm writing nếu có)
+      // Lấy answers cho section này từ request
+      const sectionId = sectionAttempt.sectionId?.toString();
+      let sectionAnswers = answersBySection.get(sectionId) || [];
+
+      // Nếu section này không có answers trong request, lấy từ QuizAttempt đã lưu
+      // (từ submitSection trước đó nếu có)
+      if (sectionAnswers.length === 0 && quizAttempt.answers && quizAttempt.answers.length > 0) {
+        // Convert answers từ QuizAttempt sang format giống request body
+        sectionAnswers = quizAttempt.answers.map((a) => ({
+          questionId: a.questionId,
+          selectedAnswer: a.selectedAnswer || "",
+          timeSpent: a.timeSpent || 0,
+          writingAnswer: a.writingAnswer || null,
+          speakingAnswer: a.speakingAnswer || null,
+        }));
+        console.log(
+          `[ExamService] Section ${sectionId} không có answers trong request, ` +
+            `đã lấy ${sectionAnswers.length} answers từ QuizAttempt đã lưu.`
+        );
+      }
+
+      // Lưu answers vào quiz attempt trước khi chấm
+      const rawAnswers = sectionAnswers.map((answer) => {
+        const answerObj = {
+          questionId: answer.questionId || answer._id,
+          selectedAnswer: answer.selectedAnswer || "",
+          timeSpent: answer.timeSpent || 0,
+        };
+
+        if (
+          answer.writingAnswer &&
+          (answer.writingAnswer.text || answer.writingAnswer.wordCount !== undefined)
+        ) {
+          answerObj.writingAnswer = answer.writingAnswer;
+        }
+
+        if (
+          answer.speakingAnswer &&
+          (answer.speakingAnswer.audioUrl || answer.speakingAnswer.duration !== undefined)
+        ) {
+          answerObj.speakingAnswer = answer.speakingAnswer;
+        }
+
+        return answerObj;
+      });
+
+      // Update quiz attempt using findByIdAndUpdate (vì findById trả về lean object)
+      await QuizAttemptRepository.updateById(sectionAttempt.quizAttempt, {
+        answers: rawAnswers,
+        timeSpent: sectionAttempt.timeSpent || 0,
+      });
+
+      // Chấm điểm với detailed information
       const gradedAnswers = await this._gradeAnswers(
         quiz.questions,
-        quizAttempt.answers || []
+        sectionAnswers,
+        true // includeCorrectAnswers = true
       );
 
       // Tính điểm
@@ -753,42 +968,54 @@ class ExamService {
 
       // Tính percentage: với writing, dùng score từ API; với các loại khác, dùng tỷ lệ đúng/sai
       let sectionPercentage = 0;
-      const writingQuestions = quiz.questions.filter((q) => q.type === "writing");
+      const writingQuestions = quiz.questions.filter(
+        (q) => q.type === "writing"
+      );
       if (writingQuestions.length > 0) {
         // Nếu có writing questions, tính percentage dựa trên điểm trung bình từ API
-        const writingAnswers = gradedAnswers.filter(
-          (a) => writingQuestions.some((q) => q._id.toString() === a.questionId.toString())
+        const writingAnswers = gradedAnswers.filter((a) =>
+          writingQuestions.some(
+            (q) => q._id.toString() === a.questionId.toString()
+          )
         );
         if (writingAnswers.length > 0) {
-          const avgWritingScore = writingAnswers.reduce((sum, a) => {
-            const apiScore = a.writingGrading?.grading?.score || 0;
-            return sum + apiScore;
-          }, 0) / writingAnswers.length;
+          const avgWritingScore =
+            writingAnswers.reduce((sum, a) => {
+              const apiScore = a.writingGrading?.grading?.score || 0;
+              return sum + apiScore;
+            }, 0) / writingAnswers.length;
 
           // Tính percentage cho toàn bộ section (kết hợp writing và các câu khác)
           const nonWritingCount = totalCount - writingAnswers.length;
-          const nonWritingCorrect = correctCount - writingAnswers.filter((a) => a.isCorrect).length;
-          const nonWritingPercentage = nonWritingCount > 0
-            ? Math.round((nonWritingCorrect / nonWritingCount) * 100)
-            : 0;
+          const nonWritingCorrect =
+            correctCount - writingAnswers.filter((a) => a.isCorrect).length;
+          const nonWritingPercentage =
+            nonWritingCount > 0
+              ? Math.round((nonWritingCorrect / nonWritingCount) * 100)
+              : 0;
 
           sectionPercentage = Math.round(
-            (avgWritingScore * writingAnswers.length + nonWritingPercentage * nonWritingCount) / totalCount
+            (avgWritingScore * writingAnswers.length +
+              nonWritingPercentage * nonWritingCount) /
+              totalCount
           );
         } else {
-          sectionPercentage = totalCount > 0 ? Math.round((correctCount / totalCount) * 100) : 0;
+          sectionPercentage =
+            totalCount > 0 ? Math.round((correctCount / totalCount) * 100) : 0;
         }
       } else {
-        sectionPercentage = totalCount > 0 ? Math.round((correctCount / totalCount) * 100) : 0;
+        sectionPercentage =
+          totalCount > 0 ? Math.round((correctCount / totalCount) * 100) : 0;
       }
 
       // Cập nhật quiz attempt với kết quả đã chấm
-      quizAttempt.answers = gradedAnswers; // Thay raw answers bằng graded answers
-      quizAttempt.score = sectionScore;
-      quizAttempt.percentage = sectionPercentage;
-      quizAttempt.status = "completed";
-      quizAttempt.completedAt = new Date();
-      await quizAttempt.save();
+      await QuizAttemptRepository.updateById(sectionAttempt.quizAttempt, {
+        answers: gradedAnswers, // Thay raw answers bằng graded answers
+        score: sectionScore,
+        percentage: sectionPercentage,
+        status: "completed",
+        completedAt: new Date(),
+      });
 
       // Cập nhật section attempt trong exam attempt
       const sectionIndex = attempt.sections.findIndex(
@@ -854,7 +1081,7 @@ class ExamService {
       status: "completed",
       totalScore,
       totalPercentage: averagePercentage,
-      totalTimeSpent,
+      totalTimeSpent: totalTimeSpentFromRequest || totalTimeSpent,
       completedAt: new Date(),
     });
 
@@ -862,16 +1089,23 @@ class ExamService {
       attemptId: updatedAttempt._id,
       totalScore,
       totalPercentage: averagePercentage,
-      totalTimeSpent,
+      totalTimeSpent: totalTimeSpentFromRequest || totalTimeSpent,
       completedAt: updatedAttempt.completedAt,
       sections: gradedSections,
     });
   }
 
+  /**
+   * Lấy kết quả chi tiết của exam attempt
+   * Bao gồm thông tin tổng quan và chi tiết từng câu hỏi (user answer, correct answer, grading)
+   * @param {object} req - Request object với attemptId trong params
+   * @returns {Promise<object>} Response với detailed exam result
+   */
   async getExamAttemptResult(req) {
     const { attemptId } = req.params;
     const userId = req.user?._id;
 
+    // Lấy exam attempt
     const attempt = await ExamRepository.findExamAttemptById(
       toObjectId(attemptId)
     );
@@ -879,30 +1113,74 @@ class ExamService {
       return ResponseBuilder.notFoundError("Không tìm thấy exam attempt.");
     }
 
+    // Kiểm tra quyền truy cập
     if (attempt.user.toString() !== userId.toString()) {
       return ResponseBuilder.forbiddenError(
         "Bạn không có quyền truy cập attempt này."
       );
     }
 
+    // Lấy exam để lấy thông tin sections
     const exam = await ExamRepository.findExamById(attempt.exam);
     if (!exam) {
       return ResponseBuilder.notFoundError("Không tìm thấy exam.");
     }
 
-    const sectionsResult = (attempt.sections || []).map((sectionAttempt) => {
-      const sectionMeta = exam.sections?.find(
-        (s) => s._id?.toString() === sectionAttempt.sectionId?.toString()
-      );
-      return {
-        sectionId: sectionAttempt.sectionId,
-        skill: sectionMeta?.skill || "unknown",
-        score: sectionAttempt.score || 0,
-        percentage: sectionAttempt.percentage || 0,
-        timeSpent: sectionAttempt.timeSpent || 0,
-        status: sectionAttempt.status,
-      };
+    // Load tất cả QuizAttempts cho các sections (batch query để tối ưu performance)
+    const quizAttemptIds = (attempt.sections || [])
+      .map((s) => s.quizAttempt)
+      .filter(Boolean);
+
+    const quizAttempts = await Promise.all(
+      quizAttemptIds.map((id) => QuizAttemptRepository.findById(id))
+    );
+
+    // Tạo map để lookup QuizAttempt theo ID
+    const quizAttemptMap = new Map();
+    quizAttempts.forEach((qa) => {
+      if (qa && qa._id) {
+        quizAttemptMap.set(qa._id.toString(), qa);
+      }
     });
+
+    // Build sections result với detailed questions
+    const sectionsResult = await Promise.all(
+      (attempt.sections || []).map(async (sectionAttempt) => {
+        const sectionMeta = exam.sections?.find(
+          (s) => s._id?.toString() === sectionAttempt.sectionId?.toString()
+        );
+        const sectionSkill = sectionMeta?.skill || "unknown";
+
+        // Lấy QuizAttempt cho section này
+        const quizAttemptId = sectionAttempt.quizAttempt?.toString();
+        const quizAttempt = quizAttemptMap.get(quizAttemptId);
+
+        // Build base section result
+        const sectionResult = {
+          sectionId: sectionAttempt.sectionId,
+          skill: sectionSkill,
+          score: sectionAttempt.score || 0,
+          percentage: sectionAttempt.percentage || 0,
+          timeSpent: sectionAttempt.timeSpent || 0,
+          status: sectionAttempt.status,
+        };
+
+        // Nếu có QuizAttempt và Quiz đã được populate, build detailed questions
+        if (quizAttempt && quizAttempt.quiz && quizAttempt.quiz.questions) {
+          const detailedQuestions = await this._buildDetailedQuestions(
+            quizAttempt.quiz,
+            quizAttempt
+          );
+
+          // Chỉ thêm detailedQuestions nếu có ít nhất 1 question
+          if (detailedQuestions.length > 0) {
+            sectionResult.detailedQuestions = detailedQuestions;
+          }
+        }
+
+        return sectionResult;
+      })
+    );
 
     return ResponseBuilder.success("Lấy kết quả exam thành công.", {
       attemptId: attempt._id,
@@ -956,7 +1234,8 @@ class ExamService {
     const answerMap = new Map();
     if (Array.isArray(userAnswers)) {
       userAnswers.forEach((answer) => {
-        const questionId = answer.questionId?.toString() || answer._id?.toString();
+        const questionId =
+          answer.questionId?.toString() || answer._id?.toString();
         if (questionId) {
           answerMap.set(questionId, answer);
         }
@@ -996,7 +1275,8 @@ class ExamService {
         }
       } else if (question.type === "writing") {
         // Chấm điểm writing bằng API
-        const writingText = userAnswer?.writingAnswer?.text || userAnswer?.selectedAnswer || "";
+        const writingText =
+          userAnswer?.writingAnswer?.text || userAnswer?.selectedAnswer || "";
 
         if (writingText && writingText.trim().length > 0) {
           const gradingResult = await this._gradeWritingText(writingText);
@@ -1036,12 +1316,20 @@ class ExamService {
       };
 
       // Chỉ thêm writingAnswer nếu có giá trị (không set null)
-      if (userAnswer?.writingAnswer && (userAnswer.writingAnswer.text || userAnswer.writingAnswer.wordCount !== undefined)) {
+      if (
+        userAnswer?.writingAnswer &&
+        (userAnswer.writingAnswer.text ||
+          userAnswer.writingAnswer.wordCount !== undefined)
+      ) {
         gradedAnswer.writingAnswer = userAnswer.writingAnswer;
       }
 
       // Chỉ thêm speakingAnswer nếu có giá trị (không set null)
-      if (userAnswer?.speakingAnswer && (userAnswer.speakingAnswer.audioUrl || userAnswer.speakingAnswer.duration !== undefined)) {
+      if (
+        userAnswer?.speakingAnswer &&
+        (userAnswer.speakingAnswer.audioUrl ||
+          userAnswer.speakingAnswer.duration !== undefined)
+      ) {
         gradedAnswer.speakingAnswer = userAnswer.speakingAnswer;
       }
 
@@ -1054,6 +1342,240 @@ class ExamService {
     }
 
     return gradedAnswers;
+  }
+
+  /**
+   * Helper method: Build detailed questions for a section
+   * Formats questions with user answers, correct answers, and grading information
+   * @private
+   * @param {object} quiz - Quiz object with questions populated
+   * @param {object} quizAttempt - QuizAttempt object with graded answers
+   * @returns {Promise<Array>} Array of QuestionReview objects
+   */
+  async _buildDetailedQuestions(quiz, quizAttempt) {
+    if (!quiz || !quiz.questions || !Array.isArray(quiz.questions)) {
+      return [];
+    }
+
+    if (!quizAttempt || !quizAttempt.answers || !Array.isArray(quizAttempt.answers)) {
+      return [];
+    }
+
+    // Create a map of answers by questionId for O(1) lookup
+    const answerMap = new Map();
+    quizAttempt.answers.forEach((answer) => {
+      const questionId = answer.questionId?.toString();
+      if (questionId) {
+        answerMap.set(questionId, answer);
+      }
+    });
+
+    // Build detailed questions (cần Promise.all vì có async operations trong map)
+    const detailedQuestionsPromises = quiz.questions.map(async (question) => {
+      const questionId = question._id?.toString();
+      const answer = answerMap.get(questionId) || null;
+
+      // Build user answer object
+      const userAnswer = {
+        selectedAnswer: answer?.selectedAnswer || null,
+        timeSpent: answer?.timeSpent || 0,
+      };
+
+      // Add writingAnswer if exists
+      if (answer?.writingAnswer) {
+        userAnswer.writingAnswer = {
+          text: answer.writingAnswer.text || "",
+          wordCount: answer.writingAnswer.wordCount || 0,
+        };
+      }
+
+      // Add speakingAnswer if exists
+      if (answer?.speakingAnswer) {
+        userAnswer.speakingAnswer = {
+          audioUrl: answer.speakingAnswer.audioUrl || "",
+          duration: answer.speakingAnswer.duration || 0,
+        };
+      }
+
+      // Add matches for matching questions
+      if (question.type === "matching" && answer?.matches) {
+        userAnswer.matches = answer.matches;
+      }
+
+      // Build correct answer object
+      let correctAnswer = null;
+      if (question.type === "multiple_choice" || question.type === "true_false") {
+        // For multiple choice, return all options with isCorrect flag
+        correctAnswer = {
+          options: (question.options || []).map((opt) => ({
+            text: opt.text,
+            isCorrect: opt.isCorrect || false,
+          })),
+        };
+        // Also include the correct text for easy access
+        const correctOption = question.options?.find((opt) => opt.isCorrect);
+        if (correctOption) {
+          correctAnswer.text = correctOption.text;
+        }
+      } else if (question.type === "fill_blank") {
+        correctAnswer = {
+          text: question.correctAnswer || "",
+        };
+      } else if (question.type === "matching") {
+        // For matching questions, correctAnswer can be:
+        // 1. An array of {key, value} pairs
+        // 2. An object with matches property
+        // 3. Extracted from options with isCorrect=true
+        if (question.correctAnswer) {
+          if (Array.isArray(question.correctAnswer)) {
+            correctAnswer = { matches: question.correctAnswer };
+          } else if (question.correctAnswer.matches) {
+            correctAnswer = { matches: question.correctAnswer.matches };
+          } else {
+            correctAnswer = { matches: question.correctAnswer };
+          }
+        } else if (question.options && Array.isArray(question.options)) {
+          // Extract correct pairs from options
+          const correctPairs = question.options
+            .filter((opt) => opt.isCorrect && opt.text)
+            .map((opt) => {
+              // Try to parse "left | right" format
+              const parts = opt.text.split("|").map((s) => s.trim());
+              if (parts.length === 2) {
+                return { key: parts[0], value: parts[1] };
+              }
+              return { key: opt.text, value: opt.text };
+            });
+          if (correctPairs.length > 0) {
+            correctAnswer = { matches: correctPairs };
+          }
+        }
+      }
+      // Note: writing and speaking don't have a single "correct" answer
+
+      // Build question review object
+      const questionReview = {
+        questionId: question._id,
+        questionText: question.questionText || "",
+        questionType: question.type,
+        points: question.points || 1,
+        pointsEarned: answer?.pointsEarned || 0,
+        isCorrect: answer?.isCorrect || false,
+        userAnswer: userAnswer,
+        correctAnswer: correctAnswer,
+        explanation: question.explanation || null,
+      };
+
+      // Add writingGrading if exists (from grammar NLP service)
+      // Format đầy đủ để frontend có thể hiển thị chi tiết feedback
+      if (answer?.writingGrading) {
+        questionReview.writingGrading = {
+          grading: {
+            score: answer.writingGrading.grading?.score || 0,
+            level: answer.writingGrading.grading?.level || "Unknown",
+            overall_comment:
+              answer.writingGrading.grading?.overall_comment || "",
+            suggestions: answer.writingGrading.grading?.suggestions || [],
+          },
+          grammar_errors: (answer.writingGrading.grammar_errors || []).map(
+            (error) => ({
+              message: error.message || "",
+              shortMessage: error.shortMessage || "",
+              replacements: error.replacements || [],
+              offset: error.offset || 0,
+              length: error.length || 0,
+              // Thêm thông tin bổ sung nếu có
+              ...(error.context && { context: error.context }),
+              ...(error.sentence && { sentence: error.sentence }),
+              ...(error.rule && { rule: error.rule }),
+            })
+          ),
+          // Thêm original_text nếu có để frontend có thể highlight errors
+          ...(answer.writingGrading.original_text && {
+            original_text: answer.writingGrading.original_text,
+          }),
+        };
+      } else if (question.type === "writing" && answer) {
+        // Nếu là writing question nhưng không có writingGrading
+        // Có thể exam đã được chấm điểm trước khi code mới được deploy
+        // Hoặc có lỗi khi chấm điểm
+        // Tự động chấm lại để có writingGrading
+        const writingText =
+          answer.writingAnswer?.text || answer.selectedAnswer || "";
+        if (writingText && writingText.trim().length > 0) {
+          try {
+            // Chấm lại writing question để lấy writingGrading
+            const gradingResult = await this._gradeWritingText(writingText);
+            // Luôn có writingGrading, kể cả khi có lỗi (gradingResult.data sẽ có default values)
+            if (gradingResult.data) {
+              const apiData = gradingResult.data;
+
+              // Format grammar_errors
+              const formattedGrammarErrors = (apiData.grammar_errors || []).map(
+                (error) => ({
+                  message: error.message || "",
+                  shortMessage: error.shortMessage || "",
+                  replacements: (error.replacements || []).map((r) => ({
+                    value: r.value || "",
+                  })),
+                  offset: error.offset || 0,
+                  length: error.length || 0,
+                  context: error.context || null,
+                  sentence: error.sentence || null,
+                  rule: error.rule
+                    ? {
+                        id: error.rule.id || "",
+                        description: error.rule.description || "",
+                        issueType: error.rule.issueType || "",
+                        category: error.rule.category
+                          ? {
+                              id: error.rule.category.id || "",
+                              name: error.rule.category.name || "",
+                            }
+                          : null,
+                      }
+                    : null,
+                })
+              );
+
+              // Thêm writingGrading vào questionReview
+              questionReview.writingGrading = {
+                grading: {
+                  score: apiData.grading?.score || 0,
+                  level: apiData.grading?.level || "Unknown",
+                  overall_comment: apiData.grading?.overall_comment || "",
+                  suggestions: apiData.grading?.suggestions || [],
+                },
+                grammar_errors: formattedGrammarErrors,
+                original_text: apiData.original_text || writingText,
+              };
+            }
+          } catch (error) {
+            console.error(
+              `[ExamService] Error grading writing question ${questionId} on-the-fly:`,
+              error
+            );
+            // Fallback: thêm writingGrading với default values nếu có lỗi
+            questionReview.writingGrading = {
+              grading: {
+                score: 0,
+                level: "Unknown",
+                overall_comment: `Lỗi khi chấm điểm: ${error.message}`,
+                suggestions: [],
+              },
+              grammar_errors: [],
+              original_text: writingText,
+            };
+          }
+        }
+      }
+
+      return questionReview;
+    });
+
+    // Wait for all questions to be processed (including async writing grading)
+    const detailedQuestions = await Promise.all(detailedQuestionsPromises);
+    return detailedQuestions;
   }
 
   /**
@@ -1155,18 +1677,15 @@ class ExamService {
         });
       }
 
-      return ResponseBuilder.success(
-        "Lấy lịch sử exam thành công.",
-        {
-          attempts: enrichedAttempts,
-          pagination: {
-            page: parseInt(page),
-            limit: parseInt(limit),
-            total,
-            totalPages: Math.ceil(total / parseInt(limit)),
-          },
-        }
-      );
+      return ResponseBuilder.success("Lấy lịch sử exam thành công.", {
+        attempts: enrichedAttempts,
+        pagination: {
+          page: parseInt(page),
+          limit: parseInt(limit),
+          total,
+          totalPages: Math.ceil(total / parseInt(limit)),
+        },
+      });
     } catch (error) {
       console.error("[ExamService] Error getting exam attempts:", error);
       return ResponseBuilder.error(
@@ -1177,7 +1696,6 @@ class ExamService {
     }
   }
 
-
   async getAvailableExams(req) {
     const userId = req.user?._id;
     const UserLearningPathRepository = require("../repositories/userLearningPath.repo");
@@ -1187,32 +1705,25 @@ class ExamService {
       const userPaths = await UserLearningPathRepository.findByUserId(userId);
 
       if (!userPaths || userPaths.length === 0) {
-        return ResponseBuilder.success(
-          "Chưa có lộ trình học.",
-          {
-            exams: [],
-            message: "Vui lòng hoàn thành onboarding để bắt đầu học.",
-          }
-        );
+        return ResponseBuilder.success("Chưa có lộ trình học.", {
+          exams: [],
+          message: "Vui lòng hoàn thành onboarding để bắt đầu học.",
+        });
       }
 
       const userLearningPath = userPaths[0];
       const learningPathId = userLearningPath.learningPath;
 
       // Get learning path with full details
-      const learningPath = await LearningPathRepository.findByIdWithFullDetails(
-        learningPathId
-      );
+      const learningPath =
+        await LearningPathRepository.findByIdWithFullDetails(learningPathId);
 
       if (!learningPath) {
-        return ResponseBuilder.success(
-          "Lấy danh sách exam thành công.",
-          {
-            exams: [],
-            learningPath: null,
-            message: "Learning path không tồn tại hoặc chưa có exam nào.",
-          }
-        );
+        return ResponseBuilder.success("Lấy danh sách exam thành công.", {
+          exams: [],
+          learningPath: null,
+          message: "Learning path không tồn tại hoặc chưa có exam nào.",
+        });
       }
 
       // Get user progress
@@ -1220,6 +1731,8 @@ class ExamService {
         userId,
         learningPathId
       );
+
+      console.log("userProgress", userProgress);
 
       const availableExams = [];
 
@@ -1233,8 +1746,10 @@ class ExamService {
 
         // Get required lessons in this level
         const requiredLessonIds = (level.lessons || [])
-          .map((l) => l.lesson?.toString())
+          .map((l) => l.lesson?._id.toString())
           .filter(Boolean);
+
+        console.log("requiredLessonIds", requiredLessonIds);
 
         // Check completion status
         const completedLessonMap = new Map();
@@ -1291,30 +1806,28 @@ class ExamService {
             order: level.order,
             title: level.title,
             totalLessons: requiredLessonIds.length,
-            completedLessons: requiredLessonIds.length - incompleteLessons.length,
+            completedLessons:
+              requiredLessonIds.length - incompleteLessons.length,
             incompleteLessonsCount: incompleteLessons.length,
           },
           status, // available | locked | completed | in_progress
           lastAttempt: lastAttemptId
             ? {
-              attemptId: lastAttemptId,
-              score: lastScore,
-              percentage: lastPercentage,
-            }
+                attemptId: lastAttemptId,
+                score: lastScore,
+                percentage: lastPercentage,
+              }
             : null,
         });
       }
 
-      return ResponseBuilder.success(
-        "Lấy danh sách exam thành công.",
-        {
-          learningPath: {
-            id: learningPath._id,
-            title: learningPath.title,
-          },
-          exams: availableExams,
-        }
-      );
+      return ResponseBuilder.success("Lấy danh sách exam thành công.", {
+        learningPath: {
+          id: learningPath._id,
+          title: learningPath.title,
+        },
+        exams: availableExams,
+      });
     } catch (error) {
       console.error("[ExamService] Error getting available exams:", error);
       return ResponseBuilder.error(
@@ -1327,4 +1840,3 @@ class ExamService {
 }
 
 module.exports = new ExamService();
-

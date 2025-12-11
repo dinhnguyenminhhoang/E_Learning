@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { learningPathService } from "@/services/learningPath.service";
 import { userLearningPathService } from "@/services/userLearningPath.service";
+import { examAttemptService } from "@/services/examAttempt.service";
 import {
     GraduationCap,
     BookOpen,
@@ -12,6 +13,8 @@ import {
     Play,
     Target,
     ArrowLeft,
+    ClipboardCheck,
+    Loader2,
 } from "lucide-react";
 import { toast } from "react-hot-toast";
 
@@ -48,6 +51,7 @@ export default function LearningPathDetailPage() {
     const [loading, setLoading] = useState(true);
     const [enrolling, setEnrolling] = useState(false);
     const [isEnrolled, setIsEnrolled] = useState(false);
+    const [startingExam, setStartingExam] = useState<string | null>(null); // Track which exam is being started
 
     useEffect(() => {
         if (pathId) {
@@ -114,6 +118,44 @@ export default function LearningPathDetailPage() {
                     ? firstLesson.lesson
                     : firstLesson.lesson._id;
             router.push(`/learning/${lessonId}`);
+        }
+    };
+
+    /**
+     * Handler để start final quiz exam sau khi level đã completed
+     * @param examId - ID của exam (finalQuiz)
+     */
+    const handleStartFinalQuiz = async (examId: string) => {
+        if (!examId) {
+            toast.error("Không tìm thấy bài kiểm tra");
+            return;
+        }
+
+        try {
+            setStartingExam(examId);
+            
+            // Gọi API start exam
+            const response = await examAttemptService.startExam(examId);
+
+            if (response.code === 200 || response.code === 201) {
+                const attemptId = response.data?.exam?.attemptId || examId;
+                toast.success("Bắt đầu bài kiểm tra thành công!");
+                
+                // Navigate đến trang exam
+                router.push(`/exams/${examId}`);
+            } else {
+                toast.error(
+                    (response as any).message || "Không thể bắt đầu bài kiểm tra"
+                );
+            }
+        } catch (error: any) {
+            console.error("Error starting final quiz:", error);
+            toast.error(
+                error?.response?.data?.message ||
+                    "Lỗi khi bắt đầu bài kiểm tra. Vui lòng thử lại."
+            );
+        } finally {
+            setStartingExam(null);
         }
     };
 
@@ -189,7 +231,7 @@ export default function LearningPathDetailPage() {
                                 )}
                             </div>
 
-                            <h1 className="text-4xl font-bold mb font-bold mb-4">{path.title}</h1>
+                            <h1 className="text-4xl font-bold mb-4">{path.title}</h1>
                             <p className="text-lg text-white/90 max-w-3xl">
                                 {path.description || "No description available"}
                             </p>
@@ -329,17 +371,52 @@ export default function LearningPathDetailPage() {
                                     );
                                 })}
 
+                                {/* Final Quiz Section - Hiển thị khi level completed và có finalQuiz */}
                                 {level.finalQuiz && (
-                                    <div className="px-6 py-4 bg-purple-50 hover:bg-purple-100 transition-colors cursor-pointer flex items-center justify-between">
-                                        <div className="flex items-center gap-3">
-                                            <CheckCircle className="w-5 h-5 text-purple-600" />
-                                            <span className="text-purple-900 font-medium">
-                                                Final Quiz
-                                            </span>
+                                    <div className="px-6 py-4 bg-gradient-to-r from-purple-50 to-indigo-50 border-t border-purple-100">
+                                        <div className="flex items-center justify-between mb-3">
+                                            <div className="flex items-center gap-3">
+                                                <ClipboardCheck className="w-5 h-5 text-purple-600" />
+                                                <div>
+                                                    <span className="text-purple-900 font-semibold text-base">
+                                                        Bài kiểm tra cuối level
+                                                    </span>
+                                                    <p className="text-xs text-purple-700 mt-0.5">
+                                                        Hoàn thành tất cả bài học để làm bài kiểm tra
+                                                    </p>
+                                                </div>
+                                            </div>
                                         </div>
-                                        {!isEnrolled && idx > 0 && (
-                                            <Lock className="w-4 h-4 text-purple-300" />
-                                        )}
+                                        
+                                        {/* Button Vào bài kiểm tra */}
+                                        <button
+                                            onClick={() => handleStartFinalQuiz(level.finalQuiz!)}
+                                            disabled={
+                                                startingExam === level.finalQuiz ||
+                                                (!isEnrolled && idx > 0)
+                                            }
+                                            className={`
+                                                w-full bg-gradient-to-r from-purple-600 to-indigo-600 
+                                                text-white font-semibold py-3 px-6 rounded-lg 
+                                                shadow-md hover:shadow-lg 
+                                                transition-all duration-200 
+                                                flex items-center justify-center gap-2
+                                                disabled:opacity-50 disabled:cursor-not-allowed
+                                                hover:scale-[1.02] active:scale-[0.98]
+                                            `}
+                                        >
+                                            {startingExam === level.finalQuiz ? (
+                                                <>
+                                                    <Loader2 className="w-5 h-5 animate-spin" />
+                                                    <span>Đang mở bài kiểm tra...</span>
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <ClipboardCheck className="w-5 h-5" />
+                                                    <span>Vào bài kiểm tra</span>
+                                                </>
+                                            )}
+                                        </button>
                                     </div>
                                 )}
                             </div>

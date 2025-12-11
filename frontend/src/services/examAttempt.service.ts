@@ -6,7 +6,7 @@ import type {
     SubmitSectionResponse,
     CompleteExamResponse,
     ExamResultResponse,
-} from "@/Types/examAttempt.types";
+} from "@/types/examAttempt.types";
 
 class ExamAttemptService {
     async startExam(examId: string) {
@@ -32,9 +32,14 @@ class ExamAttemptService {
         );
     }
 
-    async completeExam(attemptId: string) {
+    async completeExam(attemptId: string, data?: {
+        answers: any[];
+        timeSpent: number;
+        autoSubmit?: boolean;
+    }) {
         return await apiClient.post<CompleteExamResponse>(
-            `/v1/api/exam/exam-attempts/${attemptId}/submit`
+            `/v1/api/exam/exam-attempts/${attemptId}/submit`,
+            data
         );
     }
 

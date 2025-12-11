@@ -16,6 +16,9 @@ import {
     TrendingUp,
 } from "lucide-react";
 import { toast } from "react-hot-toast";
+import { QuestionReview } from "@/components/exam/QuestionReview";
+import { WritingReviewCard } from "@/components/exam/WritingReviewCard";
+import { List } from "lucide-react";
 
 interface PageProps {
     params: Promise<{ attemptId: string }>;
@@ -191,16 +194,19 @@ export default function ExamResultsPage({ params }: PageProps) {
                                         </div>
                                     </div>
 
-                                    {section.writingGradings && section.writingGradings.length > 0 && (
-                                        <div className="mt-4 p-4 bg-orange-50 border border-orange-200 rounded-lg">
-                                            <p className="text-sm font-semibold text-orange-900 mb-2">
-                                                Writing Feedback (AI Graded)
-                                            </p>
-                                            {section.writingGradings.map((grading: any, idx: number) => (
-                                                <div key={idx} className="text-sm text-gray-700">
-                                                    <p><strong>Level:</strong> {grading.level}</p>
-                                                    <p><strong>Comment:</strong> {grading.overall_comment}</p>
-                                                </div>
+                                    {/* Detailed Questions Review */}
+                                    {section.detailedQuestions && section.detailedQuestions.length > 0 && (
+                                        <div className="mt-6 space-y-4">
+                                            <h4 className="text-md font-semibold text-gray-900 flex items-center gap-2">
+                                                <List className="w-5 h-5" />
+                                                Question Review
+                                            </h4>
+                                            {section.detailedQuestions.map((question: any, qIndex: number) => (
+                                                <QuestionReview
+                                                    key={question.questionId}
+                                                    question={question}
+                                                    index={qIndex}
+                                                />
                                             ))}
                                         </div>
                                     )}

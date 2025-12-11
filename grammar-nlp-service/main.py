@@ -18,7 +18,7 @@ GEMINI_MODEL = "gemini-2.5-flash"
 GEMINI_BASE_URL = "https://generativelanguage.googleapis.com/v1" 
 
 # Đây là khóa API của bạn
-GEMINI_API_KEY = "AIzaSyDKHwODLJAuM2U2--a7MupktrrMprk7bv8" 
+GEMINI_API_KEY = "AIzaSyBRVOnVsxVabRfdNGJfmcfAVwq8LgrbuJw" 
 
 
 # -----------------------------
