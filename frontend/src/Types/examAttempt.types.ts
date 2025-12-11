@@ -1,6 +1,6 @@
 export interface Question {
     _id: string;
-    type: "multiple_choice" | "fill_blank" | "true_false" | "writing" | "speaking";
+    type: "multiple_choice" | "fill_blank" | "true_false" | "writing" | "speaking" | "matching";
     questionText: string;
     options?: Array<{ text: string }>;
     points: number;
@@ -59,9 +59,31 @@ export interface SectionQuestionsResponse {
     code: number;
 }
 
+export interface ExamSection {
+    sectionId: string;
+    skill: string;
+    status: "in_progress" | "completed";
+    score: number;
+    percentage: number;
+    timeSpent: number;
+    questions: Question[];
+}
+
 export interface StartExamResponse {
     status: string;
-    data: ExamAttempt;
+    data: {
+        exam: {
+            _id: string;
+            attemptId: string;
+            timeSpent: number;
+            startAt: string;
+            status: "in_progress" | "completed";
+            totalScore: number;
+            totalPercentage: number;
+            totalTimeLimit?: number | null;
+        };
+        sections: ExamSection[];
+    };
     code: number;
 }
 
@@ -102,12 +124,61 @@ export interface CompleteExamResponse {
     code: number;
 }
 
+export interface QuestionReview {
+    questionId: string;
+    questionText: string;
+    questionType: Question["type"];
+    points: number;
+    pointsEarned: number;
+    isCorrect: boolean;
+    userAnswer: Answer & {
+        matches?: Array<{ key: string; value: string }>;
+    };
+    correctAnswer?: {
+        text?: string;
+        matches?: Array<{ key: string; value: string }>;
+        options?: Array<{ text: string; isCorrect: boolean }>;
+    };
+    writingGrading?: {
+        grading: {
+            score: number;
+            level: string;
+            overall_comment: string;
+            suggestions: string[];
+        };
+        grammar_errors: Array<{
+            message: string;
+            shortMessage: string;
+            replacements: Array<{ value: string }>;
+            offset: number;
+            length: number;
+            context?: {
+                text: string;
+                offset: number;
+                length: number;
+            };
+            sentence?: string;
+            rule?: {
+                id: string;
+                description: string;
+                issueType: string;
+                category?: {
+                    id: string;
+                    name: string;
+                };
+            };
+        }>;
+        original_text?: string;
+    };
+}
+
 export interface ExamResultResponse {
     status: string;
     data: ExamAttempt & {
         sections: Array<SectionAttempt & {
             answers?: any[];
             writingGrading?: any;
+            detailedQuestions?: QuestionReview[];
         }>;
     };
     code: number;

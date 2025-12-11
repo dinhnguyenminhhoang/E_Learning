@@ -49,7 +49,7 @@ export default function ExamsPage() {
             const response = await examAttemptService.startExam(examId);
 
             if (response.code === 200 || response.code === 201) {
-                const attemptId = response.data._id;
+                const attemptId = response.data.exam.attemptId;
                 toast.success("Bắt đầu exam thành công!");
                 router.push(`/exams/${examId}?attemptId=${attemptId}`);
             } else {
@@ -223,7 +223,7 @@ export default function ExamsPage() {
                                         )}
                                         {item.status === "in_progress" && item.lastAttempt && (
                                             <Link
-                                                href={`/exams/${item.lastAttempt.attemptId}`}
+                                                href={`/exams/${item.exam.id}`}
                                                 className="block w-full bg-yellow-500 text-white font-semibold py-3 px-6 rounded-2xl text-center hover:shadow-lg transition-all duration-300"
                                             >
                                                 Tiếp tục thi

@@ -9,32 +9,16 @@ const { asynchandler } = require("../helpers/asyncHandler");
 
 // ===== ADMIN ENDPOINTS =====
 // Lấy tất cả exams (cho admin)
-router.get(
-  "/",
-  authenticate,
-  asynchandler(ExamController.getAllExams)
-);
+router.get("/", authenticate, asynchandler(ExamController.getAllExams));
 
 // Lấy exam theo ID (cho admin edit)
-router.get(
-  "/:examId",
-  authenticate,
-  asynchandler(ExamController.getExamById)
-);
+router.get("/:examId", authenticate, asynchandler(ExamController.getExamById));
 
 // Tạo exam mới (admin)
-router.post(
-  "/",
-  authenticate,
-  asynchandler(ExamController.createExam)
-);
+router.post("/", authenticate, asynchandler(ExamController.createExam));
 
 // Cập nhật exam (admin)
-router.put(
-  "/:examId",
-  authenticate,
-  asynchandler(ExamController.updateExam)
-);
+router.put("/:examId", authenticate, asynchandler(ExamController.updateExam));
 
 // Xóa exam (admin)
 router.delete(
@@ -45,7 +29,11 @@ router.delete(
 
 // ===== USER ENDPOINTS =====
 // Bắt đầu làm exam (user)
-router.post("/:examId/start", authenticate, asynchandler(ExamController.startExam));
+router.post(
+  "/:examId/start",
+  authenticate,
+  asynchandler(ExamController.startExam)
+);
 
 router.get(
   "/exam-attempts/:attemptId/section/:sectionId",

@@ -7,12 +7,15 @@ import TopicSidebar from "@/components/topic/TopicSidebar/TopicSidebar";
 import { TopicList } from "@/types/learning";
 import { useEffect, useRef, useState } from "react";
 import { learningPathService } from "@/services/learningPath.service";
-import { useSearchParams } from "next/navigation";
+import { examAttemptService } from "@/services/examAttempt.service";
+import { useSearchParams, useRouter } from "next/navigation";
 import { toast } from "react-hot-toast";
 import { useUserProgress } from "@/hooks/useUserProgress";
+import { ClipboardCheck, Loader2 } from "lucide-react";
 
 export default function TopicsPage() {
   const searchParams = useSearchParams();
+  const router = useRouter();
   const pathId = searchParams.get("pathId");
 
   const { progress } = useUserProgress();
@@ -21,6 +24,7 @@ export default function TopicsPage() {
   const [topicsData, setTopicsData] = useState<TopicList[]>([]);
   const [loading, setLoading] = useState(true);
   const [isOpen, setIsOpen] = useState(false);
+  const [startingExam, setStartingExam] = useState<string | null>(null); // Track which exam is being started
 
   const topicRefs = useRef<{ [key: number]: HTMLDivElement | null }>({});
   const containerRef = useRef<HTMLDivElement>(null);
@@ -73,7 +77,8 @@ export default function TopicsPage() {
                 ...level,
                 lessons: lessonsData,
                 totalLessons: lessonsResponse.data?.totalLessons || lessonsData.length,
-                completedLessons: lessonsResponse.data?.completedLessons || 0
+                completedLessons: lessonsResponse.data?.completedLessons || 0,
+                finalQuiz: level.finalQuiz || null // Lưu finalQuiz từ API response
               };
             } catch (error) {
               return {
@@ -99,6 +104,7 @@ export default function TopicsPage() {
               name: level.title || `Level ${level.order}`,
               totalTopics: totalLessons,
               progressPercent: progressPercent,
+              finalQuiz: level.finalQuiz || null, // Lưu finalQuiz vào TopicList
               subTopics: level.lessons.map((lesson: any, lessonIndex: number) => {
                 const previousLesson = lessonIndex > 0 ? level.lessons[lessonIndex - 1] : null;
                 const isLocked = lessonIndex > 0 && previousLesson && !previousLesson.isCompleted;
@@ -180,6 +186,44 @@ export default function TopicsPage() {
     }
   };
 
+  /**
+   * Handler để start final quiz exam sau khi level đã completed
+   * @param examId - ID của exam (finalQuiz)
+   */
+  const handleStartFinalQuiz = async (examId: string) => {
+    if (!examId) {
+      toast.error("Không tìm thấy bài kiểm tra");
+      return;
+    }
+
+    try {
+      setStartingExam(examId);
+      
+      // Gọi API start exam
+      const response = await examAttemptService.startExam(examId);
+
+      if (response.code === 200 || response.code === 201) {
+        const attemptId = response.data?.exam?.attemptId || examId;
+        toast.success("Bắt đầu bài kiểm tra thành công!");
+        
+        // Navigate đến trang exam
+        router.push(`/exams/${examId}`);
+      } else {
+        toast.error(
+          (response as any).message || "Không thể bắt đầu bài kiểm tra"
+        );
+      }
+    } catch (error: any) {
+      console.error("Error starting final quiz:", error);
+      toast.error(
+        error?.response?.data?.message ||
+          "Lỗi khi bắt đầu bài kiểm tra. Vui lòng thử lại."
+      );
+    } finally {
+      setStartingExam(null);
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -222,6 +266,51 @@ export default function TopicsPage() {
                       isLocked={subTopic.isLocked}
                     />
                   ))}
+
+                  {/* Final Quiz Button - Hiển thị khi level completed và có finalQuiz */}
+                  {topic.finalQuiz && (
+                    <div className="bg-gradient-to-r from-purple-50 to-indigo-50 border-2 border-purple-200 rounded-xl p-6">
+                      <div className="flex items-center gap-3 mb-4">
+                        <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-indigo-600 rounded-xl flex items-center justify-center">
+                          <ClipboardCheck className="w-6 h-6 text-white" />
+                        </div>
+                        <div className="flex-1">
+                          <h3 className="text-lg font-semibold text-purple-900 mb-1">
+                            Bài kiểm tra cuối level
+                          </h3>
+                          <p className="text-sm text-purple-700">
+                            Hoàn thành tất cả bài học để làm bài kiểm tra
+                          </p>
+                        </div>
+                      </div>
+                      
+                      <button
+                        onClick={() => handleStartFinalQuiz(topic.finalQuiz!)}
+                        disabled={startingExam === topic.finalQuiz}
+                        className={`
+                          w-full bg-gradient-to-r from-purple-600 to-indigo-600 
+                          text-white font-semibold py-3 px-6 rounded-lg 
+                          shadow-md hover:shadow-lg 
+                          transition-all duration-200 
+                          flex items-center justify-center gap-2
+                          disabled:opacity-50 disabled:cursor-not-allowed
+                          hover:scale-[1.02] active:scale-[0.98]
+                        `}
+                      >
+                        {startingExam === topic.finalQuiz ? (
+                          <>
+                            <Loader2 className="w-5 h-5 animate-spin" />
+                            <span>Đang mở bài kiểm tra...</span>
+                          </>
+                        ) : (
+                          <>
+                            <ClipboardCheck className="w-5 h-5" />
+                            <span>Vào bài kiểm tra</span>
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
             ))}

@@ -202,6 +202,26 @@ export function QuizModal({ open, onClose, attempt, questions, onSubmit }: QuizM
         );
     };
 
+    // Render writing question
+    const renderWriting = (question: QuizQuestion) => {
+        const value = selectedAnswer || "";
+        return (
+            <div className="space-y-4">
+                <label className="text-sm text-gray-600">Nhập câu trả lời của bạn</label>
+                <textarea
+                    className={cn(
+                        "w-full min-h-[140px] p-4 text-base rounded-xl border-2 transition-all",
+                        "bg-white border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200",
+                        "shadow-sm"
+                    )}
+                    placeholder="Viết câu trả lời tại đây..."
+                    value={value}
+                    onChange={(e) => handleFillBlankChange(e.target.value)}
+                />
+            </div>
+        );
+    };
+
     // Render matching question with improved UX
     const renderMatching = (question: QuizQuestion) => {
         // Initialize pairs from saved answer
@@ -564,6 +584,8 @@ export function QuizModal({ open, onClose, attempt, questions, onSubmit }: QuizM
                 return renderMatching(question);
             case "true_false":
                 return renderTrueFalse(question);
+            case "writing":
+                return renderWriting(question);
             case "multiple_choice":
             default:
                 return renderMultipleChoice(question);
@@ -672,6 +694,10 @@ export function QuizModal({ open, onClose, attempt, questions, onSubmit }: QuizM
                                         if (currentQuestion.type === "matching") {
                                             const selectedCount = selectedAnswer.split("|").filter(Boolean).length;
                                             return selectedCount === 0;
+                                        }
+
+                                        if (currentQuestion.type === "writing") {
+                                            return selectedAnswer.trim().length === 0;
                                         }
                                         
                                         return false;
