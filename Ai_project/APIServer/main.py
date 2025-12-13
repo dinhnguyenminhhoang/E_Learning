@@ -3,11 +3,18 @@ import torch
 import traceback
 import tempfile
 import whisper
+import json
+import re
 from fastapi import FastAPI, HTTPException, File, UploadFile, Form
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from transformers import T5Tokenizer, T5ForConditionalGeneration
 from difflib import SequenceMatcher
+from openai import OpenAI
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
 
 app = FastAPI(
     title="AI Language Learning API",
@@ -30,11 +37,16 @@ app.add_middleware(
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 MODEL_PATH = os.path.join(BASE_DIR, "../T5_spellCheck/checkpoint-145000")
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
-WHISPER_MODEL_SIZE = "base"  # Options: tiny, base, small, medium, large
+WHISPER_MODEL_SIZE = os.getenv("WHISPER_MODEL_SIZE", "base")  # Options: tiny, base, small, medium, large
+
+# OpenAI Configuration
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-3.5-turbo")
 
 print(f"Base Dir: {BASE_DIR}")
 print(f"Attempting to load T5 model from: {os.path.abspath(MODEL_PATH)}")
 print(f"Device: {DEVICE}")
+print(f"OpenAI Model: {OPENAI_MODEL}")
 
 # -----------------------------
 # Load T5 Model & Tokenizer
@@ -85,15 +97,33 @@ except Exception as e:
         whisper_model = None
 
 # -----------------------------
+# Initialize OpenAI Client
+# -----------------------------
+openai_client = None
+if OPENAI_API_KEY:
+    try:
+        openai_client = OpenAI(api_key=OPENAI_API_KEY)
+        print("OpenAI client initialized successfully!")
+    except Exception as e:
+        print(f"Error initializing OpenAI client: {e}")
+        openai_client = None
+else:
+    print("⚠️ OPENAI_API_KEY not found. Grammar grading endpoint will not work.")
+
+# -----------------------------
 # Request Models
 # -----------------------------
 class SpellCheckRequest(BaseModel):
     text: str
 
+class GrammarGradeRequest(BaseModel):
+    text: str
+    language: str = "en-US"
+
 class TranscriptionResponse(BaseModel):
     status: str
     transcribed_text: str
-    
+
 class ComparisonResponse(BaseModel):
     status: str
     transcribed_text: str
@@ -277,6 +307,195 @@ async def transcribe_and_compare(
         raise HTTPException(status_code=500, detail=str(e))
 
 # -----------------------------
+# Grammar Grading Helper Functions
+# -----------------------------
+def detect_grammar_errors_with_t5(text: str):
+    """
+    Sử dụng T5 model để phát hiện lỗi ngữ pháp bằng cách so sánh text gốc với text đã sửa.
+    Trả về danh sách các lỗi được phát hiện.
+    """
+    if not model or not tokenizer:
+        raise HTTPException(status_code=500, detail="T5 Model is not loaded.")
+
+    input_with_prefix = f"grammar: {text}"
+
+    try:
+        encoded = tokenizer(
+            [input_with_prefix],
+            return_tensors="pt",
+            padding=True,
+            truncation=True,
+            max_length=128
+        ).to(DEVICE)
+
+        with torch.no_grad():
+            outputs = model.generate(
+                **encoded,
+                max_length=128,
+                num_beams=2,
+                early_stopping=True
+            )
+
+        corrected_text = tokenizer.decode(outputs[0], skip_special_tokens=True)
+        if corrected_text.startswith("grammar:"):
+            corrected_text = corrected_text.replace("grammar:", "", 1).strip()
+
+        # So sánh text gốc với text đã sửa để tìm lỗi
+        errors = []
+        if text.lower().strip() != corrected_text.lower().strip():
+            # Tách thành từng câu để phân tích chi tiết hơn
+            original_words = text.split()
+            corrected_words = corrected_text.split()
+
+            # Tìm điểm khác biệt
+            for i, (orig, corr) in enumerate(zip(original_words, corrected_words)):
+                if orig.lower() != corr.lower():
+                    errors.append({
+                        "message": f"Có thể sai: '{orig}' nên là '{corr}'",
+                        "original": orig,
+                        "suggestion": corr,
+                        "position": i,
+                        "rule": {"id": "T5_CORRECTION"}
+                    })
+
+            # Nếu không tìm thấy lỗi cụ thể nhưng có sự khác biệt, thêm lỗi chung
+            if not errors:
+                errors.append({
+                    "message": "Văn bản có thể cần được hiệu chỉnh",
+                    "original": text,
+                    "suggestion": corrected_text,
+                    "rule": {"id": "T5_GENERAL_CORRECTION"}
+                })
+
+        return errors, corrected_text
+
+    except Exception as e:
+        print(f"Error in T5 grammar detection: {e}")
+        traceback.print_exc()
+        raise
+
+def build_grading_prompt(text: str, errors: list, corrected_text: str):
+    """Tạo prompt tiếng Việt cho OpenAI để chấm điểm bài viết."""
+
+    error_description = ""
+    if errors:
+        error_list = "\n".join([f"- {err['message']}" for err in errors])
+        error_description = f"""
+Danh sách lỗi được phát hiện:
+{error_list}
+
+Văn bản đã sửa: {corrected_text}
+"""
+    else:
+        error_description = "Không phát hiện lỗi ngữ pháp rõ ràng."
+
+    return f"""
+Bạn là một hệ thống chấm điểm và nhận xét bài viết tiếng Anh dành cho người học Việt Nam.
+
+Dưới đây là bài viết của học viên:
+---
+{text}
+---
+
+{error_description}
+
+Yêu cầu:
+1. Dựa trên các lỗi grammar ở trên (nếu có), hãy chấm điểm bài viết theo thang 0–100.
+2. Nhận xét tổng quan về bài viết bằng **tiếng Việt** (không nhận xét lan man, nhận xét đúng trọng tâm).
+3. Gợi ý cách cải thiện bằng **tiếng Việt**.
+4. Xác định trình độ dựa theo CEFR (A1–C2).
+5. Trả về **đúng định dạng JSON**, không thêm chữ nào ngoài JSON.
+
+Format JSON:
+{{
+  "score": <number>,
+  "level": "<A1-C2>",
+  "overall_comment": "<Nhận xét tiếng Việt>",
+  "suggestions": ["<gợi ý 1>", "<gợi ý 2>"]
+}}
+"""
+
+def call_openai_for_grading(prompt: str):
+    """Gọi OpenAI API để chấm điểm và nhận xét bài viết."""
+    if not openai_client:
+        raise HTTPException(status_code=500, detail="OpenAI client is not initialized. Check API key.")
+
+    try:
+        response = openai_client.chat.completions.create(
+            model=OPENAI_MODEL,
+            messages=[
+                {"role": "system", "content": "Bạn là một giáo viên tiếng Anh chuyên nghiệp, chấm điểm bài viết cho học viên Việt Nam."},
+                {"role": "user", "content": prompt}
+            ],
+            temperature=0.2,
+            max_tokens=1000
+        )
+
+        return response.choices[0].message.content
+
+    except Exception as e:
+        print(f"Error calling OpenAI: {e}")
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"OpenAI API error: {str(e)}")
+
+# -----------------------------
+# Grammar Grading Endpoint
+# -----------------------------
+@app.post("/api/v1/grade_text")
+async def grade_text(payload: GrammarGradeRequest):
+    """
+    Chấm điểm bài viết tiếng Anh.
+    - Sử dụng T5 model để phát hiện lỗi ngữ pháp
+    - Sử dụng OpenAI để chấm điểm và đưa ra nhận xét bằng tiếng Việt
+    """
+    print(f"[Grade] Received text: {payload.text[:100]}...")
+
+    try:
+        # Bước 1: Phát hiện lỗi ngữ pháp bằng T5
+        errors, corrected_text = detect_grammar_errors_with_t5(payload.text)
+        print(f"[Grade] Detected {len(errors)} errors")
+
+        # Bước 2: Tạo prompt cho OpenAI
+        prompt = build_grading_prompt(payload.text, errors, corrected_text)
+
+        # Bước 3: Gọi OpenAI để chấm điểm
+        openai_output = call_openai_for_grading(prompt)
+        print(f"[Grade] OpenAI response: {openai_output[:200]}...")
+
+        # Bước 4: Parse JSON từ OpenAI
+        # Làm sạch output (loại bỏ markdown code blocks nếu có)
+        cleaned_output = openai_output.strip().replace("```json", "").replace("```", "").strip()
+
+        # Tìm JSON object
+        json_match = re.search(r'\{.*\}', cleaned_output, re.DOTALL)
+        if not json_match:
+            raise ValueError(f"Không tìm thấy JSON trong response: {openai_output[:200]}")
+
+        grading_json = json_match.group(0).strip()
+        grading = json.loads(grading_json)
+
+        print(f"[Grade] Parsed grading: score={grading.get('score')}, level={grading.get('level')}")
+
+        # Bước 5: Trả về kết quả
+        return {
+            "status": "success",
+            "original_text": payload.text,
+            "grammar_errors": errors,
+            "grading": grading
+        }
+
+    except json.JSONDecodeError as e:
+        print(f"[Grade] JSON parse error: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"OpenAI trả về JSON sai định dạng. Lỗi: {str(e)}"
+        )
+    except Exception as e:
+        print(f"[Grade] Error: {e}")
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))
+
+# -----------------------------
 # Health Check
 # -----------------------------
 @app.get("/health")
@@ -285,6 +504,7 @@ def health_check():
         "status": "ok",
         "t5_model_loaded": model is not None,
         "whisper_model_loaded": whisper_model is not None,
+        "openai_client_loaded": openai_client is not None,
         "device": DEVICE
     }
 

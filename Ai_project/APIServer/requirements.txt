@@ -6,3 +6,5 @@ sentencepiece
 protobuf
 openai-whisper
 python-multipart
+openai
+python-dotenv
