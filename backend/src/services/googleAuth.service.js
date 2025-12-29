@@ -35,6 +35,7 @@ class GoogleAuthService {
         provider: "google",
         status: STATUS.ACTIVE,
         roles: ["USER"],
+        onboardingStatus: "not_started",
         verification: {
           emailVerified: true,
           phoneVerified: false,

@@ -37,10 +37,10 @@ import { FillBlankQuestion } from "@/components/exam/FillBlankQuestion";
 import { TrueFalseQuestion } from "@/components/exam/TrueFalseQuestion";
 import { WritingQuestion } from "@/components/exam/WritingQuestion";
 import { MatchingQuestion } from "@/components/exam/MatchingQuestion";
-import { 
-  useExamAutoSave, 
-  loadAnswersFromStorage, 
-  clearAnswersFromStorage 
+import {
+  useExamAutoSave,
+  loadAnswersFromStorage,
+  clearAnswersFromStorage,
 } from "@/hooks/useExamAutoSave";
 
 interface PageProps {
@@ -54,7 +54,9 @@ export default function ExamTakingPage({ params }: PageProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  const [examData, setExamData] = useState<StartExamResponse["data"] | null>(null);
+  const [examData, setExamData] = useState<StartExamResponse["data"] | null>(
+    null
+  );
   const [currentSectionIndex, setCurrentSectionIndex] = useState(0);
   const [answers, setAnswers] = useState<Map<string, Answer>>(new Map());
   const [loading, setLoading] = useState(true);
@@ -82,7 +84,10 @@ export default function ExamTakingPage({ params }: PageProps) {
 
   // Check if all questions are answered
   const allQuestionsAnswered = useMemo(() => {
-    return totalQuestionsAllSections > 0 && answeredCountAllSections >= totalQuestionsAllSections;
+    return (
+      totalQuestionsAllSections > 0 &&
+      answeredCountAllSections >= totalQuestionsAllSections
+    );
   }, [totalQuestionsAllSections, answeredCountAllSections]);
 
   // Load exam data khi component mount
@@ -95,7 +100,7 @@ export default function ExamTakingPage({ params }: PageProps) {
     if (examData?.exam.startAt && examData.exam.status === "in_progress") {
       const startTime = new Date(examData.exam.startAt).getTime();
       const totalTimeLimit = examData.exam.totalTimeLimit;
-      
+
       // Calculate elapsed time from startAt to now
       const updateTime = () => {
         const now = Date.now();
@@ -180,11 +185,12 @@ export default function ExamTakingPage({ params }: PageProps) {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
       // Force save trước khi rời trang
       forceSave();
-      
+
       // Chỉ hiển thị warning nếu exam đang in_progress
       if (examData.exam.status === "in_progress") {
         e.preventDefault();
-        e.returnValue = "Bạn có chắc muốn rời khỏi trang? Câu trả lời đã được lưu tự động.";
+        e.returnValue =
+          "Bạn có chắc muốn rời khỏi trang? Câu trả lời đã được lưu tự động.";
         return e.returnValue;
       }
     };
@@ -201,8 +207,12 @@ export default function ExamTakingPage({ params }: PageProps) {
     const handleFullscreenChange = () => {
       const isCurrentlyFullscreen = !!document.fullscreenElement;
       setIsFullscreen(isCurrentlyFullscreen);
-      
-      if (!isCurrentlyFullscreen && hasEnteredFullscreen && examData?.exam.status === "in_progress") {
+
+      if (
+        !isCurrentlyFullscreen &&
+        hasEnteredFullscreen &&
+        examData?.exam.status === "in_progress"
+      ) {
         setShowExitConfirm(true);
       }
     };
@@ -214,9 +224,18 @@ export default function ExamTakingPage({ params }: PageProps) {
 
     return () => {
       document.removeEventListener("fullscreenchange", handleFullscreenChange);
-      document.removeEventListener("webkitfullscreenchange", handleFullscreenChange);
-      document.removeEventListener("mozfullscreenchange", handleFullscreenChange);
-      document.removeEventListener("MSFullscreenChange", handleFullscreenChange);
+      document.removeEventListener(
+        "webkitfullscreenchange",
+        handleFullscreenChange
+      );
+      document.removeEventListener(
+        "mozfullscreenchange",
+        handleFullscreenChange
+      );
+      document.removeEventListener(
+        "MSFullscreenChange",
+        handleFullscreenChange
+      );
     };
   }, [hasEnteredFullscreen, examData?.exam.status]);
 
@@ -230,6 +249,7 @@ export default function ExamTakingPage({ params }: PageProps) {
       examData.exam.status === "in_progress" &&
       !isFullscreen
     ) {
+      console.log("Entering fullscreen mode for exam");
       enterFullscreen();
       setHasEnteredFullscreen(true);
     }
@@ -293,6 +313,13 @@ export default function ExamTakingPage({ params }: PageProps) {
   };
 
   const handleConfirmExit = () => {
+    if (examData?.exam.attemptId) {
+      clearAnswersFromStorage(examData.exam.attemptId);
+      console.log(
+        "🧹 Đã dọn dẹp Local Storage cho attempt:",
+        examData.exam.attemptId
+      );
+    }
     setShowExitConfirm(false);
     exitFullscreen();
     router.push("/exams");
@@ -300,7 +327,10 @@ export default function ExamTakingPage({ params }: PageProps) {
 
   const handleCancelExit = () => {
     setShowExitConfirm(false);
-    if (!document.fullscreenElement && examData?.exam.status === "in_progress") {
+    if (
+      !document.fullscreenElement &&
+      examData?.exam.status === "in_progress"
+    ) {
       enterFullscreen();
     }
   };
@@ -395,9 +425,7 @@ export default function ExamTakingPage({ params }: PageProps) {
       }
     } catch (error: any) {
       console.error("Error completing exam:", error);
-      toast.error(
-        error?.response?.data?.message || "Failed to complete exam"
-      );
+      toast.error(error?.response?.data?.message || "Failed to complete exam");
     } finally {
       setSubmitting(false);
     }
@@ -443,7 +471,9 @@ export default function ExamTakingPage({ params }: PageProps) {
         // TODO: Implement SpeakingQuestion component
         return (
           <Card className="p-6">
-            <p className="text-gray-500">Speaking question not yet implemented</p>
+            <p className="text-gray-500">
+              Speaking question not yet implemented
+            </p>
           </Card>
         );
       case "matching":
@@ -487,8 +517,7 @@ export default function ExamTakingPage({ params }: PageProps) {
   }
 
   const currentSection = examData.sections[currentSectionIndex];
-  const progress =
-    ((currentSectionIndex + 1) / examData.sections.length) * 100;
+  const progress = ((currentSectionIndex + 1) / examData.sections.length) * 100;
   const answeredCount = currentSection
     ? currentSection.questions.filter((q) => answers.has(q._id)).length
     : 0;
@@ -530,7 +559,8 @@ export default function ExamTakingPage({ params }: PageProps) {
               Xác nhận thoát bài thi
             </DialogTitle>
             <DialogDescription className="pt-2">
-              Bạn có chắc chắn muốn thoát khỏi bài thi không? Nếu đồng ý, bạn sẽ được chuyển về trang "Bài kiểm tra".
+              Bạn có chắc chắn muốn thoát khỏi bài thi không? Nếu đồng ý, bạn sẽ
+              được chuyển về trang "Bài kiểm tra".
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="gap-2 sm:gap-0">
@@ -565,7 +595,8 @@ export default function ExamTakingPage({ params }: PageProps) {
               Xác nhận nộp bài thi
             </DialogTitle>
             <DialogDescription className="pt-2">
-              Bạn có chắc chắn muốn nộp bài thi không? Sau khi nộp, bạn không thể thay đổi câu trả lời.
+              Bạn có chắc chắn muốn nộp bài thi không? Sau khi nộp, bạn không
+              thể thay đổi câu trả lời.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="gap-2 sm:gap-0">
@@ -635,7 +666,9 @@ export default function ExamTakingPage({ params }: PageProps) {
                           "w-8 h-8 rounded-full flex items-center justify-center shrink-0",
                           isActive && "bg-blue-500 text-white",
                           isCompleted && "bg-green-500 text-white",
-                          !isActive && !isCompleted && "bg-gray-200 text-gray-600"
+                          !isActive &&
+                            !isCompleted &&
+                            "bg-gray-200 text-gray-600"
                         )}
                       >
                         {isCompleted ? (
@@ -655,7 +688,8 @@ export default function ExamTakingPage({ params }: PageProps) {
                           Section {index + 1} ({section.skill})
                         </p>
                         <p className="text-xs text-gray-600">
-                          {sectionAnsweredCount} / {section.questions.length} answered
+                          {sectionAnsweredCount} / {section.questions.length}{" "}
+                          answered
                         </p>
                       </div>
                     </div>
@@ -721,7 +755,9 @@ export default function ExamTakingPage({ params }: PageProps) {
                           <div className="flex items-center justify-center w-10 h-10 rounded-full bg-blue-100 text-blue-700 font-bold shrink-0">
                             {index + 1}
                           </div>
-                          <div className="flex-1">{renderQuestion(question)}</div>
+                          <div className="flex-1">
+                            {renderQuestion(question)}
+                          </div>
                         </div>
                       </Card>
                     ))}
@@ -748,40 +784,35 @@ export default function ExamTakingPage({ params }: PageProps) {
                 Previous Section
               </Button>
 
-               <div className="flex items-center gap-4">
-                 <Button
-                   onClick={handleSubmitClick}
-                   disabled={
-                     submitting || 
-                     examData?.exam.status === "completed" || 
-                     !examData ||
-                     examData?.exam.status !== "in_progress"
-                   }
-                   className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                   size="lg"
-                   title={
-                     examData?.exam.status === "completed"
-                       ? "Exam đã được nộp"
-                       : examData?.exam.status !== "in_progress"
-                       ? "Exam chưa bắt đầu hoặc đã kết thúc"
-                       : submitting
-                       ? "Đang nộp bài..."
-                       : "Nộp bài thi"
-                   }
-                 >
-                   {submitting ? (
-                     <>
-                       <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full mr-2" />
-                       Submitting...
-                     </>
-                   ) : (
-                     <>
-                       Submit Exam
-                       <ChevronRight className="w-4 h-4 ml-2" />
-                     </>
-                   )}
-                 </Button>
-               </div>
+              <div className="flex items-center gap-4">
+                <Button
+                  onClick={handleSubmitClick}
+                  disabled={submitting}
+                  className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                  size="lg"
+                  title={
+                    examData?.exam.status === "completed"
+                      ? "Exam đã được nộp"
+                      : examData?.exam.status !== "in_progress"
+                        ? "Exam chưa bắt đầu hoặc đã kết thúc"
+                        : submitting
+                          ? "Đang nộp bài..."
+                          : "Nộp bài thi"
+                  }
+                >
+                  {submitting ? (
+                    <>
+                      <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full mr-2" />
+                      Submitting...
+                    </>
+                  ) : (
+                    <>
+                      Submit Exam
+                      <ChevronRight className="w-4 h-4 ml-2" />
+                    </>
+                  )}
+                </Button>
+              </div>
 
               <Button
                 variant="outline"
