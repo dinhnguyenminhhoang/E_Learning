@@ -78,17 +78,11 @@ class ExamRepository {
       user: toObjectId(userId),
       exam: toObjectId(examId),
     })
-      .sort({ createdAt: -1 }) // Lấy attempt mới nhất
-      .exec();
+      .sort({ createdAt: -1 }); // Lấy attempt mới nhất
 
-    // Nếu tìm thấy attempt nhưng chưa có startedAt, update nó
-    if (attempt && (!attempt.startedAt || attempt.startedAt === null)) {
-      attempt.startedAt = new Date();
-      await attempt.save();
-    }
-
-    return attempt ? attempt.toObject() : null;
-  }
+   
+    return attempt;
+}
 
   async findExamAttemptById(id) {
     return ExamAttempt.findById(toObjectId(id));

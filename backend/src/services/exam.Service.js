@@ -511,6 +511,9 @@ class ExamService {
     );
 
     if (existingAttempt) {
+      existingAttempt.startedAt = new Date();
+      await existingAttempt.save();
+
       // Đã có attempt, format và return response
       const formattedResponse = await this._formatExamAttemptResponse(
         existingAttempt,
@@ -547,6 +550,7 @@ class ExamService {
     const examAttempt = await ExamRepository.createExamAttempt({
       ...examAttemptPayload,
       totalTimeSpent: exam.totalTimeLimit,
+      startedAt: new Date(),
     });
 
     // Convert mongoose document sang plain object nếu cần
