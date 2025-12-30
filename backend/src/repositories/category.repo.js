@@ -16,8 +16,6 @@ class CategoryRepository {
     ];
   }
 
-  // ===== CREATE OPERATIONS =====
-
   /**
    * Tạo category mới
    * @param {Object} data - Category data
@@ -33,8 +31,6 @@ class CategoryRepository {
       throw error;
     }
   }
-
-  // ===== READ OPERATIONS =====
 
   /**
    * Tìm category by ID
@@ -77,23 +73,7 @@ class CategoryRepository {
     }
   }
 
-  /**
-   * Tìm categories theo level
-   * @param {string} level - beginner|intermediate|advanced
-   * @returns {Promise<Array>} Categories
-   */
-  // async findByLevel(level) {
-  //   try {
-  //     return await this.model.find({
-  //       level,
-  //       status: STATUS.ACTIVE,
-  //       updatedAt: null,
-  //     });
-  //   } catch (error) {
-  //     console.error("❌ Error finding categories by level:", error);
-  //     throw error;
-  //   }
-  // }
+
 
   /**
    * @param {string} name - Category name
@@ -147,8 +127,6 @@ class CategoryRepository {
       throw error;
     }
   }
-
-  // ===== UPDATE OPERATIONS =====
 
   /**
    * Update category by ID
@@ -222,8 +200,6 @@ class CategoryRepository {
       throw error;
     }
   }
-
-  // ===== DELETE OPERATIONS =====
 
   /**
    * Soft delete category

@@ -246,15 +246,6 @@ class ExamService {
     return ResponseBuilder.success("Xóa exam thành công.", { examId });
   }
 
-  // ===== USER METHODS =====
-
-  /**
-   * Kiểm tra user đã hoàn thành level chứa exam này chưa
-   * @private
-   * @param {string} userId - ID của user
-   * @param {object} exam - Exam object
-   * @returns {Promise<object|null>} Response error nếu chưa hoàn thành, null nếu OK
-   */
   /**
    * Kiểm tra user đã hoàn thành tất cả lesson trong level chứa exam này chưa
    * Logic:
@@ -567,7 +558,7 @@ class ExamService {
     );
   }
 
-  async getSectionByExam(examAttemptId) {}
+  async getSectionByExam(examAttemptId) { }
 
   /**
    * Lấy câu hỏi của section trong exam attempt
@@ -864,12 +855,12 @@ class ExamService {
     if (answers && answers.length > 0) {
       const sectionsWithAnswers = answersBySection.size;
       const totalSections = (exam.sections || []).length;
-      
+
       // Log để debug
       console.log(
         `[ExamService] completeExam: ${sectionsWithAnswers}/${totalSections} sections có answers trong request`
       );
-      
+
       // Nếu thiếu answers cho một số sections, có thể lấy từ QuizAttempt đã lưu
       // (từ submitSection trước đó nếu có)
     }
@@ -915,7 +906,7 @@ class ExamService {
         }));
         console.log(
           `[ExamService] Section ${sectionId} không có answers trong request, ` +
-            `đã lấy ${sectionAnswers.length} answers từ QuizAttempt đã lưu.`
+          `đã lấy ${sectionAnswers.length} answers từ QuizAttempt đã lưu.`
         );
       }
 
@@ -997,7 +988,7 @@ class ExamService {
           sectionPercentage = Math.round(
             (avgWritingScore * writingAnswers.length +
               nonWritingPercentage * nonWritingCount) /
-              totalCount
+            totalCount
           );
         } else {
           sectionPercentage =
@@ -1524,16 +1515,16 @@ class ExamService {
                   sentence: error.sentence || null,
                   rule: error.rule
                     ? {
-                        id: error.rule.id || "",
-                        description: error.rule.description || "",
-                        issueType: error.rule.issueType || "",
-                        category: error.rule.category
-                          ? {
-                              id: error.rule.category.id || "",
-                              name: error.rule.category.name || "",
-                            }
-                          : null,
-                      }
+                      id: error.rule.id || "",
+                      description: error.rule.description || "",
+                      issueType: error.rule.issueType || "",
+                      category: error.rule.category
+                        ? {
+                          id: error.rule.category.id || "",
+                          name: error.rule.category.name || "",
+                        }
+                        : null,
+                    }
                     : null,
                 })
               );
@@ -1813,10 +1804,10 @@ class ExamService {
           status, // available | locked | completed | in_progress
           lastAttempt: lastAttemptId
             ? {
-                attemptId: lastAttemptId,
-                score: lastScore,
-                percentage: lastPercentage,
-              }
+              attemptId: lastAttemptId,
+              score: lastScore,
+              percentage: lastPercentage,
+            }
             : null,
         });
       }

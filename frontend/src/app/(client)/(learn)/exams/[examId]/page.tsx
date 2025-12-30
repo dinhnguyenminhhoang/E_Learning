@@ -269,6 +269,15 @@ export default function ExamTakingPage({ params }: PageProps) {
 
   const exitFullscreen = async () => {
     try {
+      // Check if document is actually in fullscreen before attempting to exit
+      if (!document.fullscreenElement &&
+          !(document as any).webkitFullscreenElement &&
+          !(document as any).mozFullScreenElement &&
+          !(document as any).msFullscreenElement) {
+        setIsFullscreen(false);
+        return;
+      }
+
       if (document.exitFullscreen) {
         await document.exitFullscreen();
       } else if ((document as any).webkitExitFullscreen) {

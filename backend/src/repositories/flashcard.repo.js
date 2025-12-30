@@ -13,7 +13,6 @@ class FlashcardRepository {
     ];
   }
 
-  // ===== CREATE =====
   async create(data) {
     try {
       const flashcard = new this.model(data);
@@ -25,7 +24,6 @@ class FlashcardRepository {
     }
   }
 
-  // ===== READ =====
   async findById(id, options = {}) {
     try {
       const { populate = true, lean = false } = options;
@@ -59,7 +57,6 @@ class FlashcardRepository {
       const query = { status: "active" };
       const flashcards = await this.model.find(query);
 
-      console.log("💡 Flashcards returned:", flashcards.length);
       return flashcards;
     } catch (error) {
       console.error("❌ Error listing flashcards:", error);
@@ -120,7 +117,6 @@ class FlashcardRepository {
     }
   }
 
-  // ===== UPDATE =====
   async update(id, data, options = {}) {
     try {
       const { populate = true, returnNew = true } = options;
@@ -160,7 +156,6 @@ class FlashcardRepository {
     }
   }
 
-  // ===== DELETE =====
   async softDelete(id) {
     try {
       const deleted = await this.model.findByIdAndUpdate(
@@ -178,7 +173,6 @@ class FlashcardRepository {
     }
   }
 
-  // ===== CUSTOM LOGIC =====
   isHard(flashcard) {
     return flashcard.difficulty === "hard";
   }

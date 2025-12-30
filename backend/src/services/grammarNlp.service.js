@@ -1,22 +1,10 @@
 "use strict";
-
-/**
- * Service để gọi API grammar-nlp-service để chấm điểm writing
- */
 class GrammarNlpService {
   constructor() {
-    // URL của grammar-nlp-service (có thể config từ env)
     this.baseUrl =
       process.env.GRAMMAR_NLP_SERVICE_URL || "http://localhost:8000";
-    this.timeout = 30000; // 30 seconds
+    this.timeout = 30000;
   }
-
-  /**
-   * Gọi API chấm điểm writing
-   * @param {string} text - Text cần chấm điểm
-   * @param {string} language - Language code (default: "en-US")
-   * @returns {Promise<object>} Response từ API
-   */
   async gradeWriting(text, language = "en-US") {
     if (!text || typeof text !== "string" || text.trim().length === 0) {
       throw new Error("Text không được để trống");

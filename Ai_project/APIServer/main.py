@@ -496,6 +496,130 @@ async def grade_text(payload: GrammarGradeRequest):
         raise HTTPException(status_code=500, detail=str(e))
 
 # -----------------------------
+# Speaking Practice Endpoint (STT + Spellcheck)
+# -----------------------------
+@app.post("/api/v1/speaking-practice")
+async def speaking_practice(audio: UploadFile = File(...)):
+    """
+    Speaking practice endpoint: Transcribe audio and check spelling/grammar.
+    - Sử dụng Whisper để chuyển audio thành text
+    - Sử dụng T5 để kiểm tra và sửa lỗi chính tả/ngữ pháp
+    - Trả về cả text gốc và text đã sửa
+    """
+    if not whisper_model:
+        raise HTTPException(status_code=500, detail="Whisper model is not loaded. Check server logs.")
+    
+    if not model or not tokenizer:
+        raise HTTPException(status_code=500, detail="T5 Model is not loaded. Check server logs.")
+    
+    print(f"[Speaking Practice] Received audio file: {audio.filename}, content_type: {audio.content_type}")
+    
+    try:
+        # Step 1: Save uploaded audio to temp file
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as temp_file:
+            content = await audio.read()
+            temp_file.write(content)
+            temp_path = temp_file.name
+        
+        print(f"[Speaking Practice] Saved to temp file: {temp_path}")
+        
+        # Step 2: Transcribe with Whisper
+        result = whisper_model.transcribe(
+            temp_path,
+            language="en",
+            fp16=False if DEVICE == "cpu" else True
+        )
+        
+        transcribed_text = result["text"].strip()
+        print(f"[Speaking Practice] Transcribed: {transcribed_text}")
+        
+        # Cleanup temp file
+        os.unlink(temp_path)
+        
+        if not transcribed_text:
+            return {
+                "status": "success",
+                "transcribed_text": "",
+                "corrected_text": "",
+                "errors": [],
+                "has_errors": False
+            }
+        
+        # Step 3: Spellcheck with T5
+        input_with_prefix = f"grammar: {transcribed_text}"
+        
+        encoded = tokenizer(
+            [input_with_prefix],
+            return_tensors="pt",
+            padding=True,
+            truncation=True,
+            max_length=128
+        ).to(DEVICE)
+
+        with torch.no_grad():
+            outputs = model.generate(
+                **encoded,
+                max_length=128,
+                num_beams=2,
+                early_stopping=True
+            )
+
+        corrected_text = tokenizer.decode(outputs[0], skip_special_tokens=True)
+        
+        if corrected_text.startswith("grammar:"):
+            corrected_text = corrected_text.replace("grammar:", "", 1).strip()
+        
+        print(f"[Speaking Practice] Corrected: {corrected_text}")
+        
+        # Step 4: Find differences/errors
+        errors = []
+        has_errors = transcribed_text.lower().strip() != corrected_text.lower().strip()
+        
+        if has_errors:
+            original_words = transcribed_text.split()
+            corrected_words = corrected_text.split()
+            
+            for i, (orig, corr) in enumerate(zip(original_words, corrected_words)):
+                if orig.lower() != corr.lower():
+                    errors.append({
+                        "original": orig,
+                        "corrected": corr,
+                        "position": i
+                    })
+            
+            # Handle length differences
+            if len(original_words) > len(corrected_words):
+                for i in range(len(corrected_words), len(original_words)):
+                    errors.append({
+                        "original": original_words[i],
+                        "corrected": "(removed)",
+                        "position": i
+                    })
+            elif len(corrected_words) > len(original_words):
+                for i in range(len(original_words), len(corrected_words)):
+                    errors.append({
+                        "original": "(missing)",
+                        "corrected": corrected_words[i],
+                        "position": i
+                    })
+        
+        return {
+            "status": "success",
+            "transcribed_text": transcribed_text,
+            "corrected_text": corrected_text,
+            "errors": errors,
+            "has_errors": has_errors
+        }
+        
+    except Exception as e:
+        print(f"[Speaking Practice] Error: {e}")
+        traceback.print_exc()
+        # Cleanup temp file if exists
+        if 'temp_path' in locals() and os.path.exists(temp_path):
+            os.unlink(temp_path)
+        raise HTTPException(status_code=500, detail=str(e))
+
+# -----------------------------
 # Health Check
 # -----------------------------
 @app.get("/health")

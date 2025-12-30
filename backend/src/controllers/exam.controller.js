@@ -3,7 +3,6 @@
 const examService = require("../services/exam.Service");
 
 class ExamController {
-  // ===== ADMIN METHODS =====
   async getAllExams(req, res) {
     const result = await examService.getAllExams(req);
     return res.status(result.code).json(result);
@@ -29,7 +28,6 @@ class ExamController {
     return res.status(result.code).json(result);
   }
 
-  // ===== USER METHODS =====
   async startExam(req, res) {
     const result = await examService.startExam(req);
     return res.status(result.code).json(result);
@@ -56,7 +54,6 @@ class ExamController {
   }
 
   async getMyExamAttempts(req, res) {
-    console.log("rning heare");
     const result = await examService.getMyExamAttempts(req);
     return res.status(result.code).json(result);
   }

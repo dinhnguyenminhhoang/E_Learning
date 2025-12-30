@@ -16,6 +16,8 @@ import {
   Target,
   ClipboardList,
   Award,
+  Mic,
+  PenTool,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -99,6 +101,18 @@ const menuItems: MenuItem[] = [
         label: "Thẻ ghi nhớ",
         href: "/admin/flashcards",
         icon: Layers,
+      },
+      {
+        id: "speaking-templates",
+        label: "Mẫu luyện nói",
+        href: "/admin/speaking-templates",
+        icon: Mic,
+      },
+      {
+        id: "writing-templates",
+        label: "Mẫu luyện viết",
+        href: "/admin/writing-templates",
+        icon: PenTool,
       },
     ],
   },

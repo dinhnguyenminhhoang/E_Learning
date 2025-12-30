@@ -52,6 +52,7 @@
   - Environment variables
   - Cách khởi chạy hệ thống
 
+
 ### 5. Hướng Dẫn Sử Dụng ✅
 - **File**: `USER_GUIDE.md`
 - **Kích thước**: 18KB
@@ -68,7 +69,6 @@
 - **Public URL**: https://github.com/dinhnguyenminhhoang/E_Learning
 - **Branch**: `main`
 - **Commits**: [Số commits] (kiểm tra bằng `git log --oneline | wc -l`)
-
 ---
 
 ## 📋 CÁCH NỘP BÁO CÁO

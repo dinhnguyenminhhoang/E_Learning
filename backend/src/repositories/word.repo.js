@@ -19,8 +19,6 @@ class WordRepository {
     ];
   }
 
-  // ===== CREATE OPERATIONS =====
-
   /**
    * Tạo word mới
    * @param {Object} wordData - Word data
@@ -36,8 +34,6 @@ class WordRepository {
       throw error;
     }
   }
-
-  // ===== READ OPERATIONS =====
 
   /**
    * Tìm word by ID
@@ -227,8 +223,6 @@ class WordRepository {
     }
   }
 
-  // ===== UPDATE OPERATIONS =====
-
   /**
    * Update word by ID
    * @param {string} id - Word ID
@@ -290,8 +284,6 @@ class WordRepository {
     }
   }
 
-  // ===== DELETE OPERATIONS =====
-
   /**
    * Soft delete word
    * @param {string} id - Word ID
@@ -337,8 +329,6 @@ class WordRepository {
       throw error;
     }
   }
-
-  // ===== UTILITY METHODS =====
 
   /**
    * Get word statistics
