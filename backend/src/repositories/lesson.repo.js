@@ -11,11 +11,13 @@ class LessonRepository {
       level,
       categoryId,
       search,
+      status
     } = req.query;
 
     const filter = { status: { $ne: `${STATUS.DELETED}` } };
     if (skill) filter.skill = skill;
     if (level) filter.level = level;
+    if (status) filter.status = status;
     if (categoryId) {
       const categoryObjectId = toObjectId(categoryId);
       if (categoryObjectId) {

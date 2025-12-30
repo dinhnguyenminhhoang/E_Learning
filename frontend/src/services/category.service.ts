@@ -16,6 +16,10 @@ class CategoryService {
     return await apiClient.post("/v1/api/category/create", input);
   }
 
+  async listCategories(): Promise<{ code: number; data: Category[] }> {
+    return await apiClient.get("/v1/api/category");
+  }
+
   async update(
     id: string,
     input: Partial<CreateCategoryInput>

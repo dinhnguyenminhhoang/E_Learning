@@ -143,7 +143,7 @@ export default function LessonsPage() {
                         className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     >
                         <option value="all">Tất cả trạng thái</option>
-                        <option value="published">Đã xuất bản</option>
+                        <option value="active">Đã xuất bản</option>
                         <option value="draft">Nháp</option>
                         <option value="archived">Lưu trữ</option>
                     </select>

@@ -12,5 +12,4 @@ router.put("/:id", validateCreateCategory, asynchandler(categoryController.updat
 router.get("/", asynchandler(categoryController.listCategories));
 router.get("/getById/:id", asynchandler(categoryController.getCategoryById));
 router.delete("/delete/:id", asynchandler(categoryController.deleteCategory));
-
 module.exports = router;
