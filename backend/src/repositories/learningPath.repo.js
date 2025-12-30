@@ -13,7 +13,12 @@ class LearningPathRepository {
   }
 
   async findByIdWithFullDetails(id) {
-    return await LearningPath.findOne({
+    const rawPath = await LearningPath.findOne({
+      _id: toObjectId(id),
+      status: { $ne: STATUS.DELETED },
+    }).lean();
+
+    const populated = await LearningPath.findOne({
       _id: toObjectId(id),
       status: { $ne: STATUS.DELETED },
     })
@@ -26,6 +31,8 @@ class LearningPathRepository {
       })
       .populate("levels.finalQuiz")
       .lean();
+
+    return populated;
   }
 
   async addLesson(learningPathId, updatedLevels) {

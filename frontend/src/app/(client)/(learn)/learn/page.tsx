@@ -6,6 +6,7 @@ import { userLearningPathService } from "@/services/userLearningPath.service";
 import { UserOverview } from "@/types/learning";
 import { toast } from "react-hot-toast";
 import Link from "next/link";
+import { MyLearningPaths } from "@/components/learning-path/MyLearningPaths";
 
 export default function LearnPage() {
   const { user } = useAuth();
@@ -54,7 +55,8 @@ export default function LearnPage() {
             Chưa có lộ trình học
           </h2>
           <p className="text-gray-600 mb-8">
-            {overview?.message || "Vui lòng hoàn thành onboarding để bắt đầu học"}
+            {overview?.message ||
+              "Vui lòng hoàn thành onboarding để bắt đầu học"}
           </p>
           <Link
             href="/onboarding"
@@ -67,7 +69,14 @@ export default function LearnPage() {
     );
   }
 
-  const { user: userInfo, dailyProgress, learningPath, recentLessons, vocabularyStats, quickActions } = overview;
+  const {
+    user: userInfo,
+    dailyProgress,
+    learningPath,
+    recentLessons,
+    vocabularyStats,
+    quickActions,
+  } = overview;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
@@ -101,7 +110,9 @@ export default function LearnPage() {
                       <div className="text-3xl font-bold text-blue-600">
                         {dailyProgress.completed}
                       </div>
-                      <div className="text-sm text-gray-500">/ {dailyProgress.goal}</div>
+                      <div className="text-sm text-gray-500">
+                        / {dailyProgress.goal}
+                      </div>
                     </div>
                     {userInfo?.streak && userInfo.streak > 0 && (
                       <div className="bg-orange-100 text-orange-600 px-4 py-2 rounded-full">
@@ -144,13 +155,17 @@ export default function LearnPage() {
                     <div className="text-3xl font-bold text-blue-600">
                       {learningPath.totalLessons}
                     </div>
-                    <div className="text-sm text-gray-600 mt-1">Tổng bài học</div>
+                    <div className="text-sm text-gray-600 mt-1">
+                      Tổng bài học
+                    </div>
                   </div>
                   <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-2xl p-4 text-center">
                     <div className="text-3xl font-bold text-green-600">
                       {learningPath.completedLessons}
                     </div>
-                    <div className="text-sm text-gray-600 mt-1">Đã hoàn thành</div>
+                    <div className="text-sm text-gray-600 mt-1">
+                      Đã hoàn thành
+                    </div>
                   </div>
                   <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-2xl p-4 text-center">
                     <div className="text-3xl font-bold text-purple-600">
@@ -168,6 +183,8 @@ export default function LearnPage() {
                 </div>
               </div>
             )}
+
+            <MyLearningPaths />
 
             {/* Recently Accessed Lessons */}
             {recentLessons && recentLessons.length > 0 && (
@@ -254,7 +271,9 @@ export default function LearnPage() {
                   <div className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
                     {vocabularyStats.totalWords}
                   </div>
-                  <div className="text-sm text-gray-600 mt-1">Tổng từ đã học</div>
+                  <div className="text-sm text-gray-600 mt-1">
+                    Tổng từ đã học
+                  </div>
                 </div>
 
                 <div className="space-y-3">
@@ -292,7 +311,9 @@ export default function LearnPage() {
                             className={`h-full bg-gradient-to-r ${colors[index]} rounded-full transition-all duration-500`}
                             style={{
                               width: `${Math.min(
-                                (levelStat.count / (vocabularyStats.totalWords || 1)) * 100,
+                                (levelStat.count /
+                                  (vocabularyStats.totalWords || 1)) *
+                                  100,
                                 100
                               )}%`,
                             }}

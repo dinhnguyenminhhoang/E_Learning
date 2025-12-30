@@ -29,7 +29,16 @@ export function useUserProgress() {
       const response = (await userLearningPathService.getPathByUser()) as any;
 
       if (response.code === 200 && response.data) {
-        const data = Array.isArray(response.data) ? response.data[0] : response.data;
+        let data;
+
+        if (Array.isArray(response.data)) {
+          data =
+            response.data.find((path: any) => path.status === "active") ||
+            response.data[0];
+        } else {
+          data = response.data;
+        }
+
         if (data) {
           setProgress({
             learningPathId: data.learningPath,
@@ -39,7 +48,7 @@ export function useUserProgress() {
             totalTimeSpent: data.totalTimeSpent || 0,
             lastAccAt: data.lastAccAt,
             dailyGoal: data.dailyGoal,
-            totalWordsLearned: data.progress?.completedLessons?.length || 0 // Approximate
+            totalWordsLearned: data.progress?.completedLessons?.length || 0, // Approximate
           });
         }
       }

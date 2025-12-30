@@ -6,10 +6,12 @@ const { toObjectId } = require("../helpers/idHelper");
 class UserProgressRepository {
   // Tìm UserProgress theo user và learningPath
   async findByUserAndPath(userId, learningPathId) {
-    return await UserProgress.findOne({
+    const result = await UserProgress.findOne({
       user: toObjectId(userId),
       learningPath: toObjectId(learningPathId),
-    });
+    }).lean();
+
+    return result;
   }
 
   // Tìm hoặc tạo UserProgress
@@ -122,12 +124,7 @@ class UserProgressRepository {
   }
 
   // Cập nhật lastAccessedBlockId (khi user chọn xem một block)
-  async updateLastAccessedBlock(
-    userId,
-    learningPathId,
-    lessonId,
-    blockId
-  ) {
+  async updateLastAccessedBlock(userId, learningPathId, lessonId, blockId) {
     const progress = await this.findOrCreate(userId, learningPathId);
     progress.updateLastAccessedBlock(toObjectId(lessonId), toObjectId(blockId));
     await progress.save();

@@ -19,4 +19,18 @@ router.get(
   asynchandler(UserLearningPath.getPathByUser)
 );
 
+router.post(
+  "/add",
+  auth.authenticate,
+  asynchandler(UserLearningPath.addLearningPath)
+);
+
+router.patch(
+  "/switch/:learningPathId",
+  auth.authenticate,
+  asynchandler(UserLearningPath.switchPath)
+);
+
+router.get("/all", auth.authenticate, asynchandler(UserLearningPath.getAllPaths));
+
 module.exports = router;

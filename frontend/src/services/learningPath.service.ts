@@ -84,6 +84,10 @@ class LearningPathService {
       targetIds,
     });
   }
+
+  async getAllPaths() {
+    return await apiClient.get("/v1/api/learning-path/");
+  }
 }
 
 export const learningPathService = new LearningPathService();

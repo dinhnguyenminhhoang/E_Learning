@@ -2,7 +2,8 @@
 
 const ResponseBuilder = require("../types/response/baseResponse");
 const UserLearningPathRepository = require("../repositories/userLearningPath.repo");
-
+const { toObjectId } = require("../helpers/idHelper");
+const UserProgressRepository = require("../repositories/userProgress.repo");
 class UserLearningPathService {
   /**
    * Gán lộ trình học (learningPath) cho user, kèm target
@@ -20,11 +21,14 @@ class UserLearningPathService {
       return ResponseBuilder.duplicateError();
     }
 
+    const userPaths = await UserLearningPathRepository.findByUserId(userId);
+    const isFirstPath = userPaths.length === 0;
+
     const newRecord = await UserLearningPathRepository.create({
       user: userId,
       learningPath: learningPathId,
       target: targetId || null,
-      status: "active",
+      status: isFirstPath ? "active" : "paused",
       progress: {
         currentLevel: 1,
         currentLesson: 1,
@@ -56,24 +60,23 @@ class UserLearningPathService {
     const LessonRepository = require("../repositories/lesson.repo");
 
     try {
-      // Get user's active learning path
-      const userPaths = await UserLearningPathRepository.findByUserId(userId);
+      const activePath =
+        await UserLearningPathRepository.findActiveByUserId(userId);
 
-      if (!userPaths || userPaths.length === 0) {
+
+      if (!activePath) {
         return ResponseBuilder.success("No active learning path found", {
           hasLearningPath: false,
           message: "Please complete onboarding to start learning",
         });
       }
 
-      // Get the first active path (or most recent)
-      const userLearningPath = userPaths[0];
-      const learningPathId = userLearningPath.learningPath;
+      const userLearningPath = activePath;
+      const learningPathId =
+        activePath.learningPath._id || activePath.learningPath;
 
-      // Fetch learning path with full details
-      const learningPath = await LearningPathRepository.findByIdWithFullDetails(
-        learningPathId
-      );
+      const learningPath =
+        await LearningPathRepository.findByIdWithFullDetails(learningPathId);
 
       if (!learningPath) {
         return ResponseBuilder.notFoundError("Learning path not found");
@@ -87,7 +90,8 @@ class UserLearningPathService {
 
       // Calculate statistics
       const currentLevel = userLearningPath.progress?.currentLevel || 1;
-      const completedLessons = userLearningPath.progress?.completedLessons || [];
+      const completedLessons =
+        userLearningPath.progress?.completedLessons || [];
       const totalLevels = learningPath.levels?.length || 0;
 
       // Count total lessons across all levels
@@ -149,7 +153,8 @@ class UserLearningPathService {
               prevDate.setHours(0, 0, 0, 0);
 
               const diff = Math.floor(
-                (currentDate.getTime() - prevDate.getTime()) / (1000 * 60 * 60 * 24)
+                (currentDate.getTime() - prevDate.getTime()) /
+                  (1000 * 60 * 60 * 24)
               );
               if (diff === 1) {
                 streak++;
@@ -166,8 +171,7 @@ class UserLearningPathService {
       if (userProgress?.lessonProgress?.length > 0) {
         const sortedByAccess = [...userProgress.lessonProgress]
           .sort(
-            (a, b) =>
-              new Date(b.lastAccessedAt) - new Date(a.lastAccessedAt)
+            (a, b) => new Date(b.lastAccessedAt) - new Date(a.lastAccessedAt)
           )
           .slice(0, 5);
 
@@ -178,8 +182,8 @@ class UserLearningPathService {
           if (lesson) {
             const totalBlocks = lesson.blocks?.length || 0;
             const completedBlocks =
-              lessonProg.blockProgress?.filter((bp) => bp.isCompleted)
-                .length || 0;
+              lessonProg.blockProgress?.filter((bp) => bp.isCompleted).length ||
+              0;
             const lessonProgressPercentage =
               totalBlocks > 0
                 ? Math.round((completedBlocks / totalBlocks) * 100)
@@ -198,7 +202,39 @@ class UserLearningPathService {
         }
       }
 
-      // Calculate vocabulary statistics
+      if (recentLessons.length === 0 && learningPath.levels?.length > 0) {
+        const currentLevelIndex = currentLevel - 1;
+        const currentLevelData = learningPath.levels[currentLevelIndex];
+
+        if (currentLevelData?.lessons?.length > 0) {
+          const suggestedLessons = currentLevelData.lessons;
+
+          for (const lessonObj of suggestedLessons) {
+            let lessonId;
+
+            if (lessonObj.lesson) {
+              lessonId = lessonObj.lesson._id || lessonObj.lesson;
+            } else {
+              continue;
+            }
+
+            const lesson = await LessonRepository.getLessonById(lessonId);
+
+            if (lesson && lesson._id) {
+              recentLessons.push({
+                id: lesson._id,
+                title: lesson.title,
+                topic: lesson.topic,
+                skill: lesson.skill,
+                isCompleted: false,
+                progressPercentage: 0,
+                lastAccessedAt: null,
+              });
+            }
+          }
+        }
+      }
+
       const VocabularyBlock = require("../models/subModel/VocabularyBlock.schema");
       const CardDeck = require("../models/CardDeck");
       const Flashcard = require("../models/FlashCard");
@@ -318,6 +354,106 @@ class UserLearningPathService {
       console.error("[UserLearningPathService] Error getting overview:", error);
       return ResponseBuilder.error(
         "Failed to fetch user overview",
+        500,
+        error.message
+      );
+    }
+  }
+
+  async addNewLearningPath(req) {
+    const userId = req.user._id;
+    const { learningPathId, targetId } = req.body;
+
+    try {
+      const existing = await UserLearningPathRepository.findByUserAndPath(
+        userId,
+        learningPathId
+      );
+
+      if (existing) {
+        return ResponseBuilder.badRequest("Bạn đã đăng ký lộ trình này rồi");
+      }
+
+      const userPaths = await UserLearningPathRepository.findByUserId(userId);
+      const isFirstPath = userPaths.length === 0;
+
+      const newPath = await UserLearningPathRepository.create({
+        user: userId,
+        learningPath: learningPathId,
+        target: targetId || null,
+        status: isFirstPath ? "active" : "paused",
+        progress: {
+          currentLevel: 1,
+          currentLesson: 1,
+          completedLessons: [],
+          startedAt: Date.now(),
+          updatedAt: Date.now(),
+        },
+        lastAccAt: Date.now(),
+      });
+
+      await UserProgressRepository.findOrCreate(
+        userId,
+        toObjectId(learningPathId)
+      );
+
+      return ResponseBuilder.success("Đăng ký lộ trình thành công", newPath);
+    } catch (error) {
+      console.error(
+        "[UserLearningPathService] Error adding learning path:",
+        error
+      );
+      return ResponseBuilder.error(
+        "Không thể thêm lộ trình",
+        500,
+        error.message
+      );
+    }
+  }
+
+  async switchActivePath(req) {
+    const userId = req.user._id;
+    const { learningPathId } = req.params;
+
+    try {
+      const userPath = await UserLearningPathRepository.findByUserAndPath(
+        userId,
+        learningPathId
+      );
+
+      if (!userPath) {
+        return ResponseBuilder.notFoundError("Không tìm thấy lộ trình này");
+      }
+
+      await UserLearningPathRepository.setActivePath(userId, learningPathId);
+
+      return ResponseBuilder.success("Chuyển đổi lộ trình thành công");
+    } catch (error) {
+      console.error("[UserLearningPathService] Error switching path:", error);
+      return ResponseBuilder.error(
+        "Không thể chuyển đổi lộ trình",
+        500,
+        error.message
+      );
+    }
+  }
+
+  async getAllUserPaths(req) {
+    const userId = req.user._id;
+
+    try {
+      const paths = await UserLearningPathRepository.findAllByUserId(userId);
+      return ResponseBuilder.success(
+        "Lấy danh sách lộ trình thành công",
+        paths
+      );
+    } catch (error) {
+      console.error(
+        "[UserLearningPathService] Error getting all paths:",
+        error
+      );
+      return ResponseBuilder.error(
+        "Không thể lấy danh sách lộ trình",
         500,
         error.message
       );
