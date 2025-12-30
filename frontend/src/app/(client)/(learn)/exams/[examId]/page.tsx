@@ -97,26 +97,34 @@ export default function ExamTakingPage({ params }: PageProps) {
 
   // Initialize elapsed time and remaining time from exam data
   useEffect(() => {
-    if (examData?.exam.startAt && examData.exam.status === "in_progress") {
+    if (examData?.exam.startAt) {
       const startTime = new Date(examData.exam.startAt).getTime();
       const totalTimeLimit = examData.exam.totalTimeLimit;
-
+      console.log("totalTimeLimit:", totalTimeLimit);
       // Calculate elapsed time from startAt to now
       const updateTime = () => {
         const now = Date.now();
         const timeSinceStart = Math.floor((now - startTime) / 1000);
+        console.log("DEBUG TIME:", {
+          startAtString: examData.exam.startAt,
+          startTime: startTime,
+          now: now,
+          diffSeconds: (now - startTime) / 1000,
+          totalTimeLimit: totalTimeLimit,
+        });
         setElapsedTime(timeSinceStart);
 
         // Calculate remaining time if there's a time limit
         if (totalTimeLimit && totalTimeLimit > 0) {
           const remaining = Math.max(0, totalTimeLimit - timeSinceStart);
+
           setRemainingTime(remaining);
 
           // Auto-submit when time runs out (only once)
           // TODO: Re-enable auto-submit after fixing multiple submission issue
-          // if (remaining === 0) {
-          //   handleCompleteExam(true); // autoSubmit = true
-          // }
+          if (remaining === 0) {
+            handleCompleteExam(true); // autoSubmit = true
+          }
         } else {
           setRemainingTime(null); // No time limit
         }
@@ -725,7 +733,10 @@ export default function ExamTakingPage({ params }: PageProps) {
                 <div className="flex items-center gap-2 text-gray-600">
                   <Clock className="w-5 h-5" />
                   <span className="font-mono text-lg font-semibold">
-                    {formatTime(elapsedTime)}
+                    {/* Nếu có giới hạn thời gian thì hiện đếm ngược, không thì hiện thời gian trôi qua */}
+                    {remainingTime !== null
+                      ? formatTime(remainingTime)
+                      : formatTime(elapsedTime)}
                   </span>
                 </div>
                 <Button
