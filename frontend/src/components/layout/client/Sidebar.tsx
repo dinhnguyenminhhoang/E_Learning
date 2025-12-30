@@ -1,4 +1,3 @@
-"use client"
 "use client";
 
 import { useState } from "react";
@@ -14,6 +13,8 @@ import {
   User,
   ClipboardList,
   Award,
+  Mic,
+  PenTool,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -33,6 +34,8 @@ type Item = {
 const items: Item[] = [
   { id: "home", label: "Trang chủ", href: "/learn", icon: Home },
   { id: "learning", label: "Học tập", href: "/topic-list", icon: GraduationCap },
+  { id: "speaking", label: "Luyện nói", href: "/speaking-practice", icon: Mic },
+  { id: "writing", label: "Luyện viết", href: "/writing-practice", icon: PenTool },
   { id: "exams", label: "Bài kiểm tra", href: "/exams", icon: ClipboardList },
   { id: "achievements", label: "Thành tích", href: "/achievements", icon: Award },
   { id: "wordlist", label: "Danh sách từ", href: "/my-wordlist", icon: BookOpen },

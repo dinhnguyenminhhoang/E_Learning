@@ -1,12 +1,16 @@
 # AI Server Startup Guide
 
-This guide explains how to start the FastAPI AI server for Speech-to-Text (STT) and Text correction features.
+This guide explains how to start the FastAPI AI server for:
+- Speech-to-Text (STT)
+- Text correction
+- **Grammar Grading** (NEW: merged from grammar-nlp-service)
 
 ## Prerequisites
 
 1. **Python 3.8+** installed
 2. **pip** package manager
 3. **Virtual environment** (recommended)
+4. **OpenAI API Key** (for grammar grading feature)
 
 ## Installation Steps
 
@@ -16,7 +20,28 @@ This guide explains how to start the FastAPI AI server for Speech-to-Text (STT) 
 cd Ai_project/APIServer
 ```
 
-### 2. Create a Virtual Environment (Recommended)
+### 2. Configure Environment Variables
+
+Create a `.env` file in the `Ai_project/APIServer` directory:
+
+```bash
+cp .env.example .env
+```
+
+Then edit the `.env` file and add your OpenAI API key:
+
+```env
+OPENAI_API_KEY=your_openai_api_key_here
+OPENAI_MODEL=gpt-3.5-turbo
+WHISPER_MODEL_SIZE=base
+```
+
+**Important**:
+- The `.env` file is already in `.gitignore` to prevent exposing your API key
+- You can get an OpenAI API key from: https://platform.openai.com/api-keys
+- Without an API key, the grammar grading endpoint will not work
+
+### 3. Create a Virtual Environment (Recommended)
 
 ```bash
 # On Linux/Mac
@@ -28,7 +53,7 @@ python -m venv venv
 venv\Scripts\activate
 ```
 
-### 3. Install Dependencies
+### 4. Install Dependencies
 
 ```bash
 pip install -r requirements.txt
@@ -36,9 +61,13 @@ pip install -r requirements.txt
 
 **Note**: The first time you run this, it will download large models:
 - Whisper model (for speech-to-text)
-- T5 model (for text correction)
+- T5 model (for text correction and grammar detection)
 
 This may take several minutes depending on your internet connection.
+
+**New dependencies** (automatically installed):
+- `openai` - For OpenAI API integration
+- `python-dotenv` - For loading environment variables
 
 ## Starting the Server
 
@@ -78,6 +107,7 @@ You should see:
   "status": "ok",
   "t5_model_loaded": true,
   "whisper_model_loaded": true,
+  "openai_client_loaded": true,
   "device": "cuda" or "cpu"
 }
 ```
@@ -88,6 +118,47 @@ You should see:
 2. **Text Correction**: `POST /api/v1/correct`
 3. **Speech-to-Text**: `POST /api/v1/transcribe`
 4. **Pronunciation Check**: `POST /api/v1/transcribe-and-compare`
+5. **Grammar Grading** (NEW): `POST /api/v1/grade_text`
+
+### Grammar Grading Endpoint Details
+
+**Endpoint**: `POST /api/v1/grade_text`
+
+**Request**:
+```json
+{
+  "text": "I has a book and she have two pencil.",
+  "language": "en-US"
+}
+```
+
+**Response**:
+```json
+{
+  "status": "success",
+  "original_text": "I has a book and she have two pencil.",
+  "grammar_errors": [
+    {
+      "message": "Có thể sai: 'has' nên là 'have'",
+      "original": "has",
+      "suggestion": "have",
+      "position": 1,
+      "rule": {"id": "T5_CORRECTION"}
+    }
+  ],
+  "grading": {
+    "score": 70,
+    "level": "A1",
+    "overall_comment": "Bài viết có một số lỗi cơ bản...",
+    "suggestions": ["Cần ôn lại cách sử dụng đúng dạng động từ..."]
+  }
+}
+```
+
+**How it works**:
+1. Uses **T5 model** (local) to detect grammar errors
+2. Uses **OpenAI GPT-3.5-turbo** to grade and provide Vietnamese feedback
+3. Returns score (0-100), CEFR level (A1-C2), and suggestions in Vietnamese
 
 ## Troubleshooting
 
@@ -168,3 +239,45 @@ Server logs will appear in the terminal. Look for:
 - `[T5] Received text: ...` - Text correction requests
 - `[Whisper] Received audio file: ...` - Speech-to-text requests
 - `[Whisper] Comparing pronunciation for: ...` - Pronunciation check requests
+- `[Grade] Received text: ...` - Grammar grading requests (NEW)
+- `[Grade] Detected X errors` - Grammar error detection
+- `[Grade] OpenAI response: ...` - AI scoring results
+
+## Migration Notes (grammar-nlp-service)
+
+**Important**: The `grammar-nlp-service` has been **merged** into this AI_project server.
+
+### What Changed:
+
+1. **Before**: Separate server at port 8000 (grammar-nlp-service)
+2. **After**: Single unified server at port 8000 (AI_project/APIServer)
+
+### Benefits:
+
+- ✅ **No external API dependencies**: Uses local T5 model instead of LanguageTool API
+- ✅ **Better performance**: No network latency for grammar checking
+- ✅ **Cost effective**: Only pays for OpenAI API, not LanguageTool
+- ✅ **Unified codebase**: Easier to maintain and deploy
+- ✅ **Better security**: API keys in `.env` file (gitignored)
+
+### What Stayed the Same:
+
+- Same endpoint: `POST /api/v1/grade_text`
+- Same request/response format
+- Same port: 8000 (no backend changes needed)
+- Vietnamese output preserved
+
+### Backup:
+
+If you need to rollback, the old `grammar-nlp-service` is backed up in:
+```
+E_Learning/grammar-nlp-service.backup/
+```
+
+You can restore it with:
+```bash
+cd /home/detdev/workspace/E_Learning
+mv grammar-nlp-service.backup grammar-nlp-service
+cd grammar-nlp-service
+python -m uvicorn main:app --host 0.0.0.0 --port 8001  # Use different port!
+```

@@ -21,8 +21,6 @@ class UserRepository {
     ];
   }
 
-  // ===== CREATE OPERATIONS =====
-
   /**
    * Tạo user mới
    * @param {Object} userData - User data
@@ -113,8 +111,6 @@ class UserRepository {
       throw this.handleError(error);
     }
   }
-
-  // ===== READ OPERATIONS =====
 
   /**
    * Find user by ID
@@ -403,8 +399,6 @@ class UserRepository {
       throw this.handleError(error);
     }
   }
-
-  // ===== UPDATE OPERATIONS =====
 
   /**
    * Update user by ID
@@ -705,8 +699,6 @@ class UserRepository {
     }
   }
 
-  // ===== DELETE OPERATIONS =====
-
   /**
    * Soft delete user
    * @param {string} userId - User ID
@@ -798,8 +790,6 @@ class UserRepository {
       throw this.handleError(error);
     }
   }
-
-  // ===== ANALYTICS & STATISTICS =====
 
   /**
    * Get user statistics
@@ -926,8 +916,6 @@ class UserRepository {
       throw this.handleError(error);
     }
   }
-
-  // ===== UTILITY METHODS =====
 
   /**
    * Check if email exists

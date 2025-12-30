@@ -34,7 +34,6 @@ router.post(
   asynchandler(lessonController.createLesson)
 );
 
-// Admin: get lesson with full block details for editing
 router.get(
   "/:lessonId/edit",
   auth.authenticate,

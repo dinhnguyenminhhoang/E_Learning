@@ -15,8 +15,6 @@ class KeyTokenRepository {
     this.defaultSelect = "-keys.privateKey -refreshToken.token";
   }
 
-  // ===== CREATE OPERATIONS =====
-
   /**
    * Tạo mới key token
    * @param {Object} tokenData - Dữ liệu token
@@ -89,8 +87,6 @@ class KeyTokenRepository {
       throw this.handleError(error);
     }
   }
-
-  // ===== READ OPERATIONS =====
 
   /**
    * Tìm token bằng ID
@@ -255,8 +251,6 @@ class KeyTokenRepository {
     }
   }
 
-  // ===== UPDATE OPERATIONS =====
-
   /**
    * Refresh token (rotate)
    * @param {string} oldRefreshToken - Current refresh token
@@ -396,8 +390,6 @@ class KeyTokenRepository {
       throw this.handleError(error);
     }
   }
-
-  // ===== DELETE/REVOKE OPERATIONS =====
 
   /**
    * Revoke single token
@@ -547,8 +539,6 @@ class KeyTokenRepository {
     }
   }
 
-  // ===== ANALYTICS & REPORTING =====
-
   /**
    * Get token statistics
    * @param {string} userId - User ID (optional)
@@ -693,8 +683,6 @@ class KeyTokenRepository {
       throw this.handleError(error);
     }
   }
-
-  // ===== UTILITY METHODS =====
 
   /**
    * Bulk operations

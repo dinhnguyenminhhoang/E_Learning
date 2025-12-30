@@ -5,7 +5,6 @@ const router = express.Router();
 const https = require("https");
 const { authenticate } = require("../middlewares/auth");
 
-// Proxy TTS from Google Translate
 router.get("/speak", authenticate, async (req, res) => {
     try {
         const { text, lang = "en" } = req.query;
@@ -17,7 +16,7 @@ router.get("/speak", authenticate, async (req, res) => {
         const url = `https://translate.google.com/translate_tts?ie=UTF-8&tl=${lang}&client=tw-ob&q=${encodeURIComponent(text)}`;
 
         res.setHeader("Content-Type", "audio/mpeg");
-        res.setHeader("Cache-Control", "public, max-age=86400"); // Cache for 1 day
+        res.setHeader("Cache-Control", "public, max-age=86400");
 
         const request = https.get(url, {
             headers: {

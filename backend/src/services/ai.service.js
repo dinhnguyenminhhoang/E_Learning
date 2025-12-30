@@ -17,7 +17,6 @@ function getOpenAIClient() {
 }
 
 class AIService {
-    // System prompt for English learning assistant
     getSystemPrompt() {
         return `Bạn là trợ lý học tiếng Anh thông minh tên GuruLango. Nhiệm vụ của bạn là:
 1. CHỈ trả lời các câu hỏi liên quan đến học tiếng Anh (ngữ pháp, từ vựng, phát âm, dịch thuật, luyện viết, v.v.)
@@ -28,11 +27,9 @@ class AIService {
 6. Khuyến khích người dùng học tập và thực hành`;
     }
 
-    // Chat with conversation history
     async chat(messages, userId = null) {
         const openai = getOpenAIClient();
 
-        // Prepare messages with system prompt
         const chatMessages = [
             { role: "system", content: this.getSystemPrompt() },
             ...messages.map(msg => ({
@@ -69,15 +66,11 @@ class AIService {
         }
     }
 
-    // Correct grammar and explain errors
     async correctGrammar(text) {
         try {
-            // Call local FastAPI service
             const response = await fetch("http://localhost:8000/api/v1/correct", {
                 method: "POST",
-                headers: {
-                    "Content-Type": "application/json"
-                },
+                headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ text })
             });
 
@@ -88,7 +81,6 @@ class AIService {
             const data = await response.json();
             const correctedText = data.corrected_text;
 
-            // Construct response format
             let explanation = "";
             if (text.trim() === correctedText.trim()) {
                 explanation = "Câu này đã đúng ngữ pháp!";
@@ -109,7 +101,6 @@ class AIService {
         }
     }
 
-    // Explain vocabulary in detail
     async explainVocabulary(word, context = null) {
         const openai = getOpenAIClient();
 
@@ -151,7 +142,6 @@ Trả lời theo format:
         }
     }
 
-    // Original word generation method (kept for backward compatibility)
     async generateWordDetails(word) {
         if (!word || word.trim().length === 0) {
             throw new Error("Word is required");
@@ -195,7 +185,6 @@ CHỈ trả về JSON, không có text khác.`;
                 throw new Error("Empty response from AI");
             }
 
-            // Clean up response - remove markdown code blocks if present
             let cleanedResponse = responseText;
             if (cleanedResponse.startsWith("```json")) {
                 cleanedResponse = cleanedResponse.slice(7);
@@ -230,6 +219,270 @@ CHỈ trả về JSON, không có text khác.`;
                 throw new Error("Failed to parse AI response");
             }
 
+            throw error;
+        }
+    }
+
+    async generateWritingTemplates({ count = 5, level = "medium", type = "essay" }) {
+        const openai = getOpenAIClient();
+
+        const prompt = `Generate ${count} creative and diverse English writing practice templates for ESL learners.
+
+Requirements:
+- Level: ${level} (easy = A2-B1, medium = B1-B2, hard = B2-C1)
+- Type: ${type}
+- Each template should have:
+  * Engaging and practical title
+  * Clear writing prompt/task
+  * Appropriate word count range
+  * Optional hints to guide the writer
+
+Return ONLY a valid JSON array with this exact structure (no markdown, no code blocks):
+[
+  {
+    "title": "English title",
+    "titleVi": "Vietnamese title",
+    "prompt": "Detailed writing task in English",
+    "promptVi": "Detailed writing task in Vietnamese",
+    "level": "${level}",
+    "type": "${type}",
+    "category": "topic category (Education, Technology, Environment, etc)",
+    "minWords": 100-300 (adjust based on level),
+    "maxWords": 200-500 (adjust based on level),
+    "hints": ["hint 1", "hint 2", "hint 3"],
+    "sampleAnswer": "A brief sample answer showing the expected structure and style"
+  }
+]
+
+Make topics diverse, relevant to modern life, and engaging for language learners.`;
+
+        try {
+            const completion = await openai.chat.completions.create({
+                model: "gpt-3.5-turbo",
+                messages: [
+                    {
+                        role: "system",
+                        content: "You are an expert English teacher creating writing practice materials. Return only valid JSON arrays without markdown formatting."
+                    },
+                    {
+                        role: "user",
+                        content: prompt
+                    }
+                ],
+                temperature: 0.8,
+                max_tokens: 3000,
+            });
+
+            const responseText = completion.choices[0]?.message?.content?.trim();
+
+            if (!responseText) {
+                throw new Error("Empty response from AI");
+            }
+
+            let cleanedResponse = responseText;
+            if (cleanedResponse.startsWith("```json")) {
+                cleanedResponse = cleanedResponse.slice(7);
+            }
+            if (cleanedResponse.startsWith("```")) {
+                cleanedResponse = cleanedResponse.slice(3);
+            }
+            if (cleanedResponse.endsWith("```")) {
+                cleanedResponse = cleanedResponse.slice(0, -3);
+            }
+            cleanedResponse = cleanedResponse.trim();
+
+            const templates = JSON.parse(cleanedResponse);
+
+            if (!Array.isArray(templates)) {
+                throw new Error("AI response is not an array");
+            }
+
+            return templates;
+        } catch (error) {
+            console.error("[AIService] Error generating writing templates:", error);
+
+            if (error.code === "insufficient_quota") {
+                throw new Error("AI API quota exceeded. Please try again later.");
+            }
+
+            if (error instanceof SyntaxError) {
+                throw new Error("Failed to parse AI response. Please try again.");
+            }
+
+            throw error;
+        }
+    }
+
+    async generateSpeakingTemplates({ count = 10, level = "medium", type = "sentence" }) {
+        const openai = getOpenAIClient();
+
+        const prompt = `Generate ${count} English speaking practice templates for ESL learners.
+
+Requirements:
+- Level: ${level} (easy = A1-A2, medium = B1-B2, hard = B2-C1)
+- Type: ${type} (word = single words or short phrases, sentence = complete sentences)
+- Each template should have:
+  * Natural, conversational English text
+  * Vietnamese translation
+  * Appropriate difficulty for the level
+
+Return ONLY a valid JSON array with this exact structure (no markdown, no code blocks):
+[
+  {
+    "text": "English ${type === 'word' ? 'word/phrase' : 'sentence'}",
+    "textVi": "Vietnamese translation",
+    "level": "${level}",
+    "type": "${type}",
+    "category": "topic category (Greetings, Daily Life, Business, etc)",
+    "order": 0
+  }
+]
+
+Make content diverse, practical, and useful for daily communication.`;
+
+        try {
+            const completion = await openai.chat.completions.create({
+                model: "gpt-3.5-turbo",
+                messages: [
+                    {
+                        role: "system",
+                        content: "You are an expert English teacher creating speaking practice materials. Return only valid JSON arrays without markdown formatting."
+                    },
+                    {
+                        role: "user",
+                        content: prompt
+                    }
+                ],
+                temperature: 0.8,
+                max_tokens: 2000,
+            });
+
+            const responseText = completion.choices[0]?.message?.content?.trim();
+
+            if (!responseText) {
+                throw new Error("Empty response from AI");
+            }
+
+            let cleanedResponse = responseText;
+            if (cleanedResponse.startsWith("```json")) {
+                cleanedResponse = cleanedResponse.slice(7);
+            }
+            if (cleanedResponse.startsWith("```")) {
+                cleanedResponse = cleanedResponse.slice(3);
+            }
+            if (cleanedResponse.endsWith("```")) {
+                cleanedResponse = cleanedResponse.slice(0, -3);
+            }
+            cleanedResponse = cleanedResponse.trim();
+
+            const templates = JSON.parse(cleanedResponse);
+
+            if (!Array.isArray(templates)) {
+                throw new Error("AI response is not an array");
+            }
+
+            return templates;
+        } catch (error) {
+            console.error("[AIService] Error generating speaking templates:", error);
+
+            if (error.code === "insufficient_quota") {
+                throw new Error("AI API quota exceeded. Please try again later.");
+            }
+
+            if (error instanceof SyntaxError) {
+                throw new Error("Failed to parse AI response. Please try again.");
+            }
+
+            throw error;
+        }
+    }
+    async gradeWriting(text, language = "en-US", context = {}) {
+        const openai = getOpenAIClient();
+        const { topic, prompt: writingPrompt } = context;
+
+        let systemPrompt = "You are an expert English teacher. Grade the following writing sample.";
+        if (topic) systemPrompt += ` The topic is: "${topic}".`;
+        if (writingPrompt) systemPrompt += ` The specific prompt is: "${writingPrompt}".`;
+
+        const userPrompt = `Writing Sample:
+"${text}"
+
+Evaluate the writing based on grammar, vocabulary, coherence, and relevance to the topic/prompt.
+
+STRICT SCORING RULES:
+1. If the text is less than 20 words, the MAXIMUM score is 10.
+2. If the text is irrelevant to the topic/prompt, the MAXIMUM score is 20.
+3. CRITICAL: If the text is identical or nearly identical to the prompt "${writingPrompt}", the score MUST be 0.
+4. If the text is gibberish or nonsensical, the score MUST be 0.
+5. Deduct points heavily for spelling and grammar errors, especially in short texts.
+6. Be strict. Do not give high scores for poor quality work.
+
+Return a JSON object with this structure:
+{
+  "grammar_errors": [
+    {
+      "message": "Explanation of the error",
+      "shortMessage": "Short error label",
+      "replacements": [{"value": "correction"}],
+      "error_text": "The exact text segment that is incorrect (must match exactly with the text in the sample)"
+    }
+  ],
+  "grading": {
+    "score": 0-100,
+    "level": "A1/A2/B1/B2/C1/C2",
+    "overall_comment": "Overall feedback in Vietnamese. Mention if the writing is off-topic or too short.",
+    "suggestions": ["Suggestion 1 in Vietnamese", "Suggestion 2 in Vietnamese"],
+    "detailed_analysis": {
+      "vocabulary": { "score": 0-10, "comment": "Feedback on vocabulary usage" },
+      "grammar": { "score": 0-10, "comment": "Feedback on grammar accuracy" },
+      "coherence": { "score": 0-10, "comment": "Feedback on flow and structure" },
+      "relevance": { "score": 0-10, "comment": "Feedback on addressing the prompt" }
+    },
+    "improvement_plan": "A detailed paragraph in Vietnamese suggesting what the user should study next to improve (e.g., specific grammar points, vocabulary topics).",
+    "translated_text": "Vietnamese translation of the user's writing sample."
+  }
+}
+If there are no errors, "grammar_errors" should be empty.
+IMPORTANT: The "error_text" MUST be the exact substring from the original text so I can find its position.`;
+
+        try {
+            const completion = await openai.chat.completions.create({
+                model: "gpt-3.5-turbo",
+                messages: [
+                    {
+                        role: "system",
+                        content: "You are an expert English teacher. Return only valid JSON."
+                    },
+                    {
+                        role: "user",
+                        content: userPrompt
+                    }
+                ],
+                temperature: 0.3,
+                max_tokens: 2000,
+            });
+
+            const responseText = completion.choices[0]?.message?.content?.trim();
+            if (!responseText) throw new Error("Empty response from AI");
+
+            let cleanedResponse = responseText.replace(/^```json/, '').replace(/^```/, '').replace(/```$/, '').trim();
+            const result = JSON.parse(cleanedResponse);
+
+            // Post-process to find offsets
+            if (result.grammar_errors) {
+                result.grammar_errors = result.grammar_errors.map(error => {
+                    const offset = text.indexOf(error.error_text);
+                    return {
+                        ...error,
+                        offset: offset !== -1 ? offset : 0,
+                        length: error.error_text ? error.error_text.length : 0
+                    };
+                });
+            }
+
+            return result;
+        } catch (error) {
+            console.error("[AIService] Error grading writing:", error);
             throw error;
         }
     }

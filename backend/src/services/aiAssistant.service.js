@@ -18,13 +18,11 @@ function getOpenAIClient() {
     return openaiClient;
 }
 
-// Helper to convert userId to ObjectId
 function toObjectId(id) {
     if (id instanceof Types.ObjectId) return id;
     return new Types.ObjectId(id);
 }
 
-// System prompt for English learning assistant
 const SYSTEM_PROMPT = `Bạn là GuruLango - trợ lý học tiếng Anh thân thiện và nhiệt tình.
 
 🎯 MỤC TIÊU CHÍNH: Hỗ trợ người dùng học tiếng Anh một cách hiệu quả.
@@ -132,9 +130,7 @@ class AIAssistantService {
         try {
             const response = await fetch("http://localhost:8000/api/v1/correct", {
                 method: "POST",
-                headers: {
-                    "Content-Type": "application/json"
-                },
+                headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ text })
             });
 
@@ -201,7 +197,6 @@ Trả lời theo format:
         };
     }
 
-    // Get user's conversations
     async getConversations(userId, limit = 20) {
         const userOid = toObjectId(userId);
         console.log(`[AI Assistant] Getting conversations for userId: ${userId} (ObjectId: ${userOid})`);
@@ -210,7 +205,6 @@ Trả lời theo format:
         return conversations;
     }
 
-    // Get single conversation
     async getConversation(userId, conversationId) {
         const conversation = await ChatHistory.findOne({
             _id: conversationId,
@@ -225,12 +219,10 @@ Trả lời theo format:
         return conversation;
     }
 
-    // Create new conversation
     async createConversation(userId, title = "Cuộc trò chuyện mới") {
         return await ChatHistory.createNewConversation(toObjectId(userId), title);
     }
 
-    // Delete conversation (soft delete)
     async deleteConversation(userId, conversationId) {
         const conversation = await ChatHistory.findOneAndUpdate(
             { _id: conversationId, userId: toObjectId(userId) },
