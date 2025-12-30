@@ -8,6 +8,11 @@ const { validateCreateWord } = require("../middlewares/word");
 const upload = require("../middlewares/upload");
 
 const router = Router();
+router.get(
+  "/export-sample",
+  auth.authenticate,
+  asynchandler(wordController.exportSampleWords)
+);
 router.post(
   "/create",
   auth.authenticate,
@@ -16,7 +21,11 @@ router.post(
 );
 
 router.get("/", auth.authenticate, asynchandler(wordController.getAllWord));
-router.get("/:wordId", auth.authenticate, asynchandler(wordController.getWordById));
+router.get(
+  "/:wordId",
+  auth.authenticate,
+  asynchandler(wordController.getWordById)
+);
 router.get(
   "/category/:categoryId",
   asynchandler(wordController.getWordsByCategory)
@@ -38,9 +47,5 @@ router.post(
   upload.single("file"),
   asynchandler(wordController.importWords)
 );
-router.get(
-  "/export-sample",
-  auth.authenticate,
-  asynchandler(wordController.exportSampleWords)
-);
+
 module.exports = router;

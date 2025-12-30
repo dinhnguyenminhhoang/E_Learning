@@ -3,283 +3,570 @@
 import { useState, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { wordService, Word } from "@/services/word.service";
+import { useForm, useFieldArray, useFormContext } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
+import { wordService } from "@/services/word.service";
 import { categoryService } from "@/services/category.service";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card } from "@/components/ui/card";
+import { Textarea } from "@/components/ui/textarea";
 import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+  FormDescription,
+} from "@/components/ui/form";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from "@/components/ui/select";
-import { ArrowLeft, Save, Plus, Trash2 } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Plus, X, ArrowLeft, Trash2, Save } from "lucide-react";
 import { toast } from "react-hot-toast";
+import { Checkbox } from "@/components/ui/checkbox";
 
-export default function EditWordPage() {
-    const router = useRouter();
-    const params = useParams();
-    const wordId = params.id as string;
-    const queryClient = useQueryClient();
+// --- 1. Zod Schema (Khớp với Server Joi & Model) ---
+const wordSchema = z.object({
+  word: z.string().min(1, "Word is required").trim().toLowerCase(),
+  pronunciation: z
+    .string()
+    .trim()
+    .regex(/^\/.*\/$/, "Pronunciation must start and end with / (e.g., /həˈloʊ/)")
+    .optional()
+    .or(z.literal("")),
+  audio: z.string().trim().url("Invalid audio URL").optional().or(z.literal("")),
+  partOfSpeech: z.enum([
+    "noun", "verb", "adjective", "adverb", "preposition", "conjunction", "interjection", "pronoun",
+  ]),
+  level: z.enum(["beginner", "intermediate", "advanced"]),
+  frequency: z.coerce.number().min(0).default(0),
+  definitions: z
+    .array(
+      z.object({
+        // Cho phép _id đi qua để Mongoose biết là update document cũ
+        _id: z.string().optional(), 
+        meaning: z.string().min(1, "Meaning is required"),
+        meaningVi: z.string().min(1, "Vietnamese meaning is required"),
+        examples: z
+          .array(
+            z.object({
+              _id: z.string().optional(),
+              sentence: z.string().optional(),
+              translation: z.string().optional(),
+            })
+          )
+          .optional(),
+      })
+    )
+    .min(1, "At least one definition is required"),
+  synonyms: z.array(z.string()).optional(),
+  antonyms: z.array(z.string()).optional(),
+  relatedWords: z.array(z.string()).optional(),
+  categories: z.array(z.string()).min(1, "Select at least one category"),
+  tags: z.array(z.string()).optional(),
+  image: z.string().trim().url("Invalid image URL").optional().or(z.literal("")),
+  difficulty: z.coerce.number().min(1).max(5).default(1),
+});
 
-    const [formData, setFormData] = useState<Partial<Word>>({
-        word: "",
-        pronunciation: "",
-        partOfSpeech: "noun",
-        level: "beginner",
-        definitions: [{ meaning: "", meaningVi: "", examples: [] }],
-        categories: [],
-    });
+type WordFormData = z.infer<typeof wordSchema>;
 
-    // Fetch word data
-    const { data: wordData, isLoading } = useQuery({
-        queryKey: ["word", wordId],
-        queryFn: async () => {
-            const response = await wordService.getWordById(wordId);
-            return response?.data || null;
-        },
-        enabled: !!wordId,
-    });
+// --- 2. Sub-component: Definition Card ---
+const DefinitionCard = ({
+  index,
+  removeDefinition,
+}: {
+  index: number;
+  removeDefinition: (index: number) => void;
+}) => {
+  const { control } = useFormContext<WordFormData>();
 
-    // Fetch categories
-    const { data: categoriesData } = useQuery({
-        queryKey: ["categories"],
-        queryFn: () => categoryService.getAll(),
-    });
+  const {
+    fields: exampleFields,
+    append: appendExample,
+    remove: removeExample,
+  } = useFieldArray({
+    control,
+    name: `definitions.${index}.examples`,
+  });
 
-    // Update form when word data loads
-    useEffect(() => {
-        if (wordData) {
-            setFormData({
-                word: wordData.word || "",
-                pronunciation: wordData.pronunciation || "",
-                partOfSpeech: wordData.partOfSpeech || "noun",
-                level: wordData.level || "beginner",
-                definitions: wordData.definitions || [{ meaning: "", meaningVi: "", examples: [] }],
-                categories: wordData.categories?.map((c: any) => c._id || c) || [],
-            });
-        }
-    }, [wordData]);
+  return (
+    <div className="space-y-4 rounded-lg border p-4 bg-slate-50 dark:bg-slate-900/50">
+      <div className="flex items-center justify-between border-b pb-2">
+        <h4 className="font-medium text-lg text-primary">Definition {index + 1}</h4>
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          className="text-red-500 hover:text-red-700 hover:bg-red-100"
+          onClick={() => removeDefinition(index)}
+        >
+          <Trash2 className="h-4 w-4" />
+        </Button>
+      </div>
 
-    // Update mutation
-    const updateMutation = useMutation({
-        mutationFn: (data: Partial<Word>) => wordService.updateWord(wordId, data),
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ["words"] });
-            toast.success("Word updated successfully!");
-            router.push("/admin/words");
-        },
-        onError: () => {
-            toast.error("Failed to update word");
-        },
-    });
+      <div className="grid md:grid-cols-2 gap-4">
+        <FormField
+          control={control}
+          name={`definitions.${index}.meaning`}
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Meaning (English) *</FormLabel>
+              <FormControl>
+                <Textarea placeholder="English definition..." {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={control}
+          name={`definitions.${index}.meaningVi`}
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Meaning (Vietnamese) *</FormLabel>
+              <FormControl>
+                <Textarea placeholder="Nghĩa tiếng Việt..." {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+      </div>
 
-    const handleSubmit = (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!formData.word?.trim()) {
-            toast.error("Word is required");
-            return;
-        }
-        // Filter out empty categories
-        const dataToSubmit = {
-            ...formData,
-            categories: formData.categories?.filter(c => c && c.trim() !== '') || [],
-        };
-        updateMutation.mutate(dataToSubmit);
-    };
-
-    const categories = categoriesData?.data || [];
-    const levels = ["beginner", "intermediate", "advanced"];
-    const partsOfSpeech = ["noun", "verb", "adj", "adv", "prep", "conj", "pron", "interj"];
-
-    if (isLoading) {
-        return (
-            <div className="flex items-center justify-center h-96">
-                <div className="animate-spin w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full" />
-            </div>
-        );
-    }
-
-    return (
-        <div className="mx-auto space-y-6">
-            {/* Header */}
-            <div className="flex items-center gap-4">
-                <Button variant="ghost" onClick={() => router.back()}>
-                    <ArrowLeft className="h-4 w-4 mr-2" />
-                    Back
-                </Button>
-                <div>
-                    <h1 className="text-2xl font-bold">Edit Word</h1>
-                    <p className="text-gray-500">Update word information</p>
-                </div>
-            </div>
-
-            <form onSubmit={handleSubmit}>
-                <Card className="p-6 space-y-6">
-                    {/* Word */}
-                    <div>
-                        <label className="block text-sm font-medium mb-2">
-                            Word <span className="text-red-500">*</span>
-                        </label>
-                        <Input
-                            value={formData.word}
-                            onChange={(e) => setFormData({ ...formData, word: e.target.value })}
-                            placeholder="Enter word"
-                        />
-                    </div>
-
-                    {/* Pronunciation */}
-                    <div>
-                        <label className="block text-sm font-medium mb-2">Pronunciation</label>
-                        <Input
-                            value={formData.pronunciation}
-                            onChange={(e) => setFormData({ ...formData, pronunciation: e.target.value })}
-                            placeholder="/pronunciation/"
-                        />
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-4">
-                        {/* Part of Speech */}
-                        <div>
-                            <label className="block text-sm font-medium mb-2">Part of Speech</label>
-                            <Select
-                                value={formData.partOfSpeech}
-                                onValueChange={(v) => setFormData({ ...formData, partOfSpeech: v })}
-                            >
-                                <SelectTrigger>
-                                    <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {partsOfSpeech.map((pos) => (
-                                        <SelectItem key={pos} value={pos}>
-                                            {pos}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                        </div>
-
-                        {/* Level */}
-                        <div>
-                            <label className="block text-sm font-medium mb-2">Level</label>
-                            <Select
-                                value={formData.level}
-                                onValueChange={(v) => setFormData({ ...formData, level: v })}
-                            >
-                                <SelectTrigger>
-                                    <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {levels.map((level) => (
-                                        <SelectItem key={level} value={level}>
-                                            {level.charAt(0).toUpperCase() + level.slice(1)}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                        </div>
-                    </div>
-
-                    {/* Definitions */}
-                    <div>
-                        <label className="block text-sm font-medium mb-2">Definitions</label>
-                        {formData.definitions?.map((def, index) => (
-                            <div key={index} className="p-4 border rounded-lg mb-3 space-y-3">
-                                <div className="flex justify-between items-center">
-                                    <span className="text-sm font-medium">Definition {index + 1}</span>
-                                    {formData.definitions!.length > 1 && (
-                                        <Button
-                                            type="button"
-                                            variant="ghost"
-                                            size="sm"
-                                            onClick={() => {
-                                                const newDefs = [...formData.definitions!];
-                                                newDefs.splice(index, 1);
-                                                setFormData({ ...formData, definitions: newDefs });
-                                            }}
-                                        >
-                                            <Trash2 className="h-4 w-4 text-red-500" />
-                                        </Button>
-                                    )}
-                                </div>
-                                <Input
-                                    placeholder="Meaning (English)"
-                                    value={def.meaning}
-                                    onChange={(e) => {
-                                        const newDefs = [...formData.definitions!];
-                                        newDefs[index].meaning = e.target.value;
-                                        setFormData({ ...formData, definitions: newDefs });
-                                    }}
-                                />
-                                <Input
-                                    placeholder="Meaning (Vietnamese)"
-                                    value={def.meaningVi}
-                                    onChange={(e) => {
-                                        const newDefs = [...formData.definitions!];
-                                        newDefs[index].meaningVi = e.target.value;
-                                        setFormData({ ...formData, definitions: newDefs });
-                                    }}
-                                />
-                            </div>
-                        ))}
-                        <Button
-                            type="button"
-                            variant="outline"
-                            onClick={() => {
-                                setFormData({
-                                    ...formData,
-                                    definitions: [...formData.definitions!, { meaning: "", meaningVi: "", examples: [] }],
-                                });
-                            }}
-                        >
-                            <Plus className="h-4 w-4 mr-2" />
-                            Add Definition
-                        </Button>
-                    </div>
-
-                    {/* Categories */}
-                    <div>
-                        <label className="block text-sm font-medium mb-2">Categories</label>
-                        <Select
-                            value={formData.categories?.[0] || ""}
-                            onValueChange={(v) => setFormData({ ...formData, categories: [v] })}
-                        >
-                            <SelectTrigger>
-                                <SelectValue placeholder="Select category" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {categories.map((cat: any) => (
-                                    <SelectItem key={cat._id} value={cat._id}>
-                                        {cat.name}
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                    </div>
-
-                    {/* Actions */}
-                    <div className="flex justify-end gap-3 pt-4 border-t">
-                        <Button type="button" variant="outline" onClick={() => router.back()}>
-                            Cancel
-                        </Button>
-                        <Button type="submit" disabled={updateMutation.isPending}>
-                            {updateMutation.isPending ? (
-                                <>
-                                    <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full mr-2" />
-                                    Saving...
-                                </>
-                            ) : (
-                                <>
-                                    <Save className="h-4 w-4 mr-2" />
-                                    Save Changes
-                                </>
-                            )}
-                        </Button>
-                    </div>
-                </Card>
-            </form>
+      <div className="space-y-3 pt-2">
+        <div className="flex items-center justify-between">
+          <FormLabel className="text-xs uppercase text-muted-foreground font-bold">Examples</FormLabel>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="h-7 text-xs"
+            onClick={() => appendExample({ sentence: "", translation: "" })}
+          >
+            <Plus className="mr-1 h-3 w-3" /> Add Example
+          </Button>
         </div>
+        
+        {exampleFields.map((example, k) => (
+          <div key={example.id} className="grid grid-cols-1 md:grid-cols-2 gap-3 p-3 border rounded bg-background relative group">
+            <FormField
+              control={control}
+              name={`definitions.${index}.examples.${k}.sentence`}
+              render={({ field }) => (
+                <FormItem>
+                   <FormControl>
+                    <Input placeholder="Example sentence (EN)" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+             <FormField
+              control={control}
+              name={`definitions.${index}.examples.${k}.translation`}
+              render={({ field }) => (
+                <FormItem>
+                  <FormControl>
+                    <Input placeholder="Dịch câu ví dụ (VI)" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="absolute -top-2 -right-2 h-6 w-6 rounded-full bg-destructive text-white opacity-0 group-hover:opacity-100 transition-opacity"
+              onClick={() => removeExample(k)}
+            >
+              <X className="h-3 w-3" />
+            </Button>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+// --- 3. Main Component: EditWordPage ---
+export default function EditWordPage() {
+  const router = useRouter();
+  const params = useParams();
+  const wordId = params.id as string;
+  const queryClient = useQueryClient();
+
+  // Local state for array inputs
+  const [synonymInput, setSynonymInput] = useState("");
+  const [antonymInput, setAntonymInput] = useState("");
+  const [relatedWordInput, setRelatedWordInput] = useState("");
+  const [tagInput, setTagInput] = useState("");
+
+  const form = useForm<WordFormData>({
+    resolver: zodResolver(wordSchema),
+    defaultValues: {
+      word: "", pronunciation: "", audio: "", partOfSpeech: "noun", level: "beginner",
+      frequency: 0, difficulty: 1, definitions: [], categories: [],
+      synonyms: [], antonyms: [], relatedWords: [], tags: [], image: "",
+    },
+  });
+
+  const { fields: definitionFields, append: appendDefinition, remove: removeDefinition } = useFieldArray({
+    control: form.control,
+    name: "definitions",
+  });
+
+  // Fetch Categories
+  const { data: categoriesData } = useQuery({
+    queryKey: ["categories"],
+    queryFn: () => categoryService.getAll(),
+  });
+  const categories = categoriesData?.data || [];
+
+  // Fetch Word Data
+  const { data: wordData, isLoading: isWordLoading } = useQuery({
+    queryKey: ["word", wordId],
+    queryFn: async () => {
+      const response = await wordService.getWordById(wordId);
+      return response?.data || null;
+    },
+    enabled: !!wordId,
+  });
+
+  // --- Sync Data to Form ---
+  useEffect(() => {
+    if (wordData) {
+      // Chuẩn bị dữ liệu để reset form
+      const formattedData = {
+        ...wordData,
+        // Map Categories từ Object sang ID Array nếu API trả về Object
+        categories: wordData.categories?.map((c: any) => (typeof c === 'object' ? c._id : c)) || [],
+        // Đảm bảo các field array không bị null
+        synonyms: wordData.synonyms || [],
+        antonyms: wordData.antonyms || [],
+        relatedWords: wordData.relatedWords || [],
+        tags: wordData.tags || [],
+        definitions: wordData.definitions?.map((def: any) => ({
+             ...def,
+             examples: def.examples || []
+        })) || [{ meaning: "", meaningVi: "", examples: [] }],
+      };
+      form.reset(formattedData);
+    }
+  }, [wordData, form]);
+
+  // Mutation Update
+  const updateMutation = useMutation({
+    mutationFn: (data: WordFormData) => wordService.updateWord(wordId, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["words"] });
+      queryClient.invalidateQueries({ queryKey: ["word", wordId] });
+      toast.success("Word updated successfully!");
+      router.push("/admin/words");
+    },
+    onError: (error: any) => {
+      console.error(error);
+      toast.error(error.response?.data?.message || "Failed to update word");
+    },
+  });
+
+  const onSubmit = (data: WordFormData) => {
+    updateMutation.mutate(data);
+  };
+
+  // Helper functions for Array Inputs
+  const handleArrayInputAdd = (
+    field: "synonyms" | "antonyms" | "relatedWords" | "tags",
+    value: string,
+    setter: (val: string) => void
+  ) => {
+    if (value.trim()) {
+      const current = form.getValues(field) || [];
+      if (!current.includes(value.trim())) {
+        form.setValue(field, [...current, value.trim()], { shouldDirty: true });
+        setter("");
+      } else {
+        toast.error("Item already exists");
+      }
+    }
+  };
+
+  const handleArrayInputRemove = (field: "synonyms" | "antonyms" | "relatedWords" | "tags", index: number) => {
+    const current = form.getValues(field) || [];
+    form.setValue(field, current.filter((_, i) => i !== index), { shouldDirty: true });
+  };
+
+  if (isWordLoading) {
+    return (
+      <div className="flex items-center justify-center h-96">
+        <div className="animate-spin w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full" />
+      </div>
     );
+  }
+
+  return (
+    <div className="mx-auto space-y-6 container pb-10">
+      {/* Header */}
+      <div className="flex items-center gap-4">
+        <Button variant="ghost" onClick={() => router.back()}>
+          <ArrowLeft className="h-4 w-4 mr-2" /> Back
+        </Button>
+        <div>
+          <h1 className="text-3xl font-bold">Edit Word</h1>
+          <p className="text-muted-foreground">Update word information</p>
+        </div>
+      </div>
+
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+          
+          {/* 1. Basic Info */}
+          <Card>
+            <CardHeader><CardTitle>Basic Information</CardTitle></CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid gap-4 md:grid-cols-2">
+                <FormField
+                  control={form.control}
+                  name="word"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Word *</FormLabel>
+                      <FormControl><Input placeholder="e.g., hello" {...field} /></FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="pronunciation"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Pronunciation (IPA)</FormLabel>
+                      <FormControl><Input placeholder="/həˈloʊ/" {...field} /></FormControl>
+                      <FormDescription>Start and end with /</FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              <div className="grid gap-4 md:grid-cols-3">
+                 <FormField
+                  control={form.control}
+                  name="partOfSpeech"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Part of Speech</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value}>
+                        <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
+                        <SelectContent>
+                           {["noun", "verb", "adjective", "adverb", "preposition", "conjunction", "interjection", "pronoun"].map(pos => (
+                             <SelectItem key={pos} value={pos} className="capitalize">{pos}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="level"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Level</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value}>
+                        <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
+                        <SelectContent>
+                          <SelectItem value="beginner">Beginner</SelectItem>
+                          <SelectItem value="intermediate">Intermediate</SelectItem>
+                          <SelectItem value="advanced">Advanced</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                 <FormField
+                  control={form.control}
+                  name="difficulty"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Difficulty (1-5)</FormLabel>
+                      <FormControl><Input type="number" min={1} max={5} {...field} /></FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+              
+              <div className="grid gap-4 md:grid-cols-2">
+                  <FormField
+                    control={form.control}
+                    name="audio"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Audio URL</FormLabel>
+                        <FormControl><Input placeholder="https://..." {...field} /></FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="image"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Image URL</FormLabel>
+                        <FormControl><Input placeholder="https://..." {...field} /></FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* 2. Definitions */}
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle>Definitions *</CardTitle>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => appendDefinition({ meaning: "", meaningVi: "", examples: [] })}
+              >
+                <Plus className="mr-2 h-4 w-4" /> Add Definition
+              </Button>
+            </CardHeader>
+            <CardContent className="space-y-6 pt-4">
+              {definitionFields.map((field, index) => (
+                <DefinitionCard key={field.id} index={index} removeDefinition={removeDefinition} />
+              ))}
+              <FormMessage>{form.formState.errors.definitions?.message}</FormMessage>
+            </CardContent>
+          </Card>
+
+          {/* 3. Categories */}
+          <Card>
+            <CardHeader><CardTitle>Categories *</CardTitle></CardHeader>
+            <CardContent>
+              <FormField
+                control={form.control}
+                name="categories"
+                render={() => (
+                  <FormItem>
+                    <div className="grid gap-4 grid-cols-2 md:grid-cols-4">
+                      {categories.map((category: any) => (
+                        <FormField
+                          key={category._id}
+                          control={form.control}
+                          name="categories"
+                          render={({ field }) => (
+                            <FormItem className="flex items-center space-x-2 space-y-0">
+                              <FormControl>
+                                <Checkbox
+                                  checked={field.value?.includes(category._id)}
+                                  onCheckedChange={(checked) => {
+                                    return checked
+                                      ? field.onChange([...field.value, category._id])
+                                      : field.onChange(field.value?.filter((value) => value !== category._id));
+                                  }}
+                                />
+                              </FormControl>
+                              <FormLabel className="font-normal cursor-pointer text-sm">{category.name}</FormLabel>
+                            </FormItem>
+                          )}
+                        />
+                      ))}
+                    </div>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </CardContent>
+          </Card>
+
+          {/* 4. Relations & Meta (Synonyms, etc.) */}
+          <Card>
+            <CardHeader><CardTitle>Relations & Meta</CardTitle></CardHeader>
+            <CardContent className="grid gap-6 md:grid-cols-2">
+               {/* Synonyms */}
+               <div className="space-y-2">
+                <FormLabel>Synonyms</FormLabel>
+                <div className="flex space-x-2">
+                  <Input placeholder="Add synonym..." value={synonymInput} onChange={(e) => setSynonymInput(e.target.value)} onKeyPress={(e) => e.key === "Enter" && (e.preventDefault(), handleArrayInputAdd("synonyms", synonymInput, setSynonymInput))} />
+                  <Button type="button" variant="secondary" onClick={() => handleArrayInputAdd("synonyms", synonymInput, setSynonymInput)}>Add</Button>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {form.watch("synonyms")?.map((syn, i) => (
+                    <Badge key={i} variant="secondary">{syn} <X className="ml-1 h-3 w-3 cursor-pointer" onClick={() => handleArrayInputRemove("synonyms", i)} /></Badge>
+                  ))}
+                </div>
+              </div>
+
+               {/* Antonyms */}
+               <div className="space-y-2">
+                <FormLabel>Antonyms</FormLabel>
+                <div className="flex space-x-2">
+                  <Input placeholder="Add antonym..." value={antonymInput} onChange={(e) => setAntonymInput(e.target.value)} onKeyPress={(e) => e.key === "Enter" && (e.preventDefault(), handleArrayInputAdd("antonyms", antonymInput, setAntonymInput))} />
+                  <Button type="button" variant="secondary" onClick={() => handleArrayInputAdd("antonyms", antonymInput, setAntonymInput)}>Add</Button>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {form.watch("antonyms")?.map((ant, i) => (
+                    <Badge key={i} variant="secondary">{ant} <X className="ml-1 h-3 w-3 cursor-pointer" onClick={() => handleArrayInputRemove("antonyms", i)} /></Badge>
+                  ))}
+                </div>
+              </div>
+
+              {/* Related Words */}
+               <div className="space-y-2">
+                <FormLabel>Related Words</FormLabel>
+                <div className="flex space-x-2">
+                  <Input placeholder="Add related word..." value={relatedWordInput} onChange={(e) => setRelatedWordInput(e.target.value)} onKeyPress={(e) => e.key === "Enter" && (e.preventDefault(), handleArrayInputAdd("relatedWords", relatedWordInput, setRelatedWordInput))} />
+                  <Button type="button" variant="secondary" onClick={() => handleArrayInputAdd("relatedWords", relatedWordInput, setRelatedWordInput)}>Add</Button>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {form.watch("relatedWords")?.map((word, i) => (
+                    <Badge key={i} variant="secondary">{word} <X className="ml-1 h-3 w-3 cursor-pointer" onClick={() => handleArrayInputRemove("relatedWords", i)} /></Badge>
+                  ))}
+                </div>
+              </div>
+
+              {/* Tags */}
+              <div className="space-y-2">
+                <FormLabel>Tags</FormLabel>
+                <div className="flex space-x-2">
+                  <Input placeholder="Add tag..." value={tagInput} onChange={(e) => setTagInput(e.target.value)} onKeyPress={(e) => e.key === "Enter" && (e.preventDefault(), handleArrayInputAdd("tags", tagInput, setTagInput))} />
+                  <Button type="button" variant="secondary" onClick={() => handleArrayInputAdd("tags", tagInput, setTagInput)}>Add</Button>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {form.watch("tags")?.map((tag, i) => (
+                    <Badge key={i} variant="outline" className="bg-primary/5">#{tag} <X className="ml-1 h-3 w-3 cursor-pointer" onClick={() => handleArrayInputRemove("tags", i)} /></Badge>
+                  ))}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Submit Actions */}
+          <div className="flex justify-end space-x-4 sticky bottom-4 p-4 bg-background/80 backdrop-blur-sm border rounded-lg shadow-sm z-10">
+            <Button type="button" variant="outline" onClick={() => router.back()} disabled={updateMutation.isPending}>Cancel</Button>
+            <Button type="submit" disabled={updateMutation.isPending}>
+              {updateMutation.isPending ? <><div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full mr-2" /> Saving...</> : <><Save className="h-4 w-4 mr-2" /> Save Changes</>}
+            </Button>
+          </div>
+        </form>
+      </Form>
+    </div>
+  );
 }

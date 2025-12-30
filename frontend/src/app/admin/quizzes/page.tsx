@@ -140,13 +140,6 @@ export default function QuizzesPage() {
                     <Plus className="w-4 h-4 mr-2" />
                     Thêm Quiz
                 </Button>
-                <Button
-                    variant="outline"
-                    onClick={() => router.push("/admin/blocks")}
-                    className="border-blue-200 text-blue-700 hover:bg-blue-50"
-                >
-                    Quản lý nội dung bài học
-                </Button>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
