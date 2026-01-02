@@ -52,9 +52,7 @@ class QuizRepository {
     }
 
     if (search) {
-      filter.$or = [
-        { title: { $regex: search, $options: "i" } },
-      ];
+      filter.$or = [{ title: { $regex: search, $options: "i" } }];
     }
 
     const skip = (pageNum - 1) * pageSize;
@@ -83,10 +81,11 @@ class QuizRepository {
   }
 
   async addQuestions(quizId, questions) {
+    console.log("Adding questions to quiz:", quizId, questions);
     return await Quiz.findByIdAndUpdate(
       quizId,
       {
-        $push: { questions: { $each: questions } },
+        $push: { questions: questions },
       },
       { new: true }
     );
@@ -109,8 +108,8 @@ class QuizRepository {
       { _id: quizId, "questions._id": questionId },
       {
         $set: {
-          "questions.$": { ...questionData, _id: questionId }
-        }
+          "questions.$": { ...questionData, _id: questionId },
+        },
       },
       { new: true }
     );
@@ -120,7 +119,7 @@ class QuizRepository {
     return await Quiz.findByIdAndUpdate(
       quizId,
       {
-        $pull: { questions: { _id: questionId } }
+        $pull: { questions: { _id: questionId } },
       },
       { new: true }
     );

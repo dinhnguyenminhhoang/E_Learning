@@ -22,9 +22,16 @@ const writingOptionSchema = Joi.object({
   text: Joi.string().allow("").optional(),
   isCorrect: Joi.boolean().default(false),
 });
+const matchingItemSchema = Joi.object({
+  text: Joi.string().trim().required(),
+  // id có thể optional vì backend tự sinh
+  id: Joi.string().optional().allow(null, ""), 
+});
+
+// ✅ SỬA LẠI: Định nghĩa Schema cho cặp Left - Right là Object
 const matchingPairSchema = Joi.object({
-  left: Joi.string().trim().required(),
-  right: Joi.string().trim().required(),
+  left: matchingItemSchema.required(),
+  right: matchingItemSchema.required(),
 });
 
 const questionSchema = Joi.object({
@@ -54,12 +61,8 @@ const questionSchema = Joi.object({
     is: "matching",
     then: Joi.array()
       .items(matchingPairSchema)
-      .min(1) // Bắt buộc phải có ít nhất 1 cặp
-      .required()
-      .messages({
-        "array.min": "Matching questions must have at least 1 pair",
-        "any.required": "Matching pairs are required for matching questions",
-      }),
+      .min(1)
+      .required(),
     otherwise: Joi.array().items(matchingPairSchema).default([]).optional(),
   }).optional(),
 

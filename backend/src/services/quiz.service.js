@@ -7,11 +7,17 @@ const { STATUS } = require("../constants/status.constans");
 const HTTP_STATUS = require("../constants/httpStatus");
 
 class QuizService {
-
   async createQuiz(req) {
-    const { title, attachedTo, questions, xpReward, thumbnail, audio, tags, skill, matchingPairs } =
-      req.body || {};
-
+    const {
+      title,
+      attachedTo,
+      questions,
+      xpReward,
+      thumbnail,
+      audio,
+      tags,
+      skill,
+    } = req.body || {};
     if (!title || !skill) {
       return ResponseBuilder.badRequest(
         "Thiếu thông tin bắt buộc: title, skill."
@@ -19,6 +25,7 @@ class QuizService {
     }
 
     const normalizedSkill = String(skill).toLowerCase();
+    await console.log("pairs", matchingPairs);
 
     const quizData = {
       title: title.trim(),
@@ -31,7 +38,6 @@ class QuizService {
       audio: audio || "",
       tags: tags || "",
       updatedBy: req.user?.id || null,
-      matchingPairs: matchingPairs || [],
     };
 
     const existingQuiz = await QuizRepository.getQuizByTitleAndAttachedTo(
@@ -54,25 +60,55 @@ class QuizService {
     }
 
     const added = await QuizRepository.createQuiz(quizData);
-    return ResponseBuilder.success(
-      "Tạo quiz thành công!",
-      added
-    );
+    return ResponseBuilder.success("Tạo quiz thành công!", added);
   }
 
   async addQuestions(req) {
     const quizId = req.params.id;
-    const { questions } = req.body || {};
-    console.log("questions", questions);
-    const existingQuiz = await QuizRepository.getQuizById(toObjectId(quizId));
-    if (!existingQuiz) {
-      return ResponseBuilder.error(
-        "Không tìm thấy quiz.",
-        HTTP_STATUS.NOT_FOUND
-      );
+    const { questions } = req.body;
+
+    if (!Array.isArray(questions) || questions.length === 0) {
+      return ResponseBuilder.error("Danh sách câu hỏi không hợp lệ");
     }
 
-    const updatedQuiz = await QuizRepository.addQuestions(quizId, questions);
+    const question = questions[0];
+
+    console.log("matchingPairs", question.matchingPairs?.[0]);
+
+    const data = {
+      sourceType: question.sourceType || null,
+      sourceId: question.sourceId || null,
+      type: question.type || "multiple_choice",
+      questionText: question.questionText || "",
+      explanation: question.explanation || "",
+      points: question.points || 1,
+      tags: question.tags || [],
+      thumbnail: question.thumbnail || null,
+      audio: question.audio || null,
+    };
+
+    if (data.type === "multiple_choice" || data.type === "true_false") {
+      data.options = question.options || [];
+      data.correctAnswers = question.correctAnswers || [];
+    } else if (data.type === "fill_blank") {
+      data.correctAnswers = question.correctAnswers || [];
+    } else if (data.type === "matching") {
+      data.matchingPair = question.matchingPairs.map((p) => ({
+        left: {
+          text: p.left.text,
+        },
+        right: {
+          text: p.right.text,
+        },
+      }));
+    }
+
+    const existingQuiz = await QuizRepository.getQuizById(toObjectId(quizId));
+    if (!existingQuiz) {
+      return ResponseBuilder.error("Không tìm thấy quiz.");
+    }
+
+    const updatedQuiz = await QuizRepository.addQuestions(quizId, data);
 
     return ResponseBuilder.success(
       "Thêm câu hỏi vào quiz thành công",
@@ -83,14 +119,12 @@ class QuizService {
   async getQuizById(req) {
     const quizId = req.params.id;
     const quiz = await QuizRepository.getQuizById(toObjectId(quizId));
-    if (!quiz) return ResponseBuilder.error(
-      "Không tìm thấy quiz.",
-      HTTP_STATUS.NOT_FOUND
-    );
-    return ResponseBuilder.success(
-      "Lấy dữ liệu quiz thành công",
-      quiz
-    );
+    if (!quiz)
+      return ResponseBuilder.error(
+        "Không tìm thấy quiz.",
+        HTTP_STATUS.NOT_FOUND
+      );
+    return ResponseBuilder.success("Lấy dữ liệu quiz thành công", quiz);
   }
 
   async getAllQuizzes(req) {
@@ -111,10 +145,11 @@ class QuizService {
     const quizId = req.params.id;
     const quizUpdates = req.body;
     const existingQuiz = await QuizRepository.getQuizById(toObjectId(quizId));
-    if (!existingQuiz) return ResponseBuilder.error(
-      "Không tìm thấy quiz.",
-      HTTP_STATUS.NOT_FOUND
-    );
+    if (!existingQuiz)
+      return ResponseBuilder.error(
+        "Không tìm thấy quiz.",
+        HTTP_STATUS.NOT_FOUND
+      );
 
     if (quizUpdates.title && quizUpdates.title !== existingQuiz.title) {
       const quizWithSameTitle =
@@ -136,19 +171,17 @@ class QuizService {
     const updatedQuiz = await QuizRepository.updateQuiz(quizId, quizUpdates);
     console.log("Updated quiz result:", JSON.stringify(updatedQuiz));
 
-    return ResponseBuilder.success(
-      "Cập nhật quiz thành công",
-      updatedQuiz
-    );
+    return ResponseBuilder.success("Cập nhật quiz thành công", updatedQuiz);
   }
 
   async deleteQuiz(req) {
     const quizId = req.params.id;
     const existingQuiz = await QuizRepository.getQuizById(toObjectId(quizId));
-    if (!existingQuiz) return ResponseBuilder.error(
-      "Không tìm thấy quiz.",
-      HTTP_STATUS.NOT_FOUND
-    );
+    if (!existingQuiz)
+      return ResponseBuilder.error(
+        "Không tìm thấy quiz.",
+        HTTP_STATUS.NOT_FOUND
+      );
 
     await QuizRepository.deleteSoftQuiz(toObjectId(quizId));
     return ResponseBuilder.success("Xóa dữ liệu quiz thành công");
@@ -156,18 +189,17 @@ class QuizService {
 
   async updateQuestion(req) {
     const { id: quizId, questionId } = req.params;
-    const questionData = req.body;
+    const question = req.body; // Đổi tên biến thành 'question' cho giống logic add
 
+    // 1. Kiểm tra Quiz tồn tại
     const existingQuiz = await QuizRepository.getQuizById(toObjectId(quizId));
     if (!existingQuiz) {
-      return ResponseBuilder.error(
-        "Không tìm thấy quiz.",
-        HTTP_STATUS.NOT_FOUND
-      );
+      return ResponseBuilder.error("Không tìm thấy quiz.", HTTP_STATUS.NOT_FOUND);
     }
 
+    // 2. Kiểm tra Question tồn tại
     const questionExists = existingQuiz.questions.some(
-      q => q._id.toString() === questionId
+      (q) => q._id.toString() === questionId
     );
     if (!questionExists) {
       return ResponseBuilder.error(
@@ -176,16 +208,46 @@ class QuizService {
       );
     }
 
+    // 3. Chuẩn bị dữ liệu update (Giống hệt addQuestions)
+    const data = {
+      sourceType: question.sourceType,
+      sourceId: question.sourceId,
+      type: question.type, // type có thể thay đổi hoặc giữ nguyên
+      questionText: question.questionText,
+      explanation: question.explanation,
+      points: question.points,
+      tags: question.tags,
+      thumbnail: question.thumbnail,
+      audio: question.audio,
+    };
+
+    // 4. Xử lý logic riêng cho từng loại câu hỏi
+    if (data.type === "multiple_choice" || data.type === "true_false") {
+      data.options = question.options || [];
+      data.correctAnswer = question.correctAnswer || null; 
+    } else if (data.type === "fill_blank") {
+      data.correctAnswer = question.correctAnswer || null;
+    } else if (data.type === "matching") {
+      if (question.matchingPairs) {
+        data.matchingPair = question.matchingPairs.map((p) => ({
+          left: {
+            text: p.left.text, // Lấy text từ object { text: "..." }
+          },
+          right: {
+            text: p.right.text, // Lấy text từ object { text: "..." }
+          },
+        }));
+      }
+    }
+
+    // 5. Gọi Repository để update
     const updatedQuiz = await QuizRepository.updateQuestion(
       quizId,
       questionId,
-      questionData
+      data
     );
 
-    return ResponseBuilder.success(
-      "Cập nhật câu hỏi thành công",
-      updatedQuiz
-    );
+    return ResponseBuilder.success("Cập nhật câu hỏi thành công", updatedQuiz);
   }
 
   async deleteQuestion(req) {
@@ -200,7 +262,7 @@ class QuizService {
     }
 
     const questionExists = existingQuiz.questions.some(
-      q => q._id.toString() === questionId
+      (q) => q._id.toString() === questionId
     );
     if (!questionExists) {
       return ResponseBuilder.error(
@@ -211,10 +273,7 @@ class QuizService {
 
     const updatedQuiz = await QuizRepository.deleteQuestion(quizId, questionId);
 
-    return ResponseBuilder.success(
-      "Xóa câu hỏi thành công",
-      updatedQuiz
-    );
+    return ResponseBuilder.success("Xóa câu hỏi thành công", updatedQuiz);
   }
 }
 
