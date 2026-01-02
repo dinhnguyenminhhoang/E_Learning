@@ -37,6 +37,7 @@ export function MatchingQuestion({
     if (!question.options || question.options.length === 0) {
       return [];
     }
+    console.log("Parsing question options for matching pairs:", question);
 
     return question.options.map((option, index) => {
       const parts = option.text.split(" - ");

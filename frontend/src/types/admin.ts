@@ -124,6 +124,7 @@ export interface Question {
     thumbnail?: string | null;
     audio?: string | null;
     status?: string;
+    matchingPairs?: { left: string; right: string }[]; // For matching questions
 }
 
 export interface Quiz {

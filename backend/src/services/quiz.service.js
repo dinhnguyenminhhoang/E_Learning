@@ -9,7 +9,7 @@ const HTTP_STATUS = require("../constants/httpStatus");
 class QuizService {
 
   async createQuiz(req) {
-    const { title, attachedTo, questions, xpReward, thumbnail, audio, tags, skill } =
+    const { title, attachedTo, questions, xpReward, thumbnail, audio, tags, skill, matchingPairs } =
       req.body || {};
 
     if (!title || !skill) {
@@ -31,6 +31,7 @@ class QuizService {
       audio: audio || "",
       tags: tags || "",
       updatedBy: req.user?.id || null,
+      matchingPairs: matchingPairs || [],
     };
 
     const existingQuiz = await QuizRepository.getQuizByTitleAndAttachedTo(
