@@ -15,8 +15,20 @@ const optionSchema = new Schema(
 );
 const matchingPairSchema = new Schema(
   {
-    left: { type: String, required: true },
-    right: { type: String, required: true },
+    left: {
+      id: {
+        type: String,
+        default: () => crypto.randomUUID(),
+      },
+      text: { type: String, required: true },
+    },
+    right: {
+      id: {
+        type: String,
+        default: () => crypto.randomUUID(),
+      },
+      text: { type: String, required: true },
+    },
   },
   { _id: false }
 );
@@ -58,7 +70,7 @@ const questionSchema = new Schema(
       type: [optionSchema],
       default: [],
     },
-    
+
     matchingPair: {
       type: [matchingPairSchema],
       default: [],
