@@ -206,8 +206,8 @@ export interface FlashCard {
 }
 
 export interface CreateCardDeckInput {
-    name: string;
+    title: string;
     description?: string;
-    category?: string;
+    categoryId?: string;
     status: 'active' | 'inactive';
 }

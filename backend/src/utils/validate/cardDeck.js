@@ -13,13 +13,13 @@ const createCardDeckSchema = Joi.object({
 
   description: Joi.string().trim().max(1000).optional(),
 
-  target: Joi.string()
-    .regex(/^[0-9a-fA-F]{24}$/)
-    .required()
-    .messages({
-      "string.pattern.base": "Target must be a valid ObjectId",
-      "any.required": "Target is required",
-    }),
+  // target: Joi.string()
+  //   .regex(/^[0-9a-fA-F]{24}$/)
+  //   .required()
+  //   .messages({
+  //     "string.pattern.base": "Target must be a valid ObjectId",
+  //     "any.required": "Target is required",
+  //   }),
 
   level: Joi.string()
     .valid("beginner", "intermediate", "advanced")
