@@ -13,6 +13,13 @@ const optionSchema = new Schema(
   },
   { _id: false }
 );
+const matchingPairSchema = new Schema(
+  {
+    left: { type: String, required: true },
+    right: { type: String, required: true },
+  },
+  { _id: false }
+);
 
 const questionSchema = new Schema(
   {
@@ -49,6 +56,11 @@ const questionSchema = new Schema(
 
     options: {
       type: [optionSchema],
+      default: [],
+    },
+    
+    matchingPair: {
+      type: [matchingPairSchema],
       default: [],
     },
 
@@ -113,7 +125,7 @@ const quizSchema = new Schema(
       trim: true,
       index: true,
     },
-    
+
     attachedTo: {
       kind: {
         type: String,
