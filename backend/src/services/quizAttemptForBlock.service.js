@@ -74,9 +74,6 @@ class QuizAttemptForBlockService {
           existingAttempt._id
         );
 
-        console.log("attemptWithQuiz", attemptWithQuiz);
-        console.log("quiz", quiz);
-
         const sanitizedQuiz = this._sanitizeQuizForUser(quiz);
 
         const attemptObj = attemptWithQuiz.toObject
@@ -639,7 +636,7 @@ class QuizAttemptForBlockService {
     }, 0);
   }
 
-  async _updateUserProgressAfterQuizPass(userId, blockId, quizId) {
+  async _updateUserProgressAfterQuizPass(userId, blockId) {
     try {
       const block = await BlockRepository.getBlockById(toObjectId(blockId));
       if (!block) {
@@ -926,6 +923,17 @@ class QuizAttemptForBlockService {
     }
 
     return await this.startQuizAttempt(userId, blockId);
+  }
+
+  async makeCompleteBlockInLesson(req) {
+    const {blockId, lessonId } = req.params;
+    const { userId } = req.user._id;
+
+    await this._markBlockCompletedWhenNoExercise(userId, blockId, lessonId);
+    return ResponseBuilder.success("Đã hoàn thành block này.", {
+      blockCompleted: true,
+      message: "Đã hoàn thành block này.",
+    });
   }
 }
 

@@ -289,11 +289,7 @@ export default function LearningPage() {
 
   const handleBlockContinue = () => {
     if (!activeBlock) return;
-    if (activeBlock.isQuiz) {
-      handleStartQuiz();
-    } else {
-      handleNext();
-    }
+    handleStartQuiz();
   };
 
   const handleStartQuiz = async () => {
