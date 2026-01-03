@@ -1,5 +1,6 @@
 const BLOCK_MODELS = require("../constants/blocks");
 const { STATUS } = require("../constants/status.constans");
+const Lesson = require("../models/Lessson");
 const ContentBlock = require("../models/subModel/contentBlock.schema");
 const GrammarBlock = require("../models/subModel/grammarBlock.schema");
 const MediaBlock = require("../models/subModel/mediaBlock.schema");
@@ -13,7 +14,9 @@ class BlockRepository {
   }
 
   async getBlockById(blockId) {
-    const base = await ContentBlock.findById(blockId).where("status").ne(STATUS.DELETED);
+    const base = await ContentBlock.findById(blockId)
+      .where("status")
+      .ne(STATUS.DELETED);
     if (!base) return null;
 
     switch (base.type) {
@@ -67,15 +70,26 @@ class BlockRepository {
   }
 
   async softDelete(blockId) {
-    return ContentBlock.findByIdAndUpdate(blockId, { status: `${STATUS.DELETED}` });
+    return ContentBlock.findByIdAndUpdate(blockId, {
+      status: `${STATUS.DELETED}`,
+    });
   }
 
   async hardDelete(blockId) {
     return ContentBlock.findByIdAndDelete(blockId);
   }
   async getBlocksByLesson(lessonId) {
-    const blocks = await ContentBlock.find({ lessonId: lessonId }).where("status").ne(STATUS.DELETED).sort({ order: 1 });
-    return blocks;
+    const lesson = await Lesson.findById(lessonId)
+      .ne("status", STATUS.DELETED)
+      .populate("blocks.block");
+    return lesson.blocks
+      .filter(b => b.block.status !== STATUS.DELETED)
+      .sort((a, b) => a.order - b.order)
+      .map(b => ({
+        ...b.block.toObject(),
+        exercise: b.exercise,
+        order: b.order
+      }));
   }
 
   async getAllBlocks(filters = {}, pagination = {}) {

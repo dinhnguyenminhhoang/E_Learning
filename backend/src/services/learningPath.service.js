@@ -430,7 +430,7 @@ class LearningPathService {
       const blocks = await blockRepo.getBlocksByLesson(lessonId);
       if (!blocks || !blocks.length)
         return ResponseBuilder.notFoundError("Không tìm thấy blocks.");
-
+      console.log("blocks", blocks);
       // Lấy learningPathId (từ query hoặc từ userLearningPath đầu tiên)
       let pathId = learningPathId;
       if (!pathId) {
@@ -471,6 +471,7 @@ class LearningPathService {
           });
         });
       }
+
 
       // Map blocks với progress
       const blocksWithProgress = blocks.map((block) => {
