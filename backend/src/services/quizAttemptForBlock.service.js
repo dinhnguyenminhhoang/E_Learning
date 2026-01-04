@@ -639,6 +639,7 @@ class QuizAttemptForBlockService {
   async _updateUserProgressAfterQuizPass(userId, blockId) {
     try {
       const block = await BlockRepository.getBlockById(toObjectId(blockId));
+      console.log("ok")
       if (!block) {
         console.warn(
           `[QuizAttemptForBlockService] Block ${blockId} not found when updating progress`

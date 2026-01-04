@@ -293,6 +293,7 @@ userProgressSchema.methods.updateLastAccessedBlock = function (
 
 // Method để lấy block progress
 userProgressSchema.methods.getBlockProgress = function (lessonId, blockId) {
+  console.log("Lesson Progress Array:", this.lessonProgress); 
   const lessonProgress = this.lessonProgress.find(
     (lp) => lp.lessonId.toString() === lessonId.toString()
   );

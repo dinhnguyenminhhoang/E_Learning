@@ -36,6 +36,7 @@ class UserProgressRepository {
       toObjectId(lessonId),
       toObjectId(blockId)
     );
+    console.log("Block Progress:", blockProgress);
 
     return blockProgress;
   }
