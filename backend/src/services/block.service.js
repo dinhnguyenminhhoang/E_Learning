@@ -680,7 +680,7 @@ class BlockService {
     try {
       const { blockId } = req.params;
       const userId = req.user._id;
-      const { learningPathId } = req.query;
+      const { learningPathId, lessonId } = req.query;
       const normalizeId = (id) => {
         if (!id) return null;
         if (typeof id === "object" && id._id) return id._id.toString();
@@ -689,7 +689,9 @@ class BlockService {
 
       // Validate block tồn tại
       const block = await this.existingBlock(blockId);
-
+      if (!block) {
+        return ResponseBuilder.notFoundError("Block not found");
+      }
       // Lấy learningPathId (từ query hoặc từ userLearningPath đầu tiên)
       let pathId = learningPathId;
       if (!pathId) {
@@ -706,17 +708,8 @@ class BlockService {
           "Learning path not found for user"
         );
       }
-
-      // Lấy lessonId từ block
-      let lessonId = block.lessonId;
-      if (!lessonId) {
-        // Nếu block không có lessonId, tìm từ Lesson
-        const lessons = await LessonRepository.getLessonsByBlockId(blockId);
-        if (lessons && lessons.length > 0) {
-          lessonId = lessons[0]._id;
-        }
-      }
-
+      const lessons = await LessonRepository.getLessonsByBlockId(toObjectId(blockId));
+      
       const lessonIdStr = normalizeId(lessonId);
       if (!lessonId) {
         return ResponseBuilder.notFoundError("Lesson not found for this block");
@@ -737,6 +730,7 @@ class BlockService {
           lessonIdStr,
           blockId
         );
+      console.log("existingBlockProgress", existingBlockProgress);
 
       // Lấy lesson content dựa trên block type
       let lessonContent = null;

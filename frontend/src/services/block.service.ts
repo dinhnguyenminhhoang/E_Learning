@@ -10,8 +10,8 @@ import type {
 } from "@/types/block.types";
 
 class BlockService {
-  async startBlock(blockId: string, learningPathId?: string) {
-    const url = `/v1/api/block/${blockId}/start${learningPathId ? `?learningPathId=${learningPathId}` : ""
+  async startBlock(blockId: string, learningPathId?: string, lessonId?: string) {
+    const url = `/v1/api/block/${blockId}/start${learningPathId ? `?learningPathId=${learningPathId}&lessonId=${lessonId}` : ""
       }`;
     return await apiClient.post<StartBlockResponse>(url);
   }
