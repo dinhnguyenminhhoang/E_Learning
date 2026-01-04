@@ -338,7 +338,7 @@ export default function LearningPage() {
     if (!quizAttempt) return;
 
     try {
-      const response = await blockService.submitQuiz(quizAttempt._id, answers);
+      const response = await blockService.submitQuiz(quizAttempt._id, lessonId, answers);
 
       if (response.code === 200 && response.data) {
         setQuizResult(response.data.attempt);
