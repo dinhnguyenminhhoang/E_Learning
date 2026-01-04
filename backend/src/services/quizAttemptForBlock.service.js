@@ -130,7 +130,7 @@ class QuizAttemptForBlockService {
     }
   }
 
-  async submitQuiz(userId, attemptId, answers) {
+  async submitQuiz(userId, attemptId, answers, lessonId) {
     try {
       const attempt = await QuizAttemptForBlockRepo.findById(attemptId);
       if (!attempt) {
@@ -147,10 +147,11 @@ class QuizAttemptForBlockService {
       if (!quiz) {
         return ResponseBuilder.notFoundError("Không tìm thấy quiz.");
       }
-      console.log("quiz", quiz);
+
       if (!answers) {
         return ResponseBuilder.badRequest("Answers không được để trống.");
       }
+
       const validationError = this._validateAnswers(answers, quiz.questions);
       if (validationError) {
         return ResponseBuilder.badRequest(validationError);
@@ -175,7 +176,7 @@ class QuizAttemptForBlockService {
         await this._updateUserProgressAfterQuizPass(
           userId,
           updatedAttempt.block,
-          updatedAttempt.quiz
+          lessonId
         );
 
         try {
@@ -216,10 +217,10 @@ class QuizAttemptForBlockService {
       // Check if lesson is completed after quiz pass
       let isLessonCompleted = false;
       if (isPassed) {
+        console.log("check lesson completed");
         try {
           const block = await BlockRepository.getBlockById(toObjectId(updatedAttempt.block));
           if (block) {
-            let lessonId = block.lessonId;
             if (!lessonId) {
               const lessons = await LessonRepository.getLessonsByBlockId(updatedAttempt.block);
               if (lessons && lessons.length > 0) {
@@ -228,16 +229,21 @@ class QuizAttemptForBlockService {
             }
 
             if (lessonId) {
+              console.log("has lessonId");
               const userPaths = await UserLearningPathRepository.findByUserId(toObjectId(userId));
               if (userPaths && userPaths.length > 0) {
                 const learningPathId = userPaths[0].learningPath.toString();
+                console.log("learningPathId", learningPathId);
+                console.log("userId", userId);
                 const progress = await UserProgressRepository.findByUserAndPath(
                   userId,
                   learningPathId
                 );
+                console.log("progress", progress);
 
                 if (progress) {
                   const lessonProgress = progress.getLessonProgress(toObjectId(lessonId));
+                  console.log("lessonProgress", lessonProgress);
                   if (lessonProgress) {
                     isLessonCompleted = lessonProgress.isCompleted || false;
                   }
@@ -636,18 +642,17 @@ class QuizAttemptForBlockService {
     }, 0);
   }
 
-  async _updateUserProgressAfterQuizPass(userId, blockId) {
+  async _updateUserProgressAfterQuizPass(userId, blockId, lessonId) {
     try {
       const block = await BlockRepository.getBlockById(toObjectId(blockId));
-      console.log("ok")
       if (!block) {
         console.warn(
           `[QuizAttemptForBlockService] Block ${blockId} not found when updating progress`
         );
         return;
       }
+      console.log("lessonId before fetch:", lessonId);
 
-      let lessonId = block.lessonId;
       if (!lessonId) {
         const lessons = await LessonRepository.getLessonsByBlockId(blockId);
         if (lessons && lessons.length > 0) {
@@ -718,6 +723,7 @@ class QuizAttemptForBlockService {
       const blockProgress = lessonProgress.blockProgress.find(
         (bp) => bp.blockId.toString() === blockId.toString()
       );
+      console.log("1")
 
       if (!blockProgress) {
         console.warn(
@@ -725,10 +731,14 @@ class QuizAttemptForBlockService {
         );
         return;
       }
+      console.log("2")
 
       blockProgress.isCompleted = true;
       blockProgress.completedAt = new Date();
       blockProgress.lastUpdatedAt = new Date();
+      console.log("progess before save:", progress);
+      console.log("Lesson Progress:", lessonProgress);
+      console.log("Saving progress:", blockProgress);
 
       await progress.save();
 

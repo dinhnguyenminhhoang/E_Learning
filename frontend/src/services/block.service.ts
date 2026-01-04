@@ -36,9 +36,9 @@ class BlockService {
     );
   }
 
-  async submitQuiz(attemptId: string, answers: QuizAnswer[]) {
+  async submitQuiz(attemptId: string, lessonId: string, answers: QuizAnswer[]) {
     return await apiClient.post<SubmitQuizResponse>(
-      `/v1/api/quiz-attempts/${attemptId}/submit`,
+      `/v1/api/quiz-attempts/${attemptId}/${lessonId}/submit`,
       { answers }
     );
   }
