@@ -11,13 +11,11 @@ const objectIdValidator = (value, helpers) => {
   return value;
 };
 
-// Default option schema – requires non-empty text
 const optionSchema = Joi.object({
   text: Joi.string().trim().required(),
   isCorrect: Joi.boolean().default(false),
 });
 
-// For writing questions, options are optional/placeholder so text can be empty
 const writingOptionSchema = Joi.object({
   text: Joi.string().allow("").optional(),
   isCorrect: Joi.boolean().default(false),
@@ -126,10 +124,6 @@ const updateQuizSchema = Joi.object({
     )
     .optional(),
   difficulty: Joi.string().valid("EASY", "MEDIUM", "HARD").optional(),
-  // attachedTo: Joi.object({
-  //   kind: Joi.string().valid("Lesson", "Module", "LearningPath").optional(),
-  //   item: Joi.string().custom(objectIdValidator).optional(),
-  // }).optional(),
   questions: Joi.array().items(questionSchema).optional(),
   xpReward: Joi.number().min(0).optional(),
   status: Joi.string()

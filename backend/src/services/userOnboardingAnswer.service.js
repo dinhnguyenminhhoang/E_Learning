@@ -21,7 +21,7 @@ class UserOnboardingAnswerService {
         return ResponseBuilder.notFoundError("Không tìm thấy người dùng.");
 
       if (user.onboardingStatus === ONBOARDING_STATUS.COMPLETED) {
-        return ResponseBuilder.badRequest("Bạn đã hoàn thành onboarding.");
+        return ResponseBuilder.badRequest("Bạn đã hoàn thành onboarding trước đó.");
       }
 
       let mapResult = {};

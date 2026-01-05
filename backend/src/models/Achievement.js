@@ -38,7 +38,7 @@ const achievementSchema = new Schema(
 
     description: {
       type: String,
-      trim: true,
+      trim: true, 
     },
 
     icon: {

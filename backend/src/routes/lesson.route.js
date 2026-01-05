@@ -3,6 +3,11 @@ const lessonController = require("../controllers/lesson.controller");
 const { asynchandler } = require("../helpers/asyncHandler");
 const auth = require("../middlewares/auth");
 const { validateCreateLesson } = require("../middlewares/lesson");
+const {
+  validateCreateBlock,
+  validateUpdateBlock,
+  validateAssignBlock,
+} = require("../middlewares/block.middleware");
 
 const router = Router();
 router.post(
@@ -53,12 +58,14 @@ router.delete(
 router.put(
   "/:lessonId",
   auth.authenticate,
+  validateCreateLesson,
   asynchandler(lessonController.updateLesson)
 );
 
 router.post(
   "/:lessonId/blocks",
   auth.authenticate,
+  validateAssignBlock,
   asynchandler(lessonController.assignBlockToLesson)
 );
 
@@ -71,12 +78,14 @@ router.get(
 router.post(
   "/blocks",
   auth.authenticate,
+  validateCreateBlock,
   asynchandler(lessonController.createBlock)
 );
 
 router.put(
   "/blocks/:blockId",
   auth.authenticate,
+  validateUpdateBlock,
   asynchandler(lessonController.updateBlock)
 );
 

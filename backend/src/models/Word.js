@@ -44,7 +44,7 @@ const wordSchema = new Schema(
     },
     frequency: {
       type: Number,
-      default: 0, // Tần suất sử dụng
+      default: 0,
       min: 0,
     },
     definitions: [

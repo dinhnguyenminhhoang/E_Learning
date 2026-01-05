@@ -58,7 +58,7 @@ class WordService {
       audio: finalAudio,
       partOfSpeech,
       level,
-      frequency: Math.max(0, frequency),
+      frequency: frequency != null ? Math.max(0, frequency) : undefined,
       definitions: definitions.map((def) => ({
         meaning: def.meaning.trim(),
         meaningVi: def.meaningVi.trim(),
@@ -70,7 +70,8 @@ class WordService {
       categories,
       tags: tags.map((t) => t.trim().toLowerCase()),
       image,
-      difficulty: Math.min(5, Math.max(1, difficulty)),
+      difficulty:
+        difficulty != null ? Math.min(5, Math.max(1, difficulty)) : undefined,
       isActive,
       createdBy: req.user._id,
     };
@@ -244,11 +245,15 @@ class WordService {
           audio: data.audio,
           partOfSpeech: data.partOfSpeech,
           level: data.level,
-          frequency: Math.max(0, data.frequency),
+          frequency:
+            data.frequency != null ? Math.max(0, data.frequency) : undefined,
           categories: data.categories,
           tags: data.tags,
           image: data.image,
-          difficulty: Math.min(5, Math.max(1, data.difficulty)),
+          difficulty:
+            data.difficulty != null
+              ? Math.min(5, Math.max(1, data.difficulty))
+              : undefined,
           isActive: data.isActive,
         };
 

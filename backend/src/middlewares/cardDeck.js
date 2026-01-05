@@ -1,27 +1,12 @@
-import { createCardDeckSchema, updateCardDeckSchema } from "../utils/validate/cardDeck.js";
+"use strict";
 
-export function validateCreateCardDeck(req, res, next) {
-  const { error } = createCardDeckSchema.validate(req.body, {
-    abortEarly: false,
-  });
-  if (error) {
-    return res.status(400).json({
-      error: "Validation error",
-      details: error.details.map((d) => d.message),
-    });
-  }
-  next();
-}
+const { createValidator } = require("../utils/validate/common");
+const {
+  createCardDeckSchema,
+  updateCardDeckSchema,
+} = require("../utils/validate/cardDeck");
 
-export function validateUpdateCardDeck(req, res, next) {
-  const { error } = updateCardDeckSchema.validate(req.body, {
-    abortEarly: false,
-  });
-  if (error) {
-    return res.status(400).json({
-      error: "Validation error",
-      details: error.details.map((d) => d.message),
-    });
-  }
-  next();
-}
+module.exports = {
+  validateCreateCardDeck: createValidator(createCardDeckSchema),
+  validateUpdateCardDeck: createValidator(updateCardDeckSchema),
+};

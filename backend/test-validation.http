@@ -1,0 +1,947 @@
+### ============================================
+### VALIDATION TEST SUITE - E-Learning Backend
+### ============================================
+### Sử dụng REST Client extension trong VS Code
+### Hoặc import vào Postman/Thunder Client
+### ============================================
+
+@baseUrl = http://localhost:8080/v1/api
+@token = eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI2OGQ2Yjk0ZGNiY2YwMjQ4Y2RjYTNkOTkiLCJlbWFpbCI6ImpvaG5AZXhhbXBsZS5jb20iLCJyb2xlcyI6WyJBRE1JTiIsIlVTRVIiXSwia2V5SWQiOiI2OTViMjBiYTlhNTNiZWQzY2E3ZTVkNjAiLCJ2ZXJpZmllZCI6ZmFsc2UsInR5cGUiOiJhY2Nlc3MiLCJpYXQiOjE3Njc1Nzk4MzUsInNjb3BlIjpbInJlYWQiLCJ3cml0ZSIsImFkbWluIl0sImV4cCI6MTc2NzU4MzQzNSwiYXVkIjoicG9ydGZvbGlvLWFwaSIsImlzcyI6InBvcnRmb2xpby1tYXJrZXRwbGFjZSIsInN1YiI6IjY4ZDZiOTRkY2JjZjAyNDhjZGNhM2Q5OSIsImp0aSI6Ijg1NjM1NGU4N2FiN2Y1MWZjYjI5ZmEwNjQ3OTJkOTc5In0.dx2TY2ZCsrb2KtDZ9lDVIqJogDUqErk0DC14FlFuYTJKbD63c99oN4txU5El-990i0mm6IcPeF3iMiiveycFNzdjOSfuAIcyy-QhKq3AbHzJSaBk6pkEMSfevX5vRCiU15Hk5hzdKeBIeI55MPmARCXf-IqUx6dHVQh7WBDZQ-YCyfYMTalnKGpjSx3y4HVwr6G1hJPwCf9JWiaEIUbVIN-lxBvThNs8zMKHRAwKkYcW4oWH16B10e4qMMfGwUzKxWntHLLn5jzgEbIxqxRZ5b_nzg16qxbThlYpwg0pnnmMXOLUoKuNm6L7OBRNh0q-wO0sphH06d2rQqvhX6of4Q
+
+### ============================================
+### 1. CARDDECK VALIDATION TESTS
+### ============================================
+
+### ✅ Test 1.1: Valid CardDeck Creation
+POST {{baseUrl}}/card-deck
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "title": "English Vocabulary A1",
+  "description": "Basic English vocabulary for beginners",
+  "target": "507f1f77bcf86cd799439011",
+  "categoryId": "507f191e810c19729de860ea",
+  "level": "beginner",
+  "thumbnail": "https://example.com/image.jpg"
+}
+
+### ❌ Test 1.2: Invalid - Empty Title
+POST {{baseUrl}}/card-deck
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "title": "",
+  "target": "507f1f77bcf86cd799439011",
+  "categoryId": "507f191e810c19729de860ea"
+}
+
+### ❌ Test 1.3: Invalid - Bad ObjectId
+POST {{baseUrl}}/card-deck
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "title": "Test Deck",
+  "target": "invalid-id",
+  "categoryId": "507f191e810c19729de860ea"
+}
+
+### ❌ Test 1.4: Invalid - Wrong Level Enum
+POST {{baseUrl}}/card-deck
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "title": "Test Deck",
+  "target": "507f1f77bcf86cd799439011",
+  "categoryId": "507f191e810c19729de860ea",
+  "level": "expert"
+}
+
+### ❌ Test 1.5: Invalid - Missing Required Fields
+POST {{baseUrl}}/card-deck
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "title": "Test Deck"
+}
+
+### ============================================
+### 2. EXAM VALIDATION TESTS
+### ============================================
+
+### ✅ Test 2.1: Valid Exam Creation
+POST {{baseUrl}}/exam
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "title": "English Proficiency Test",
+  "description": "Comprehensive English test",
+  "maxScore": 100,
+  "totalTimeLimit": 7200,
+  "sections": [
+    {
+      "title": "Reading",
+      "skill": "reading",
+      "maxScore": 50,
+      "order": 1,
+      "quiz": "69383305a740b0fa48f90c7a",
+      "timeLimit": 3600
+    },
+    {
+      "title": "Listening",
+      "skill": "listening",
+      "maxScore": 50,
+      "order": 2,
+      "quiz": "69383305a740b0fa48f90c87",
+      "timeLimit": 3600
+    }
+  ]
+}
+
+### ❌ Test 2.2: Invalid - Section Scores Don't Match Total
+POST {{baseUrl}}/exam
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "title": "English Test",
+  "maxScore": 100,
+  "sections": [
+    {
+      "title": "Reading",
+      "skill": "reading",
+      "maxScore": 40,
+      "order": 1,
+      "quiz": "69383305a740b0fa48f90c7a"
+    },
+    {
+      "title": "Listening",
+      "skill": "listening",
+      "maxScore": 40,
+      "order": 2,
+      "quiz": "69383305a740b0fa48f90c87"
+    }
+  ]
+}
+
+### ❌ Test 2.3: Invalid - Wrong Skill Enum
+POST {{baseUrl}}/exam
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "title": "English Test",
+  "maxScore": 50,
+  "sections": [
+    {
+      "title": "Test Section",
+      "skill": "dancing",
+      "maxScore": 50,
+      "order": 1,
+      "quiz": "507f1f77bcf86cd799439011"
+    }
+  ]
+}
+
+### ============================================
+### 3. USER PROFILE VALIDATION TESTS
+### ============================================
+
+### ✅ Test 3.1: Valid Profile Update
+PUT {{baseUrl}}/profile/me
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "name": "John Doe",
+  "phoneNumber": "0912345678",
+  "profile": {
+    "bio": "English learner",
+    "experience": "intermediate",
+    "learningPreferences": {
+      "dailyGoal": 50,
+      "studyReminder": true,
+      "difficultyLevel": "intermediate"
+    }
+  }
+}
+
+### ❌ Test 3.2: Invalid - Bad Phone Number
+PUT {{baseUrl}}/profile/me
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "name": "John Doe",
+  "phoneNumber": "123"
+}
+
+### ❌ Test 3.3: Invalid - Name Too Short
+PUT {{baseUrl}}/profile/me
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "name": "A"
+}
+
+### ✅ Test 3.4: Valid Avatar Update
+PUT {{baseUrl}}/profile/avatar
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "avatar": "https://lh3.googleusercontent.com/a/ACg8ocIpOVPMmXLDvxuLO33SUXOj51nm5f…"
+}
+
+### ❌ Test 3.5: Invalid - Bad Avatar URL
+PUT {{baseUrl}}/profile/avatar
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "avatar": "not-a-url"
+}
+
+### ============================================
+### 4. QUIZ VALIDATION TESTS
+### ============================================
+
+### ✅ Test 4.1: Valid Quiz Creation
+POST {{baseUrl}}/quiz/create
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "title": "English Grammar Quiz",
+  "skill": "grammar",
+  "difficulty": "MEDIUM",
+  "xpReward": 50
+}
+
+### ❌ Test 4.2: Invalid - Wrong Difficulty
+POST {{baseUrl}}/quiz/create
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "title": "Test Quiz",
+  "skill": "grammar",
+  "difficulty": "SUPER_HARD"
+}
+
+### ============================================
+### 5. WORD VALIDATION TESTS
+### ============================================
+
+### ✅ Test 5.1: Valid Word Creation
+POST {{baseUrl}}/word/create
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "word": "hello",
+  "pronunciation": "/həˈloʊ/",
+  "partOfSpeech": "interjection",
+  "level": "beginner",
+  "definitions": [
+    {
+      "meaning": "A greeting",
+      "meaningVi": "Lời chào",
+      "examples": [
+        {
+          "sentence": "Hello, how are you?",
+          "translation": "Xin chào, bạn khỏe không?"
+        }
+      ]
+    }
+  ],
+  "createdBy": "6958d5d0329f82099402b100"
+}
+
+### ❌ Test 5.2: Invalid - Wrong Part of Speech
+POST {{baseUrl}}/word/create
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "word": "test",
+  "partOfSpeech": "article",
+  "definitions": [
+    {
+      "meaning": "Test",
+      "meaningVi": "Kiểm tra"
+    }
+  ],
+  "createdBy": "admin"
+}
+
+### ============================================
+### 6. BLOCK VALIDATION TESTS
+### ============================================
+
+### ✅ Test 6.1: Valid Block Creation
+POST {{baseUrl}}/lesson/blocks
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "type": "media",
+  "title": "Introduction to English",
+  "content": "Video content here",
+  "duration": 300,
+  "mediaUrl": "https://example.com/video.mp4",
+  "skill": "listening",
+  "sourceUrl": "https://example.com/audio.mp3",
+  "mediaType": "audio"
+}
+
+### ❌ Test 6.2: Invalid - Wrong Block Type
+POST {{baseUrl}}/lesson/blocks
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "type": "podcast",
+  "title": "Test Block",
+  "content": "Content",
+  "skill": "add"
+}
+
+### ✅ Test 6.3: Valid User Signin
+POST {{baseUrl}}/user/signin
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "email": "john@example.com",
+  "password": "SecurePassword123!",
+  "rememberMe": false
+}
+### ============================================
+### 7. ACHIEVEMENT VALIDATION TESTS
+### ============================================
+
+### ✅ Test 7.1: Valid Achievement Creation
+POST {{baseUrl}}/achievements/admin
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "key": "FIRST_LESSON",
+  "name": "First Lesson",
+  "nameVi": "Bài học đầu tiên",
+  "description": "Complete your first lesson",
+  "category": "learning",
+  "criteria": {
+    "target": 1,
+    "unit": "lessons_completed"
+  }, 
+  "type": "streak"
+}
+
+### ❌ Test 7.2: Invalid - Wrong Category
+POST {{baseUrl}}/achievements/admin
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "key": "TEST",
+  "name": "Test",
+  "nameVi": "Test",
+  "criteria": {
+    "type": "count",
+    "target": 1
+  }
+}
+
+### ============================================
+### 8. QUIZ ATTEMPT VALIDATION TESTS
+### ============================================
+
+### ✅ Test 8.1: Valid Quiz Start
+POST {{baseUrl}}/blocks/69383305a740b0fa48f90c79/quiz/start
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "quizId": "507f191e810c19729de860ea"
+}
+
+### ✅ Test 8.2: Valid Quiz Submission
+POST {{baseUrl}}/quiz-attempts/69383305a740b0fa48f90c79/submit
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "answers": [
+    {
+      "questionId": "507f191e810c19729de860ea",
+      "answer": "option_a",
+      "timeSpent": 45
+    },
+    {
+      "questionId": "507f191e810c19729de860eb",
+      "answer": ["option_b", "option_c"],
+      "timeSpent": 60
+    }
+  ]
+}
+
+### ❌ Test 8.3: Invalid - Missing Answers
+POST {{baseUrl}}/quiz-attempts/507f1f77bcf86cd799439011/submit
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "answers": []
+}
+
+### ============================================
+### 9. ONBOARDING VALIDATION TESTS
+### ============================================
+
+### ✅ Test 9.1: Valid Onboarding Answers
+POST {{baseUrl}}/userOnboardingAnswer
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "answers": [
+    {
+      "questionId": "507f1f77bcf86cd799439011",
+      "answer": "beginner"
+    },
+    {
+      "questionId": "507f191e810c19729de860ea",
+      "answer": ["reading", "listening"]
+    }
+  ]
+}
+
+### ❌ Test 9.2: Invalid - Empty Answers Array
+POST {{baseUrl}}/userOnboardingAnswer
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "answers": []
+}
+
+### ============================================
+### 10. LESSON VALIDATION TESTS
+### ============================================
+
+### ✅ Test 10.1: Valid Lesson Creation
+POST {{baseUrl}}/lesson
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "title": "Introduction to English Grammar",
+  "description": "Learn basic grammar",
+  "skill": "grammar",
+  "topic": "Grammar Basics",
+  "level": "beginner",
+  "duration_minutes": 30,
+  "categoryId": "507f1f77bcf86cd799439011"
+}
+
+### ❌ Test 10.2: Invalid - Wrong Skill
+POST {{baseUrl}}/lesson
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "title": "Test Lesson",
+  "skill": "dancing",
+  "topic": "Test",
+  "level": "beginner",
+  "categoryId": "507f1f77bcf86cd799439011"
+}
+
+### ============================================
+### 11. USER ADMIN VALIDATION TESTS
+### ============================================
+
+### ✅ Test 11.1: Valid User Update (Admin)
+PUT {{baseUrl}}/admin/users/507f1f77bcf86cd799439011
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "name": "Updated Name",
+  "roles": ["USER", "ADMIN"],
+  "status": "active"
+}
+
+### ❌ Test 11.2: Invalid - Wrong Role
+PUT {{baseUrl}}/admin/users/507f1f77bcf86cd799439011
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "roles": ["SUPERUSER"]
+}
+
+### ============================================
+### 12. USER PROGRESS VALIDATION TESTS
+### ============================================
+
+### ✅ Test 12.1: Valid Progress Update
+PUT {{baseUrl}}/user-progress/lessons/507f1f77bcf86cd799439011/blocks/507f191e810c19729de860ea/access
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "blockId": "507f191e810c19729de860ea",
+  "lessonId": "507f1f77bcf86cd799439011",
+  "score": 85,
+  "timeSpent": 300
+}
+
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "title": "English Vocabulary A1",
+  "description": "Basic English vocabulary for beginners",
+  "target": "507f1f77bcf86cd799439011",
+  "categoryId": "507f191e810c19729de860ea",
+  "level": "beginner",
+  "thumbnail": "https://example.com/image.jpg"
+}
+
+### ❌ Test 1.2: Invalid - Empty Title
+POST {{baseUrl}}/cardDeck
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "title": "",
+  "target": "507f1f77bcf86cd799439011",
+  "categoryId": "507f191e810c19729de860ea"
+}
+
+### ❌ Test 1.3: Invalid - Bad ObjectId
+POST {{baseUrl}}/cardDeck
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "title": "Test Deck",
+  "target": "invalid-id",
+  "categoryId": "507f191e810c19729de860ea"
+}
+
+### ❌ Test 1.4: Invalid - Wrong Level Enum
+POST {{baseUrl}}/cardDeck
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "title": "Test Deck",
+  "target": "507f1f77bcf86cd799439011",
+  "categoryId": "507f191e810c19729de860ea",
+  "level": "expert"
+}
+
+### ❌ Test 1.5: Invalid - Missing Required Fields
+POST {{baseUrl}}/cardDeck
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "title": "Test Deck"
+}
+
+### ============================================
+### 2. EXAM VALIDATION TESTS
+### ============================================
+
+### ✅ Test 2.1: Valid Exam Creation
+POST {{baseUrl}}/exam
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "title": "English Proficiency Test",
+  "description": "Comprehensive English test",
+  "maxScore": 100,
+  "totalTimeLimit": 7200,
+  "sections": [
+    {
+      "title": "Reading",
+      "skill": "reading",
+      "maxScore": 50,
+      "order": 1,
+      "quiz": "507f1f77bcf86cd799439011",
+      "timeLimit": 3600
+    },
+    {
+      "title": "Listening",
+      "skill": "listening",
+      "maxScore": 50,
+      "order": 2,
+      "quiz": "507f191e810c19729de860ea",
+      "timeLimit": 3600
+    }
+  ]
+}
+
+### ❌ Test 2.2: Invalid - Section Scores Don't Match Total
+POST {{baseUrl}}/exam
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "title": "English Test",
+  "maxScore": 100,
+  "sections": [
+    {
+      "title": "Reading",
+      "skill": "reading",
+      "maxScore": 40,
+      "order": 1,
+      "quiz": "507f1f77bcf86cd799439011"
+    },
+    {
+      "title": "Listening",
+      "skill": "listening",
+      "maxScore": 40,
+      "order": 2,
+      "quiz": "507f191e810c19729de860ea"
+    }
+  ]
+}
+
+### ❌ Test 2.3: Invalid - Wrong Skill Enum
+POST {{baseUrl}}/exam
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "title": "English Test",
+  "maxScore": 50,
+  "sections": [
+    {
+      "title": "Test Section",
+      "skill": "dancing",
+      "maxScore": 50,
+      "order": 1,
+      "quiz": "507f1f77bcf86cd799439011"
+    }
+  ]
+}
+
+### ============================================
+### 3. USER PROFILE VALIDATION TESTS
+### ============================================
+
+### ✅ Test 3.1: Valid Profile Update
+PUT {{baseUrl}}/profile/me
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "name": "John Doe",
+  "phoneNumber": "0912345678",
+  "profile": {
+    "bio": "English learner",
+    "experience": "intermediate",
+    "learningPreferences": {
+      "dailyGoal": 50,
+      "studyReminder": true,
+      "difficultyLevel": "intermediate"
+    }
+  }
+}
+
+### ❌ Test 3.2: Invalid - Bad Phone Number
+PUT {{baseUrl}}/profile/me
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "name": "John Doe",
+  "phoneNumber": "123"
+}
+
+### ❌ Test 3.3: Invalid - Name Too Short
+PUT {{baseUrl}}/profile/me
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "name": "A"
+}
+
+### ✅ Test 3.4: Valid Avatar Update
+PUT {{baseUrl}}/profile/avatar
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "avatar": "https://example.com/avatar.jpg"
+}
+
+### ❌ Test 3.5: Invalid - Bad Avatar URL
+PUT {{baseUrl}}/profile/avatar
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "avatar": "not-a-url"
+}
+
+### ============================================
+### 4. QUIZ VALIDATION TESTS
+### ============================================
+
+### ✅ Test 4.1: Valid Quiz Creation
+POST {{baseUrl}}/quiz/create
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "title": "English Grammar Quiz",
+  "skill": "grammar",
+  "difficulty": "MEDIUM",
+  "xpReward": 50
+}
+
+### ❌ Test 4.2: Invalid - Wrong Difficulty
+POST {{baseUrl}}/quiz/create
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "title": "Test Quiz",
+  "skill": "grammar",
+  "difficulty": "SUPER_HARD"
+}
+
+### ============================================
+### 5. WORD VALIDATION TESTS
+### ============================================
+
+### ✅ Test 5.1: Valid Word Creation
+POST {{baseUrl}}/word/create
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "word": "hello",
+  "pronunciation": "/həˈloʊ/",
+  "partOfSpeech": "interjection",
+  "level": "beginner",
+  "definitions": [
+    {
+      "meaning": "A greeting",
+      "meaningVi": "Lời chào",
+      "examples": [
+        {
+          "sentence": "Hello, how are you?",
+          "translation": "Xin chào, bạn khỏe không?"
+        }
+      ]
+    }
+  ],
+  "createdBy": "admin"
+}
+
+### ❌ Test 5.2: Invalid - Wrong Part of Speech
+POST {{baseUrl}}/word/create
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "word": "test",
+  "partOfSpeech": "article",
+  "definitions": [
+    {
+      "meaning": "Test",
+      "meaningVi": "Kiểm tra"
+    }
+  ],
+  "createdBy": "admin"
+}
+
+### ============================================
+### 6. BLOCK VALIDATION TESTS
+### ============================================
+
+### ✅ Test 6.1: Valid Block Creation
+POST {{baseUrl}}/lesson/blocks
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "type": "video",
+  "title": "Introduction to English",
+  "content": "Video content here",
+  "duration": 300,
+  "mediaUrl": "https://example.com/video.mp4"
+}
+
+### ❌ Test 6.2: Invalid - Wrong Block Type
+POST {{baseUrl}}/lesson/blocks
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "type": "podcast",
+  "title": "Test Block",
+  "content": "Content"
+}
+
+### ============================================
+### 7. ACHIEVEMENT VALIDATION TESTS
+### ============================================
+
+### ✅ Test 7.1: Valid Achievement Creation
+POST {{baseUrl}}/achievement/admin
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "key": "FIRST_LESSON",
+  "name": "First Lesson",
+  "nameVi": "Bài học đầu tiên",
+  "description": "Complete your first lesson",
+  "category": "learning",
+  "tier": "bronze",
+  "xpReward": 100,
+  "criteria": {
+    "type": "count",
+    "target": 1,
+    "metric": "lessons_completed"
+  }
+}
+
+### ❌ Test 7.2: Invalid - Wrong Category
+POST {{baseUrl}}/achievement/admin
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "key": "TEST",
+  "name": "Test",
+  "nameVi": "Test",
+  "category": "gaming",
+  "tier": "bronze",
+  "criteria": {
+    "type": "count",
+    "target": 1
+  }
+}
+
+### ============================================
+### 8. QUIZ ATTEMPT VALIDATION TESTS
+### ============================================
+
+### ✅ Test 8.1: Valid Quiz Start
+POST {{baseUrl}}/quizAttemptForBlock/blocks/507f1f77bcf86cd799439011/quiz/start
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "quizId": "507f191e810c19729de860ea"
+}
+
+### ✅ Test 8.2: Valid Quiz Submission
+POST {{baseUrl}}/quizAttemptForBlock/quiz-attempts/507f1f77bcf86cd799439011/submit
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "answers": [
+    {
+      "questionId": "507f191e810c19729de860ea",
+      "answer": "option_a",
+      "timeSpent": 45
+    },
+    {
+      "questionId": "507f191e810c19729de860eb",
+      "answer": ["option_b", "option_c"],
+      "timeSpent": 60
+    }
+  ]
+}
+
+### ❌ Test 8.3: Invalid - Missing Answers
+POST {{baseUrl}}/quizAttemptForBlock/quiz-attempts/507f1f77bcf86cd799439011/submit
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "answers": []
+}
+
+### ============================================
+### 9. ONBOARDING VALIDATION TESTS
+### ============================================
+
+### ✅ Test 9.1: Valid Onboarding Answers
+POST {{baseUrl}}/onboardingAnswer
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "answers": [
+    {
+      "questionId": "507f1f77bcf86cd799439011",
+      "answer": "beginner"
+    },
+    {
+      "questionId": "507f191e810c19729de860ea",
+      "answer": ["reading", "listening"]
+    }
+  ]
+}
+
+### ❌ Test 9.2: Invalid - Empty Answers Array
+POST {{baseUrl}}/onboardingAnswer
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "answers": []
+}
+
+### ============================================
+### 10. LESSON VALIDATION TESTS
+### ============================================
+
+### ✅ Test 10.1: Valid Lesson Creation
+POST {{baseUrl}}/lesson
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "title": "Introduction to English Grammar",
+  "description": "Learn basic grammar",
+  "skill": "grammar",
+  "topic": "Grammar Basics",
+  "level": "beginner",
+  "duration_minutes": 30,
+  "categoryId": "507f1f77bcf86cd799439011"
+}
+
+### ❌ Test 10.2: Invalid - Wrong Skill
+POST {{baseUrl}}/lesson
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "title": "Test Lesson",
+  "skill": "dancing",
+  "topic": "Test",
+  "level": "beginner",
+  "categoryId": "507f1f77bcf86cd799439011"
+}

@@ -1,23 +1,10 @@
+const { createValidator } = require("../utils/validate/common");
 const {
   createTargetSchema,
   updateTargetSchema,
 } = require("../utils/validate/target");
 
-const validate =
-  (schema) =>
-  (req, res, next) => {
-    const { error } = schema.validate(req.body, { abortEarly: false });
-    if (error) {
-      return res.status(400).json({
-        error: "Validation error",
-        details: error.details.map((detail) => detail.message),
-      });
-    }
-    next();
-  };
-
 module.exports = {
-  validateCreateTarget: validate(createTargetSchema),
-  validateUpdateTarget: validate(updateTargetSchema),
+  validateCreateTarget: createValidator(createTargetSchema),
+  validateUpdateTarget: createValidator(updateTargetSchema),
 };
-

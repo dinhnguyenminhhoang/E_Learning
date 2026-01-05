@@ -1,21 +1,33 @@
-import Joi from "joi";
+const Joi = require("joi");
+const { commonFields, makeFieldsOptional } = require("./common");
 
 const KEY_REGEX = /^[A-Z0-9_]+$/;
 
-export const createTargetSchema = Joi.object({
-  name: Joi.string().trim().max(150).required(),
-  description: Joi.string().trim().max(1000).allow(null, "").optional(),
-  key: Joi.string()
+const createTargetSchema = Joi.object({
+  name: commonFields.name.messages({
+    "string.min": "name phải có ít nhất 2 ký tự",
+    "string.max": "name không được vượt quá 150 ký tự",
+    "any.required": "name là bắt buộc",
+  }),
+  description: Joi.string()
     .trim()
-    .uppercase()
-    .pattern(KEY_REGEX)
-    .required()
+    .max(1000)
+    .allow(null, "")
+    .optional()
     .messages({
-      "string.pattern.base":
-        "Key chỉ được chứa chữ in hoa và số, không có khoảng trắng hoặc ký tự đặc biệt.",
+      "string.max": "description không được vượt quá 1000 ký tự",
     }),
-  tag: Joi.string().trim().max(50).required(),
+  key: Joi.string().trim().uppercase().pattern(KEY_REGEX).required().messages({
+    "string.pattern.base":
+      "key chỉ được chứa chữ in hoa và số, không có khoảng trắng hoặc ký tự đặc biệt",
+    "any.required": "key là bắt buộc",
+    "string.empty": "key không được để trống",
+  }),
 });
 
-export const updateTargetSchema = createTargetSchema;
+const updateTargetSchema = makeFieldsOptional(createTargetSchema, [
+  "name",
+  "key",
+]);
 
+module.exports = { createTargetSchema, updateTargetSchema };

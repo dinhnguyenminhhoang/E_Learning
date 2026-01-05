@@ -6,7 +6,7 @@ const GrammarBlock = require("../models/subModel/grammarBlock.schema");
 const MediaBlock = require("../models/subModel/mediaBlock.schema");
 const QuizBlock = require("../models/subModel/quizBlock.schema");
 const VocabularyBlock = require("../models/subModel/VocabularyBlock.schema");
-const { default: AppError } = require("../utils/appError");
+const AppError = require("../utils/appError");
 
 class BlockRepository {
   async findOne(filter = {}) {

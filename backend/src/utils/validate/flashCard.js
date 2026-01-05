@@ -1,41 +1,44 @@
 const Joi = require("joi");
-const { STATUS } = require("../../constants/status.constans");
+const { commonFields, makeFieldsOptional } = require("./common");
 
 const createFlashcardSchema = Joi.object({
-  word: Joi.string()
-    .regex(/^[0-9a-fA-F]{24}$/)
-    .required(),
-  frontText: Joi.string().trim().required(),
-  backText: Joi.string().trim().required(),
-  cardDeck: Joi.string()
-    .regex(/^[0-9a-fA-F]{24}$/)
-    .required(),
-  difficulty: Joi.string().valid("easy", "medium", "hard").default("easy"),
-  tags: Joi.array().items(Joi.string().trim()),
-  status: Joi.boolean().default(true),
-  status: Joi.string()
-    .valid(...Object.values(STATUS))
-    .default(STATUS.ACTIVE),
-  updatedAt: Joi.date().optional().allow(null),
-  updatedBy: Joi.string()
-    .regex(/^[0-9a-fA-F]{24}$/)
-    .allow(null),
+  word: commonFields.objectIdRequired.messages({
+    "string.pattern.base": "word phải là ObjectId hợp lệ",
+    "any.required": "word là bắt buộc",
+    "string.empty": "word không được để trống",
+  }),
+  frontText: Joi.string().trim().required().messages({
+    "string.empty": "frontText không được để trống",
+    "any.required": "frontText là bắt buộc",
+  }),
+  backText: Joi.string().trim().required().messages({
+    "string.empty": "backText không được để trống",
+    "any.required": "backText là bắt buộc",
+  }),
+  cardDeck: commonFields.objectIdRequired.messages({
+    "string.pattern.base": "cardDeck phải là ObjectId hợp lệ",
+    "any.required": "cardDeck là bắt buộc",
+    "string.empty": "cardDeck không được để trống",
+  }),
+  difficulty: Joi.string()
+    .valid("easy", "medium", "hard")
+    .default("easy")
+    .messages({
+      "any.only": "difficulty phải là một trong: easy, medium, hard",
+    }),
+  tags: commonFields.tags,
+  status: commonFields.statusWithDefault.messages({
+    "any.only": "status phải là một trong: active, inactive, deleted",
+  }),
 });
 
-const updateFlashcardSchema = createFlashcardSchema.fork(
-  [
-    "word",
-    "frontText",
-    "backText",
-    "cardDeck",
-    "difficulty",
-    "tags",
-    "status",
-    "status",
-    "updatedAt",
-    "updatedBy",
-  ],
-  (schema) => schema.optional()
-);
+const updateFlashcardSchema = makeFieldsOptional(createFlashcardSchema, [
+  "word",
+  "frontText",
+  "backText",
+  "cardDeck",
+  "difficulty",
+  "status",
+]);
 
 module.exports = { createFlashcardSchema, updateFlashcardSchema };
