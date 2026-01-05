@@ -429,7 +429,7 @@ class WordRepository {
       pageSize = parseInt(pageSize);
 
       const filter = {};
-
+      filter.status = { $ne: STATUS.DELETED };
       if (search && search.trim()) {
         filter.$text = { $search: search.trim() };
       }

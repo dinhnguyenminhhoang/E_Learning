@@ -79,6 +79,7 @@ const wordSchema = z.object({
   tags: z.array(z.string()).optional(),
   image: z.string().trim().url("Invalid image URL").optional().or(z.literal("")),
   difficulty: z.coerce.number().min(1).max(5).default(1),
+
 });
 
 type WordFormData = z.infer<typeof wordSchema>;
@@ -157,7 +158,7 @@ const DefinitionCard = ({
             variant="outline"
             size="sm"
             className="h-7 text-xs"
-            onClick={() => appendExample({ sentence: "", translation: "", audio: "" })}
+            onClick={() => appendExample({ sentence: "", translation: ""})}
           >
             <Plus className="mr-1 h-3 w-3" /> Add Example
           </Button>
@@ -231,7 +232,7 @@ export default function CreateWordPage() {
         {
           meaning: "",
           meaningVi: "",
-          examples: [{ sentence: "", translation: "", audio: "" }],
+          examples: [{ sentence: "", translation: "" }],
         },
       ],
       synonyms: [],
@@ -475,7 +476,7 @@ export default function CreateWordPage() {
                   appendDefinition({
                     meaning: "",
                     meaningVi: "",
-                    examples: [{ sentence: "", translation: "", audio: "" }],
+                    examples: [{ sentence: "", translation: "" }],
                   })
                 }
               >

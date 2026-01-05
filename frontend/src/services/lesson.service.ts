@@ -52,7 +52,7 @@ class LessonService {
     return await apiClient.get(`/v1/api/lesson/${id}/edit`);
   }
 
-  async create(input: CreateLessonInput): Promise<{ code: number; data: Lesson }> {
+  async create(input: CreateLessonInput): Promise<{ code: number; data: Lesson, message?: string }> {
     return await apiClient.post("/v1/api/lesson", input);
   }
 

@@ -38,12 +38,12 @@ import { Card } from "@/components/ui/card";
 import {
   Plus,
   Search,
-  Filter,
   Upload,
   Download,
   Edit,
   Trash2,
   Volume2,
+  RefreshCw, // Import icon refresh
 } from "lucide-react";
 import { toast } from "react-hot-toast";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -62,10 +62,17 @@ export default function WordsListPage() {
   const { data: categoriesData } = useQuery({
     queryKey: ["categories"],
     queryFn: () => categoryService.getAll(),
+    staleTime: 1000 * 60 * 5, // Cache danh mục 5 phút (ít thay đổi)
   });
 
   // Fetch words
-  const { data: wordsData, isLoading } = useQuery({
+  const { 
+    data: wordsData, 
+    isLoading, 
+    isFetching, // Thêm state này để hiện loading khi refresh background
+    refetch     // Hàm để gọi reload thủ công nếu cần
+  } = useQuery({
+    // Query Key bao gồm tất cả các biến filter để tự động reload khi filter đổi
     queryKey: ["words", searchQuery, categoryFilter, levelFilter, currentPage],
     queryFn: async () => {
       const params: any = {
@@ -78,18 +85,27 @@ export default function WordsListPage() {
 
       return await wordService.getAllWords(params);
     },
+    // 🔥 QUAN TRỌNG CHO IMPORT:
+    // Đảm bảo dữ liệu luôn được coi là "cũ" khi mount component
+    // Giúp reload lại list khi quay lại từ trang Import
+    staleTime: 0, 
+    refetchOnMount: true, 
+    refetchOnWindowFocus: true, // Reload khi user focus lại tab
   });
 
   // Delete mutation
   const deleteMutation = useMutation({
     mutationFn: (id: string) => wordService.deleteWord(id),
     onSuccess: () => {
+      // 🔥 QUAN TRỌNG CHO DELETE:
+      // Xóa cache của key "words" để trigger fetch lại dữ liệu mới
       queryClient.invalidateQueries({ queryKey: ["words"] });
       toast.success("Word deleted successfully!");
       setDeleteId(null);
     },
-    onError: () => {
-      toast.error("Failed to delete word");
+    onError: (error: any) => {
+      console.error(error);
+      toast.error(error?.response?.data?.message || "Failed to delete word");
     },
   });
 
@@ -123,9 +139,14 @@ export default function WordsListPage() {
           <p className="text-gray-500">Manage vocabulary database</p>
         </div>
         <div className="flex items-center space-x-3">
+          {/* Nút Refresh thủ công (Optional) */}
+          <Button variant="outline" size="icon" onClick={() => refetch()} title="Reload Data">
+             <RefreshCw className={`h-4 w-4 ${isFetching ? 'animate-spin' : ''}`} />
+          </Button>
+
           <Button variant="outline" onClick={handleExportSample}>
             <Download className="mr-2 h-4 w-4" />
-            Download Sample
+            Sample
           </Button>
           <Button variant="outline" asChild>
             <Link href="/admin/words/import">
@@ -152,14 +173,23 @@ export default function WordsListPage() {
               <Input
                 placeholder="Search words..."
                 value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
+                onChange={(e) => {
+                    setSearchQuery(e.target.value);
+                    setCurrentPage(1); // Reset về trang 1 khi search
+                }}
                 className="pl-10"
               />
             </div>
           </div>
 
           {/* Category Filter */}
-          <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+          <Select 
+            value={categoryFilter} 
+            onValueChange={(val) => {
+                setCategoryFilter(val);
+                setCurrentPage(1); // Reset về trang 1 khi filter
+            }}
+          >
             <SelectTrigger>
               <SelectValue placeholder="All Categories" />
             </SelectTrigger>
@@ -174,7 +204,13 @@ export default function WordsListPage() {
           </Select>
 
           {/* Level Filter */}
-          <Select value={levelFilter} onValueChange={setLevelFilter}>
+          <Select 
+            value={levelFilter} 
+            onValueChange={(val) => {
+                setLevelFilter(val);
+                setCurrentPage(1); // Reset về trang 1 khi filter
+            }}
+          >
             <SelectTrigger>
               <SelectValue placeholder="All Levels" />
             </SelectTrigger>
@@ -288,6 +324,8 @@ export default function WordsListPage() {
                       <Button
                         variant="ghost"
                         size="icon"
+                        // Disable nút xóa khi đang xóa để tránh click đúp
+                        disabled={deleteMutation.isPending} 
                         onClick={() => setDeleteId(word._id)}
                       >
                         <Trash2 className="h-4 w-4 text-red-500" />
@@ -307,7 +345,7 @@ export default function WordsListPage() {
           totalItems={pagination.total}
           pageSize={pageSize}
           onPageChange={setCurrentPage}
-          loading={isLoading}
+          loading={isLoading || isFetching} // Hiện loading khi đang fetch lại
         />
       </Card>
 
@@ -326,8 +364,9 @@ export default function WordsListPage() {
             <AlertDialogAction
               onClick={() => deleteId && deleteMutation.mutate(deleteId)}
               className="bg-red-500 hover:bg-red-600"
+              disabled={deleteMutation.isPending} // Disable khi đang xóa
             >
-              Delete
+              {deleteMutation.isPending ? "Deleting..." : "Delete"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

@@ -81,7 +81,7 @@ class ExamService {
    * }
    */
   async createExam(req) {
-    const { title, description, maxScore, totalTimeLimit, sections } =
+    const { title, description, maxScore, totalTimeLimit, sections, status } =
       req.body || {};
 
     if (
@@ -145,6 +145,7 @@ class ExamService {
       sections: normalizedSections,
       updatedBy: req.user?.id || null,
       updatedAt: new Date(),
+      status: status || "draft",
     };
 
     const exam = await ExamRepository.createExam(examPayload);

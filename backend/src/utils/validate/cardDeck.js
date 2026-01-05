@@ -43,16 +43,10 @@ const updateCardDeckSchema = Joi.object({
     "string.max": "Title cannot exceed 150 characters",
     "any.required": "Deck title is required",
   }),
-
-  description: Joi.string().trim().max(1000).optional(),
-
-  target: Joi.string()
+  categoryId: Joi.string()
     .regex(/^[0-9a-fA-F]{24}$/)
-    .required()
-    .messages({
-      "string.pattern.base": "Target must be a valid ObjectId",
-      "any.required": "Target is required",
-    }),
+    .required(),
+  description: Joi.string().trim().max(1000).optional(),
 
   level: Joi.string()
     .valid("beginner", "intermediate", "advanced")
@@ -63,6 +57,13 @@ const updateCardDeckSchema = Joi.object({
   status: Joi.string()
     .valid(...Object.values(STATUS))
     .default(STATUS.ACTIVE),
+  cards: Joi.array().items(
+    Joi.object({
+      front: Joi.string().trim().required(),
+      back: Joi.string().trim().required(),
+      _id: Joi.string().optional(),
+    })
+  ).optional(),
 });
 
 module.exports = {

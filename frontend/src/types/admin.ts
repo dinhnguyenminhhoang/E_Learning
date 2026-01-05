@@ -46,13 +46,27 @@ export interface Block {
 
 export interface CreateLessonInput {
   title: string;
-  description?: string;
+  
+  // Joi: allow(null, "").optional()
+  description?: string; 
+  
   topic: string;
+  
   skill: "reading" | "writing" | "listening" | "speaking";
-  difficulty: "beginner" | "intermediate" | "advanced";
-  status: "draft" | "active" | "archived"; // Fixed: backend uses 'active' not 'published'
-}
+  
+  // UPDATE 1: Đổi từ 'difficulty' sang 'level' để khớp backend
+  level: "beginner" | "intermediate" | "advanced";
+  
+  // UPDATE 2: Thêm trường bắt buộc này
+  categoryId: string; 
+  
+  // UPDATE 3: Thêm duration (optional vì backend có default=30)
+  duration_minutes?: number;
+  
+  // UPDATE 4: Thêm prerequisites (optional vì backend có default=[])
+  prerequisites?: string[];
 
+}
 export interface UpdateLessonInput extends Partial<CreateLessonInput> {
   _id: string;
 }

@@ -5,6 +5,7 @@ export interface ExamSection {
     quiz: string;
     order: number;
     timeLimit?: number;
+    maxScore?: number;
 }
 
 export interface Exam {
@@ -26,6 +27,7 @@ export interface CreateExamRequest {
     totalTimeLimit: number;
     sections: Omit<ExamSection, "_id">[];
     status?: "draft" | "active" | "inactive";
+    maxScore?: number;
 }
 
 export interface UpdateExamRequest {

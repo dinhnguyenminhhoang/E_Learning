@@ -11,9 +11,7 @@ const { STATUS } = require("../constants/status.constans");
 class CategoryRepository {
   constructor() {
     this.model = Category;
-    this.defaultPopulate = [
-      { path: "updatedBy", select: "name email" },
-    ];
+    this.defaultPopulate = [{ path: "updatedBy", select: "name email" }];
   }
 
   /**
@@ -73,8 +71,6 @@ class CategoryRepository {
     }
   }
 
-
-
   /**
    * @param {string} name - Category name
    * @returns {Promise<Object|null>} Category document
@@ -115,7 +111,6 @@ class CategoryRepository {
         status: STATUS.ACTIVE,
         updatedAt: null,
       };
-
 
       return await this.model
         .find(searchQuery, { score: { $meta: "textScore" } })
@@ -221,9 +216,15 @@ class CategoryRepository {
         throw new NotFoundError("Category not found");
       }
 
-      await this.model.updateMany(
-        { status: STATUS.INACTIVE, updatedAt: new Date() }
-      );
+      // await this.model.updateMany(
+      //   { parentId: id },
+      //   {
+      //     $set: {
+      //       status: STATUS.INACTIVE,
+      //       updatedAt: new Date(),
+      //     },
+      //   }
+      // );
 
       return deletedCategory;
     } catch (error) {
