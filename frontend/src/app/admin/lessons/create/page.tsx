@@ -1,25 +1,75 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { lessonService } from "@/services/lesson.service";
+// Giả sử bạn đã export categoryService từ file service tương ứng
+import { categoryService } from "@/services/category.service"; 
 import { CreateLessonInput } from "@/types/admin";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ArrowLeft, Save } from "lucide-react";
 import { toast } from "react-hot-toast";
 
+// Interface Category bạn cung cấp
+export interface Category {
+  _id: string;
+  name: string;
+  nameVi: string;
+  slug: string;
+  description?: string;
+  status: "active" | "inactive";
+  createdAt: Date;
+  updatedAt: Date;
+}
+
 export default function CreateLessonPage() {
     const router = useRouter();
-    const [loading, setLoading] = useState(false);
+    
+    // Loading state cho việc submit form
+    const [submitting, setSubmitting] = useState(false);
+    
+    // State lưu danh sách Category fetched từ API
+    const [categories, setCategories] = useState<Category[]>([]);
+    const [loadingCategories, setLoadingCategories] = useState(true);
+
     const [formData, setFormData] = useState<CreateLessonInput>({
         title: "",
         description: "",
         topic: "",
         skill: "reading",
-        difficulty: "beginner",
-        status: "draft",
+        level: "beginner",
+        categoryId: "", // Mặc định rỗng, user bắt buộc phải chọn
+        duration_minutes: 30,
+        prerequisites: []
     });
+
+    // Fetch Categories khi component mount
+    useEffect(() => {
+        const fetchCategories = async () => {
+            try {
+                const response = await categoryService.getAll();
+                // Tùy vào cấu trúc trả về của API service bên bạn
+                // Nếu response là array: setCategories(response)
+                // Nếu response có dạng { data: [...] }: setCategories(response.data)
+                
+                // Ở đây tôi giả định response trả về mảng hoặc object chứa data
+                // Bạn hãy log response ra để chắc chắn nhé
+                if (Array.isArray(response)) {
+                    setCategories(response);
+                } else if (response.data && Array.isArray(response.data)) {
+                    setCategories(response.data);
+                }
+            } catch (error) {
+                console.error("Failed to fetch categories:", error);
+                toast.error("Could not load categories list");
+            } finally {
+                setLoadingCategories(false);
+            }
+        };
+
+        fetchCategories();
+    }, []);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -28,19 +78,23 @@ export default function CreateLessonPage() {
             toast.error("Lesson title is required");
             return;
         }
+        if (!formData.categoryId) {
+            toast.error("Please select a category");
+            return;
+        }
 
         try {
-            setLoading(true);
+            setSubmitting(true);
             const response = await lessonService.create(formData);
-            if (response.code === 201) {
-                toast.success("Lesson created successfully!");
+                toast.success(response.message || "Lesson created successfully");
                 router.push("/admin/lessons");
-            }
-        } catch (error) {
+        
+        } catch (error: any) {
             console.error("Error creating lesson:", error);
-            toast.error("Failed to create lesson");
+            const msg = error?.response?.data?.message || "Failed to create lesson";
+            toast.error(msg);
         } finally {
-            setLoading(false);
+            setSubmitting(false);
         }
     };
 
@@ -50,29 +104,33 @@ export default function CreateLessonPage() {
         >
     ) => {
         const { name, value } = e.target;
-        setFormData((prev) => ({ ...prev, [name]: value }));
+        
+        setFormData((prev) => {
+            const newValue = name === 'duration_minutes' ? (parseInt(value) || 0) : value;
+            return { 
+                ...prev, 
+                [name]: newValue 
+            } as CreateLessonInput;
+        });
     };
 
     return (
         <div className="p-6 mx-auto">
+            {/* Header section (Giữ nguyên) */}
             <div className="mb-8">
-                <Button
-                    variant="ghost"
-                    onClick={() => router.back()}
-                    className="mb-4 -ml-2"
-                >
+                <Button variant="ghost" onClick={() => router.back()} className="mb-4 -ml-2">
                     <ArrowLeft className="w-4 h-4 mr-2" />
                     Back to Lessons
                 </Button>
-                <h1 className="text-3xl font-bold text-gray-900 mb-2">
-                    Create New Lesson
-                </h1>
+                <h1 className="text-3xl font-bold text-gray-900 mb-2">Create New Lesson</h1>
                 <p className="text-gray-600">Add a new lesson to your curriculum</p>
             </div>
 
             <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
                 <form onSubmit={handleSubmit} className="p-6 space-y-6">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        
+                        {/* Title Input (Giữ nguyên) */}
                         <div className="md:col-span-2">
                             <label className="block text-sm font-semibold text-gray-700 mb-2">
                                 Lesson Title <span className="text-red-500">*</span>
@@ -87,6 +145,42 @@ export default function CreateLessonPage() {
                             />
                         </div>
 
+                        {/* --- CATEGORY SELECT (UPDATED) --- */}
+                        <div className="md:col-span-2">
+                            <label className="block text-sm font-semibold text-gray-700 mb-2">
+                                Category <span className="text-red-500">*</span>
+                            </label>
+                            
+                            {loadingCategories ? (
+                                // Skeleton loading state đơn giản
+                                <div className="h-10 w-full bg-gray-100 animate-pulse rounded-lg border border-gray-200"></div>
+                            ) : (
+                                <select
+                                    name="categoryId"
+                                    value={formData.categoryId}
+                                    onChange={handleChange}
+                                    required
+                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
+                                >
+                                    <option value="">-- Select a Category --</option>
+                                    {categories.map((cat) => (
+                                        <option key={cat._id} value={cat._id}>
+                                            {/* Hiển thị cả tên Anh và Việt cho rõ ràng */}
+                                            {cat.name} ({cat.nameVi}) 
+                                        </option>
+                                    ))}
+                                </select>
+                            )}
+                            
+                            {/* Helper text */}
+                            {!loadingCategories && categories.length === 0 && (
+                                <p className="text-xs text-red-500 mt-1">
+                                    No categories found. Please create a category first.
+                                </p>
+                            )}
+                        </div>
+
+                        {/* Topic Input (Giữ nguyên) */}
                         <div>
                             <label className="block text-sm font-semibold text-gray-700 mb-2">
                                 Topic <span className="text-red-500">*</span>
@@ -101,6 +195,21 @@ export default function CreateLessonPage() {
                             />
                         </div>
 
+                        {/* Duration Input (Giữ nguyên) */}
+                        <div>
+                            <label className="block text-sm font-semibold text-gray-700 mb-2">
+                                Duration (minutes)
+                            </label>
+                            <Input
+                                type="number"
+                                name="duration_minutes"
+                                value={formData.duration_minutes}
+                                onChange={handleChange}
+                                min={1}
+                            />
+                        </div>
+
+                        {/* Skill Select (Giữ nguyên) */}
                         <div>
                             <label className="block text-sm font-semibold text-gray-700 mb-2">
                                 Skill <span className="text-red-500">*</span>
@@ -119,13 +228,14 @@ export default function CreateLessonPage() {
                             </select>
                         </div>
 
+                        {/* Level Select (Giữ nguyên) */}
                         <div>
                             <label className="block text-sm font-semibold text-gray-700 mb-2">
-                                Difficulty <span className="text-red-500">*</span>
+                                Level <span className="text-red-500">*</span>
                             </label>
                             <select
-                                name="difficulty"
-                                value={formData.difficulty}
+                                name="level"
+                                value={formData.level}
                                 onChange={handleChange}
                                 required
                                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
@@ -136,23 +246,7 @@ export default function CreateLessonPage() {
                             </select>
                         </div>
 
-                        <div>
-                            <label className="block text-sm font-semibold text-gray-700 mb-2">
-                                Status <span className="text-red-500">*</span>
-                            </label>
-                            <select
-                                name="status"
-                                value={formData.status}
-                                onChange={handleChange}
-                                required
-                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                            >
-                                <option value="draft">Draft</option>
-                                <option value="published">Published</option>
-                                <option value="archived">Archived</option>
-                            </select>
-                        </div>
-
+                        {/* Description (Giữ nguyên) */}
                         <div className="md:col-span-2">
                             <label className="block text-sm font-semibold text-gray-700 mb-2">
                                 Description
@@ -173,16 +267,16 @@ export default function CreateLessonPage() {
                             type="button"
                             variant="outline"
                             onClick={() => router.back()}
-                            disabled={loading}
+                            disabled={submitting}
                         >
                             Cancel
                         </Button>
                         <Button
                             type="submit"
-                            disabled={loading}
+                            disabled={submitting}
                             className="bg-blue-600 hover:bg-blue-700"
                         >
-                            {loading ? (
+                            {submitting ? (
                                 <>
                                     <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full mr-2" />
                                     Creating...
@@ -196,13 +290,6 @@ export default function CreateLessonPage() {
                         </Button>
                     </div>
                 </form>
-            </div>
-
-            <div className="mt-6 bg-blue-50 rounded-xl p-4 border border-blue-200">
-                <p className="text-sm text-blue-800">
-                    <strong>Note:</strong> After creating the lesson, you can add blocks
-                    (media, grammar, vocabulary, quizzes) from the edit page.
-                </p>
             </div>
         </div>
     );

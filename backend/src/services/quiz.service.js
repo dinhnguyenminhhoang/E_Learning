@@ -17,15 +17,14 @@ class QuizService {
       audio,
       tags,
       skill,
+      status
     } = req.body || {};
     if (!title || !skill) {
       return ResponseBuilder.badRequest(
         "Thiếu thông tin bắt buộc: title, skill."
       );
     }
-
     const normalizedSkill = String(skill).toLowerCase();
-    await console.log("pairs", matchingPairs);
 
     const quizData = {
       title: title.trim(),
@@ -33,7 +32,7 @@ class QuizService {
       attachedTo,
       questions: questions || [],
       xpReward: xpReward || 50,
-      status: STATUS.DRAFT,
+      status: status || STATUS.DRAFT,
       thumbnail: thumbnail || "",
       audio: audio || "",
       tags: tags || "",
