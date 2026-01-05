@@ -293,49 +293,6 @@ async def transcribe_and_compare(audio: UploadFile = File(...), target_word: str
         if 'temp_path' in locals() and os.path.exists(temp_path): os.unlink(temp_path)
         raise HTTPException(status_code=500, detail=str(e))
 
-# --- 4. Grade Text (Updated Logic) ---
-@app.post("/api/v1/grade_text")
-async def grade_text(payload: GrammarGradeRequest):
-    print(f"[Grade] Processing: {payload.text[:50]}...")
-    json_string = ""
-    openai_output_raw = ""
-
-    try:
-        # Bước 1: Detect grammar errors (Dùng T5)
-        errors, corrected_text = detect_grammar_errors_optimized(payload.text)
-
-        # Bước 2: Build prompt
-        prompt = build_grading_prompt(payload.text, errors)
-
-        # Bước 3: Call OpenAI
-        if not openai_client:
-            raise HTTPException(status_code=503, detail="OpenAI API key not configured")
-
-    return f"""
-Bạn là một hệ thống chấm điểm và nhận xét bài viết tiếng Anh dành cho người học Việt Nam.
-
-Dưới đây là bài viết của học viên:
----
-{text}
----
-
-{error_description}
-
-Yêu cầu:
-1. Dựa trên các lỗi grammar ở trên (nếu có), hãy chấm điểm bài viết theo thang 0–100.
-2. Nhận xét tổng quan về bài viết bằng **tiếng Việt** (không nhận xét lan man, nhận xét đúng trọng tâm).
-3. Gợi ý cách cải thiện bằng **tiếng Việt**.
-4. Xác định trình độ dựa theo CEFR (A1–C2).
-5. Trả về **đúng định dạng JSON**, không thêm chữ nào ngoài JSON.
-
-Format JSON:
-{{
-  "score": <number>,
-  "level": "<A1-C2>",
-  "overall_comment": "<Nhận xét tiếng Việt>",
-  "suggestions": ["<gợi ý 1>", "<gợi ý 2>"]
-}}
-"""
 
 def build_speaking_grading_prompt(transcribed_text: str, target_text: str, accuracy: float):
     """Tạo prompt cho ChatGPT để chấm điểm bài nói."""
@@ -411,11 +368,11 @@ async def grade_text(payload: GrammarGradeRequest):
 
     try:
         # Bước 1: Phát hiện lỗi ngữ pháp bằng T5
-        errors, corrected_text = detect_grammar_errors_with_t5(payload.text)
+        errors, corrected_text = detect_grammar_errors_optimized(payload.text)
         print(f"[Grade] Detected {len(errors)} errors")
 
         # Bước 2: Tạo prompt cho OpenAI
-        prompt = build_grading_prompt(payload.text, errors, corrected_text)
+        prompt = build_grading_prompt(payload.text, errors)
 
         # Bước 3: Gọi OpenAI để chấm điểm
         openai_output = call_openai_for_grading(prompt)

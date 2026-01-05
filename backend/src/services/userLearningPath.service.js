@@ -87,7 +87,26 @@ class UserLearningPathService {
 
       // Calculate statistics
       const currentLevel = userLearningPath.progress?.currentLevel || 1;
-      const completedLessons = userLearningPath.progress?.completedLessons || [];
+
+      // Get completed lessons from both sources and merge them
+      const completedLessonsFromPath = userLearningPath.progress?.completedLessons || [];
+      const completedLessonsFromProgress = userProgress?.lessonProgress
+        ?.filter((lp) => lp.isCompleted)
+        ?.map((lp) => lp.lessonId) || [];
+
+      // Also check lessonLeaned from userProgress
+      const lessonsLeaned = userProgress?.lessonLeaned || [];
+
+      // Merge all sources and deduplicate
+      const allCompletedLessonIds = new Set([
+        ...completedLessonsFromPath.map(id => id.toString()),
+        ...completedLessonsFromProgress.map(id => id.toString()),
+        ...lessonsLeaned.map(id => id.toString())
+      ]);
+      const completedLessons = Array.from(allCompletedLessonIds);
+
+      console.log(`[UserOverview] Completed lessons: Path=${completedLessonsFromPath.length}, Progress=${completedLessonsFromProgress.length}, Leaned=${lessonsLeaned.length}, Total=${completedLessons.length}`);
+
       const totalLevels = learningPath.levels?.length || 0;
 
       // Count total lessons across all levels
@@ -110,11 +129,31 @@ class UserLearningPathService {
         const lessonProgress = userProgress?.lessonProgress?.find(
           (lp) => lp.lessonId.toString() === lessonId.toString()
         );
+
+        // Check lessonProgress.completedAt first
         if (lessonProgress?.completedAt) {
           const completedDate = new Date(lessonProgress.completedAt);
           completedDate.setHours(0, 0, 0, 0);
-          return completedDate.getTime() === today.getTime();
+          if (completedDate.getTime() === today.getTime()) {
+            return true;
+          }
         }
+
+        // Fallback: Check if any blockProgress was completed today
+        if (lessonProgress?.blockProgress?.length > 0) {
+          const anyBlockCompletedToday = lessonProgress.blockProgress.some((bp) => {
+            if (bp.completedAt) {
+              const blockCompletedDate = new Date(bp.completedAt);
+              blockCompletedDate.setHours(0, 0, 0, 0);
+              return blockCompletedDate.getTime() === today.getTime();
+            }
+            return false;
+          });
+          if (anyBlockCompletedToday && lessonProgress.isCompleted) {
+            return true;
+          }
+        }
+
         return false;
       }).length;
 
