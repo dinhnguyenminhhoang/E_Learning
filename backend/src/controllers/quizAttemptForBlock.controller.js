@@ -13,7 +13,7 @@ class QuizAttemptForBlockController {
   }
 
   async submitQuiz(req, res) {
-    const { attemptId } = req.params;
+    let { attemptId, lessonId } = req.params;
     const { answers } = req.body;
     const userId = req.user._id;
 
@@ -28,7 +28,8 @@ class QuizAttemptForBlockController {
     const result = await quizAttemptForBlockService.submitQuiz(
       userId,
       attemptId,
-      answers
+      answers,
+      lessonId
     );
     return res.status(result.code).json(result);
   }

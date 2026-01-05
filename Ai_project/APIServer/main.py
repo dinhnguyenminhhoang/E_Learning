@@ -19,7 +19,7 @@ load_dotenv()
 app = FastAPI(
     title="AI Language Learning API",
     description="API for spell checking using T5 and Speech-to-Text using Whisper.",
-    version="2.0.0"
+    version="2.1.0" # Version updated
 )
 
 # Add CORS middleware
@@ -35,9 +35,10 @@ app.add_middleware(
 # CONFIG
 # -----------------------------
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-MODEL_PATH = os.path.join(BASE_DIR, "../T5_spellCheck/checkpoint-145000")
+# Điều chỉnh path này theo cấu trúc folder thực tế của bạn nếu cần
+MODEL_PATH = os.path.join(BASE_DIR, "../T5_spellCheck/checkpoint-145000") 
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
-WHISPER_MODEL_SIZE = os.getenv("WHISPER_MODEL_SIZE", "base")  # Options: tiny, base, small, medium, large
+WHISPER_MODEL_SIZE = os.getenv("WHISPER_MODEL_SIZE", "base")
 
 # OpenAI Configuration
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
@@ -58,13 +59,8 @@ try:
     print(f"Loading T5 model on {DEVICE}...")
     try:
         model = T5ForConditionalGeneration.from_pretrained(MODEL_PATH).to(DEVICE)
-    except torch.OutOfMemoryError:
-        print("⚠️ CUDA Out of Memory! Falling back to CPU for T5...")
-        DEVICE = "cpu"
-        torch.cuda.empty_cache()
-        model = T5ForConditionalGeneration.from_pretrained(MODEL_PATH).to(DEVICE)
-    except Exception as e:
-        print(f"Error loading T5 on {DEVICE}, trying CPU... Error: {e}")
+    except (torch.OutOfMemoryError, Exception) as e:
+        print(f"⚠️ GPU Error ({e}). Falling back to CPU for T5...")
         DEVICE = "cpu"
         model = T5ForConditionalGeneration.from_pretrained(MODEL_PATH).to(DEVICE)
 
@@ -87,7 +83,6 @@ try:
 except Exception as e:
     print(f"Error loading Whisper model: {e}")
     traceback.print_exc()
-    # Try CPU fallback
     try:
         print("Trying to load Whisper on CPU...")
         whisper_model = whisper.load_model(WHISPER_MODEL_SIZE, device="cpu")
@@ -106,7 +101,6 @@ if OPENAI_API_KEY:
         print("OpenAI client initialized successfully!")
     except Exception as e:
         print(f"Error initializing OpenAI client: {e}")
-        openai_client = None
 else:
     print("⚠️ OPENAI_API_KEY not found. Grammar grading endpoint will not work.")
 
@@ -120,274 +114,202 @@ class GrammarGradeRequest(BaseModel):
     text: str
     language: str = "en-US"
 
-class TranscriptionResponse(BaseModel):
-    status: str
-    transcribed_text: str
-
-class ComparisonResponse(BaseModel):
-    status: str
-    transcribed_text: str
-    target_word: str
-    accuracy: float
-    is_correct: bool
-
 # -----------------------------
 # Utility Functions
 # -----------------------------
 def calculate_similarity(text1: str, text2: str) -> float:
-    """Calculate similarity between two strings using SequenceMatcher."""
     text1 = text1.lower().strip()
     text2 = text2.lower().strip()
-    
-    if not text1 or not text2:
-        return 0.0
-    
-    # Use SequenceMatcher for similarity ratio
+    if not text1 or not text2: return 0.0
     ratio = SequenceMatcher(None, text1, text2).ratio()
     return round(ratio * 100, 1)
 
 def normalize_text(text: str) -> str:
-    """Normalize text for comparison."""
-    import re
-    # Remove punctuation and extra spaces
     text = re.sub(r'[^\w\s]', '', text)
     text = re.sub(r'\s+', ' ', text)
     return text.lower().strip()
 
 # -----------------------------
-# T5 Spell Check Endpoint
+# Grammar Logic
 # -----------------------------
-@app.post("/api/v1/correct")
-async def correct_text(payload: SpellCheckRequest):
+def detect_grammar_errors_optimized(original_text: str):
+    """
+    Sử dụng T5 để sửa lỗi, sau đó dùng difflib để so sánh thông minh.
+    Khắc phục lỗi lệch index của thuật toán cũ.
+    """
     if not model or not tokenizer:
-        print("Request failed: T5 Model or Tokenizer not loaded.")
-        raise HTTPException(status_code=500, detail="T5 Model is not loaded. Check server logs.")
+        raise HTTPException(status_code=500, detail="T5 Model is not loaded.")
 
-    input_text = payload.text
-    print(f"[T5] Received text: {input_text}")
-    
-    if not input_text:
-        return {"corrected_text": ""}
-
-    input_with_prefix = f"grammar: {input_text}"
-
+    # 1. T5 Inference
+    input_with_prefix = f"grammar: {original_text}"
     try:
-        encoded = tokenizer(
-            [input_with_prefix],
-            return_tensors="pt",
-            padding=True,
-            truncation=True,
-            max_length=128
-        ).to(DEVICE)
-
+        encoded = tokenizer([input_with_prefix], return_tensors="pt", padding=True, truncation=True, max_length=128).to(DEVICE)
         with torch.no_grad():
-            outputs = model.generate(
-                **encoded,
-                max_length=128,
-                num_beams=2,
-                early_stopping=True
-            )
-
+            outputs = model.generate(**encoded, max_length=128, num_beams=2, early_stopping=True)
         corrected_text = tokenizer.decode(outputs[0], skip_special_tokens=True)
-        
         if corrected_text.startswith("grammar:"):
             corrected_text = corrected_text.replace("grammar:", "", 1).strip()
-            
-        print(f"[T5] Corrected text: {corrected_text}")
-        
+    except Exception as e:
+        print(f"T5 Inference Error: {e}")
+        return [], ""
+
+    # 2. Diff Logic (Improved)
+    def tokenize(text):
+        return re.findall(r"\w+|[^\w\s]", text, re.UNICODE)
+
+    original_tokens = tokenize(original_text)
+    corrected_tokens = tokenize(corrected_text)
+
+    matcher = SequenceMatcher(None, original_tokens, corrected_tokens)
+    errors = []
+
+    for tag, i1, i2, j1, j2 in matcher.get_opcodes():
+        orig_fragment = " ".join(original_tokens[i1:i2])
+        corr_fragment = " ".join(corrected_tokens[j1:j2])
+
+        if tag == 'replace':
+            errors.append({
+                "message": f"Dùng từ chưa chính xác: '{orig_fragment}' nên là '{corr_fragment}'",
+                "original": orig_fragment,
+                "suggestion": corr_fragment,
+                "type": "grammar/spelling",
+                "rule": {"id": "T5_CORRECTION"}
+            })
+        elif tag == 'delete':
+            errors.append({
+                "message": f"Từ thừa: Nên bỏ '{orig_fragment}'",
+                "original": orig_fragment,
+                "suggestion": "",
+                "type": "excess_word",
+                "rule": {"id": "T5_DELETION"}
+            })
+        elif tag == 'insert':
+            prev_word = original_tokens[i1-1] if i1 > 0 else "đầu câu"
+            errors.append({
+                "message": f"Thiếu từ: Cần thêm '{corr_fragment}' sau '{prev_word}'",
+                "original": "",
+                "suggestion": corr_fragment,
+                "type": "missing_word",
+                "rule": {"id": "T5_INSERTION"}
+            })
+
+    return errors, corrected_text
+
+def build_grading_prompt(text: str, errors: list):
+    """Tạo prompt tiếng Việt, yêu cầu output JSON chuẩn."""
+    error_list_str = "\n".join([f"- {err['message']}" for err in errors]) if errors else "Không phát hiện lỗi ngữ pháp rõ ràng."
+
+    return f"""
+Bạn là một hệ thống chấm điểm và nhận xét bài viết tiếng Anh dành cho người học Việt Nam.
+
+Dưới đây là bài viết của học viên:
+---
+{text}
+---
+
+Dưới đây là các lỗi ngữ pháp hệ thống tự động phát hiện:
+---
+{error_list_str}
+---
+
+Yêu cầu:
+1. Dựa trên các lỗi grammar ở trên (bắt buộc xem xét), hãy chấm điểm bài viết theo thang 0–100.
+2. Nhận xét tổng quan về bài viết bằng **tiếng Việt** (nhận xét mang tính xây dựng, ngắn gọn).
+3. Gợi ý cách cải thiện bằng **tiếng Việt**.
+4. Xác định trình độ dựa theo CEFR (A1–C2).
+5. Trả về **DUY NHẤT một chuỗi JSON hợp lệ**, không có markdown code block (```json).
+
+Format JSON output:
+{{
+  "score": <number>,
+  "level": "<A1-C2>",
+  "overall_comment": "<Nhận xét tiếng Việt>",
+  "suggestions": ["<gợi ý 1>", "<gợi ý 2>"]
+}}
+"""
+
+# -----------------------------
+# Endpoints
+# -----------------------------
+
+# --- 1. T5 Spell Check ---
+@app.post("/api/v1/correct")
+async def correct_text(payload: SpellCheckRequest):
+    # Endpoint này dùng logic mới luôn để chính xác hơn
+    try:
+        errors, corrected_text = detect_grammar_errors_optimized(payload.text)
         return {
             "status": "success",
-            "original_text": input_text,
-            "corrected_text": corrected_text
+            "original_text": payload.text,
+            "corrected_text": corrected_text,
+            "errors": errors # Trả về list lỗi chi tiết hơn
         }
-
     except Exception as e:
-        print(f"[T5] Error during inference: {e}")
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))
 
-# -----------------------------
-# Whisper STT Endpoints
-# -----------------------------
+# --- 2. Whisper Transcribe ---
 @app.post("/api/v1/transcribe")
 async def transcribe_audio(audio: UploadFile = File(...)):
-    """Transcribe audio file to text using Whisper."""
-    if not whisper_model:
-        raise HTTPException(status_code=500, detail="Whisper model is not loaded. Check server logs.")
-    
-    print(f"[Whisper] Received audio file: {audio.filename}, content_type: {audio.content_type}")
-    
-    # Save uploaded file to temp location
+    if not whisper_model: raise HTTPException(status_code=500, detail="Whisper model not loaded.")
     try:
         with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as temp_file:
             content = await audio.read()
             temp_file.write(content)
             temp_path = temp_file.name
         
-        print(f"[Whisper] Saved to temp file: {temp_path}")
-        
-        # Transcribe with Whisper
-        result = whisper_model.transcribe(
-            temp_path,
-            language="en",  # Force English for vocabulary
-            fp16=False if DEVICE == "cpu" else True
-        )
-        
-        transcribed_text = result["text"].strip()
-        print(f"[Whisper] Transcribed: {transcribed_text}")
-        
-        # Cleanup temp file
+        result = whisper_model.transcribe(temp_path, language="en", fp16=False if DEVICE == "cpu" else True)
         os.unlink(temp_path)
         
-        return {
-            "status": "success",
-            "transcribed_text": transcribed_text
-        }
-        
+        return {"status": "success", "transcribed_text": result["text"].strip()}
     except Exception as e:
-        print(f"[Whisper] Error during transcription: {e}")
-        traceback.print_exc()
-        # Cleanup temp file if exists
-        if 'temp_path' in locals() and os.path.exists(temp_path):
-            os.unlink(temp_path)
+        if 'temp_path' in locals() and os.path.exists(temp_path): os.unlink(temp_path)
         raise HTTPException(status_code=500, detail=str(e))
 
+# --- 3. Whisper Compare ---
 @app.post("/api/v1/transcribe-and-compare")
-async def transcribe_and_compare(
-    audio: UploadFile = File(...),
-    target_word: str = Form(...)
-):
-    """Transcribe audio and compare with target word."""
-    if not whisper_model:
-        raise HTTPException(status_code=500, detail="Whisper model is not loaded. Check server logs.")
-    
-    print(f"[Whisper] Comparing pronunciation for: {target_word}")
-    
+async def transcribe_and_compare(audio: UploadFile = File(...), target_word: str = Form(...)):
+    if not whisper_model: raise HTTPException(status_code=500, detail="Whisper model not loaded.")
     try:
         with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as temp_file:
             content = await audio.read()
             temp_file.write(content)
             temp_path = temp_file.name
         
-        # Transcribe with Whisper
-        result = whisper_model.transcribe(
-            temp_path,
-            language="en",
-            fp16=False if DEVICE == "cpu" else True
-        )
-        
-        transcribed_text = result["text"].strip()
-        print(f"[Whisper] Transcribed: '{transcribed_text}' vs Target: '{target_word}'")
-        
-        # Cleanup temp file
+        result = whisper_model.transcribe(temp_path, language="en", fp16=False if DEVICE == "cpu" else True)
         os.unlink(temp_path)
         
-        # Normalize and compare
-        normalized_transcription = normalize_text(transcribed_text)
-        normalized_target = normalize_text(target_word)
-        
-        accuracy = calculate_similarity(normalized_transcription, normalized_target)
-        is_correct = accuracy >= 80.0  # Consider 80%+ as correct
-        
-        print(f"[Whisper] Accuracy: {accuracy}%, Correct: {is_correct}")
+        transcribed_text = result["text"].strip()
+        acc = calculate_similarity(normalize_text(transcribed_text), normalize_text(target_word))
         
         return {
             "status": "success",
             "transcribed_text": transcribed_text,
             "target_word": target_word,
-            "accuracy": accuracy,
-            "is_correct": is_correct
+            "accuracy": acc,
+            "is_correct": acc >= 80.0
         }
-        
     except Exception as e:
-        print(f"[Whisper] Error: {e}")
-        traceback.print_exc()
-        if 'temp_path' in locals() and os.path.exists(temp_path):
-            os.unlink(temp_path)
+        if 'temp_path' in locals() and os.path.exists(temp_path): os.unlink(temp_path)
         raise HTTPException(status_code=500, detail=str(e))
 
-# -----------------------------
-# Grammar Grading Helper Functions
-# -----------------------------
-def detect_grammar_errors_with_t5(text: str):
-    """
-    Sử dụng T5 model để phát hiện lỗi ngữ pháp bằng cách so sánh text gốc với text đã sửa.
-    Trả về danh sách các lỗi được phát hiện.
-    """
-    if not model or not tokenizer:
-        raise HTTPException(status_code=500, detail="T5 Model is not loaded.")
-
-    input_with_prefix = f"grammar: {text}"
+# --- 4. Grade Text (Updated Logic) ---
+@app.post("/api/v1/grade_text")
+async def grade_text(payload: GrammarGradeRequest):
+    print(f"[Grade] Processing: {payload.text[:50]}...")
+    json_string = ""
+    openai_output_raw = ""
 
     try:
-        encoded = tokenizer(
-            [input_with_prefix],
-            return_tensors="pt",
-            padding=True,
-            truncation=True,
-            max_length=128
-        ).to(DEVICE)
+        # Bước 1: Detect grammar errors (Dùng T5)
+        errors, corrected_text = detect_grammar_errors_optimized(payload.text)
 
-        with torch.no_grad():
-            outputs = model.generate(
-                **encoded,
-                max_length=128,
-                num_beams=2,
-                early_stopping=True
-            )
+        # Bước 2: Build prompt
+        prompt = build_grading_prompt(payload.text, errors)
 
-        corrected_text = tokenizer.decode(outputs[0], skip_special_tokens=True)
-        if corrected_text.startswith("grammar:"):
-            corrected_text = corrected_text.replace("grammar:", "", 1).strip()
-
-        # So sánh text gốc với text đã sửa để tìm lỗi
-        errors = []
-        if text.lower().strip() != corrected_text.lower().strip():
-            # Tách thành từng câu để phân tích chi tiết hơn
-            original_words = text.split()
-            corrected_words = corrected_text.split()
-
-            # Tìm điểm khác biệt
-            for i, (orig, corr) in enumerate(zip(original_words, corrected_words)):
-                if orig.lower() != corr.lower():
-                    errors.append({
-                        "message": f"Có thể sai: '{orig}' nên là '{corr}'",
-                        "original": orig,
-                        "suggestion": corr,
-                        "position": i,
-                        "rule": {"id": "T5_CORRECTION"}
-                    })
-
-            # Nếu không tìm thấy lỗi cụ thể nhưng có sự khác biệt, thêm lỗi chung
-            if not errors:
-                errors.append({
-                    "message": "Văn bản có thể cần được hiệu chỉnh",
-                    "original": text,
-                    "suggestion": corrected_text,
-                    "rule": {"id": "T5_GENERAL_CORRECTION"}
-                })
-
-        return errors, corrected_text
-
-    except Exception as e:
-        print(f"Error in T5 grammar detection: {e}")
-        traceback.print_exc()
-        raise
-
-def build_grading_prompt(text: str, errors: list, corrected_text: str):
-    """Tạo prompt tiếng Việt cho OpenAI để chấm điểm bài viết."""
-
-    error_description = ""
-    if errors:
-        error_list = "\n".join([f"- {err['message']}" for err in errors])
-        error_description = f"""
-Danh sách lỗi được phát hiện:
-{error_list}
-
-Văn bản đã sửa: {corrected_text}
-"""
-    else:
-        error_description = "Không phát hiện lỗi ngữ pháp rõ ràng."
+        # Bước 3: Call OpenAI
+        if not openai_client:
+            raise HTTPException(status_code=503, detail="OpenAI API key not configured")
 
     return f"""
 Bạn là một hệ thống chấm điểm và nhận xét bài viết tiếng Anh dành cho người học Việt Nam.
@@ -460,12 +382,12 @@ def call_openai_for_grading(prompt: str):
         response = openai_client.chat.completions.create(
             model=OPENAI_MODEL,
             messages=[
-                {"role": "system", "content": "Bạn là một giáo viên tiếng Anh chuyên nghiệp, chấm điểm bài viết cho học viên Việt Nam."},
+                {"role": "system", "content": "You are a helpful English tutor."},
                 {"role": "user", "content": prompt}
             ],
-            temperature=0.2,
-            max_tokens=1000
+            temperature=0.2
         )
+        openai_output_raw = response.choices[0].message.content
 
         return response.choices[0].message.content
 
@@ -505,36 +427,32 @@ async def grade_text(payload: GrammarGradeRequest):
 
         # Tìm JSON object
         json_match = re.search(r'\{.*\}', cleaned_output, re.DOTALL)
+        
         if not json_match:
-            raise ValueError(f"Không tìm thấy JSON trong response: {openai_output[:200]}")
+             # Fallback: Nếu không tìm thấy {}, thử parse trực tiếp phòng khi model trả về raw text không ngoặc
+            raise ValueError("No JSON block found in response")
 
-        grading_json = json_match.group(0).strip()
-        grading = json.loads(grading_json)
+        json_string = json_match.group(0).strip()
+        grading = json.loads(json_string)
 
-        print(f"[Grade] Parsed grading: score={grading.get('score')}, level={grading.get('level')}")
-
-        # Bước 5: Trả về kết quả
         return {
             "status": "success",
             "original_text": payload.text,
+            "corrected_text": corrected_text, # Trả thêm cái này để frontend biết T5 sửa gì
             "grammar_errors": errors,
             "grading": grading
         }
 
     except json.JSONDecodeError as e:
-        print(f"[Grade] JSON parse error: {e}")
-        raise HTTPException(
-            status_code=500,
-            detail=f"OpenAI trả về JSON sai định dạng. Lỗi: {str(e)}"
-        )
+        print(f"JSON Error: {e}")
+        print(f"Raw Output: {openai_output_raw}")
+        raise HTTPException(status_code=500, detail=f"AI returned invalid JSON: {str(e)}")
     except Exception as e:
-        print(f"[Grade] Error: {e}")
+        print(f"General Error: {e}")
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))
 
-# -----------------------------
-# Speaking Practice Endpoint (STT + Spellcheck)
-# -----------------------------
+# --- 5. Speaking Practice (Updated Logic) ---
 @app.post("/api/v1/speaking-practice")
 async def speaking_practice(
     audio: UploadFile = File(...),
@@ -552,27 +470,16 @@ async def speaking_practice(
     print(f"[Speaking Practice] Received audio file: {audio.filename}, content_type: {audio.content_type}")
     print(f"[Speaking Practice] Target text: {target_text}")
     
+    temp_path = None
     try:
-        # Step 1: Save uploaded audio to temp file
+        # 1. Save audio
         with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as temp_file:
-            content = await audio.read()
-            temp_file.write(content)
+            temp_file.write(await audio.read())
             temp_path = temp_file.name
-        
-        print(f"[Speaking Practice] Saved to temp file: {temp_path}")
-        
-        # Step 2: Transcribe with Whisper
-        result = whisper_model.transcribe(
-            temp_path,
-            language="en",
-            fp16=False if DEVICE == "cpu" else True
-        )
-        
+
+        # 2. Whisper
+        result = whisper_model.transcribe(temp_path, language="en", fp16=False if DEVICE == "cpu" else True)
         transcribed_text = result["text"].strip()
-        print(f"[Speaking Practice] Transcribed: {transcribed_text}")
-        
-        # Cleanup temp file
-        os.unlink(temp_path)
         
         if not transcribed_text:
             return {
@@ -673,13 +580,8 @@ async def speaking_practice(
             max_length=128
         ).to(DEVICE)
 
-        with torch.no_grad():
-            outputs = model.generate(
-                **encoded,
-                max_length=128,
-                num_beams=2,
-                early_stopping=True
-            )
+        # 3. T5 Check (Dùng hàm mới detect_grammar_errors_optimized)
+        errors, corrected_text = detect_grammar_errors_optimized(transcribed_text)
 
         corrected_text = tokenizer.decode(outputs[0], skip_special_tokens=True)
         
@@ -725,31 +627,24 @@ async def speaking_practice(
             "transcribed_text": transcribed_text,
             "corrected_text": corrected_text,
             "errors": errors,
-            "has_errors": has_errors
+            "has_errors": len(errors) > 0
         }
-        
+
     except Exception as e:
-        print(f"[Speaking Practice] Error: {e}")
+        if temp_path and os.path.exists(temp_path): os.unlink(temp_path)
         traceback.print_exc()
-        # Cleanup temp file if exists
-        if 'temp_path' in locals() and os.path.exists(temp_path):
-            os.unlink(temp_path)
         raise HTTPException(status_code=500, detail=str(e))
 
-# -----------------------------
-# Health Check
-# -----------------------------
 @app.get("/health")
 def health_check():
     return {
         "status": "ok",
-        "t5_model_loaded": model is not None,
-        "whisper_model_loaded": whisper_model is not None,
-        "openai_client_loaded": openai_client is not None,
+        "t5_loaded": model is not None,
+        "whisper_loaded": whisper_model is not None,
+        "openai_loaded": openai_client is not None,
         "device": DEVICE
     }
 
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
-

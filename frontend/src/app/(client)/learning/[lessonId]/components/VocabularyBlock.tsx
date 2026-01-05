@@ -260,47 +260,7 @@ export function VocabularyBlock({
             </div>
 
             {/* Completion Banner - Show when all cards are learned */}
-            {allCardsLearned && (
-                <div className="mb-6 animate-in fade-in slide-in-from-top-4 duration-500">
-                    <div className="bg-gradient-to-r from-green-500 to-emerald-600 rounded-2xl p-6 shadow-lg border-2 border-green-400 mb-4">
-                        <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-4">
-                                <div className="w-12 h-12 rounded-full bg-white/20 backdrop-blur flex items-center justify-center">
-                                    <CheckCircle className="w-7 h-7 text-white" />
-                                </div>
-                                <div>
-                                    <h3 className="text-xl font-bold text-white mb-1">
-                                        Tuyệt vời! Bạn đã học xong tất cả từ vựng
-                                    </h3>
-                                    <p className="text-green-50 text-sm">
-                                        Bây giờ hãy làm bài tập để củng cố kiến thức
-                                    </p>
-                                </div>
-                            </div>
-                            <Sparkles className="w-8 h-8 text-white/80 animate-pulse" />
-                        </div>
-                    </div>
-
-                    {/* "Làm bài tập" button */}
-                    <div className="flex justify-center">
-                        <Button
-                            onClick={onContinue || onStartQuiz || (() => { })}
-                            className={cn(
-                                "w-full md:w-auto min-w-[280px]",
-                                "bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700",
-                                "text-white shadow-xl hover:shadow-2xl transition-all duration-300",
-                                "font-bold text-lg py-7 px-8",
-                                "transform hover:scale-105 active:scale-95",
-                                "border-2 border-purple-400 cursor-pointer"
-                            )}
-                            size="lg"
-                        >
-                            <FileText className="w-6 h-6 mr-3" />
-                            Tiếp tục
-                        </Button>
-                    </div>
-                </div>
-            )}
+          
 
             {/* Flashcard */}
             <div className="mb-6">

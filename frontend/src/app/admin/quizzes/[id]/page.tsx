@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { quizAdminService } from "@/services/quizAdmin.service";
-import { Quiz, Question } from "@/types/admin";
+import { Quiz, Question, MatchingPair } from "@/types/admin";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ArrowLeft, Save, Trash2, Plus, X, Check, Edit } from "lucide-react";
@@ -60,7 +60,7 @@ interface QuestionFormData {
   correctAnswer: string;
   explanation: string;
   points: number;
-  matchingPairs: { left: string; right: string }[]; // ✅ Đảm bảo trường này tồn tại
+  matchingPairs: MatchingPair[]; // For Matching questions
 }
 
 // ✅ 1. CẬP NHẬT PROPS: Thêm các hàm xử lý Matching
@@ -213,7 +213,7 @@ const QuestionFormDialog = ({
                   <div className="flex-1">
                     <Input
                       placeholder={`Left item ${idx + 1}`}
-                      value={pair.left}
+                      value={pair.left.text}
                       onChange={(e) =>
                         onMatchingChange(idx, "left", e.target.value)
                       }
@@ -223,7 +223,7 @@ const QuestionFormDialog = ({
                   <div className="flex-1">
                     <Input
                       placeholder={`Right item ${idx + 1}`}
-                      value={pair.right}
+                      value={pair.right.text}
                       onChange={(e) =>
                         onMatchingChange(idx, "right", e.target.value)
                       }
@@ -343,10 +343,7 @@ const defaultQuestionForm: QuestionFormData = {
   correctAnswer: "",
   explanation: "",
   points: 10,
-  matchingPairs: [
-    { left: "", right: "" },
-    { left: "", right: "" },
-  ], // Mặc định 2 cặp trống
+  matchingPairs: [{ left: { text: "" }, right: { text: "" } }],
 };
 
 export default function EditQuizPage() {
@@ -491,25 +488,31 @@ export default function EditQuizPage() {
     }));
   };
 
-  // ✅ 3. VIẾT LOGIC: Handlers cho Matching
   const handleMatchingChange = (
     index: number,
     field: "left" | "right",
     value: string
   ) => {
     setQuestionForm((prev) => {
-      // Nếu matchingPairs chưa có, khởi tạo nó
       const currentPairs = prev.matchingPairs || [];
       const newPairs = [...currentPairs];
-      newPairs[index] = { ...newPairs[index], [field]: value };
+      
+      // Lấy giá trị cũ để giữ lại các thuộc tính khác (nếu có)
+      const oldItem = newPairs[index][field] || {};
+
+      // Cập nhật: Giữ nguyên là Object, update key "text" (hoặc key nào bạn dùng)
+      newPairs[index] = { 
+        ...newPairs[index], 
+        [field]: { ...oldItem, text: value } 
+      };
+      
       return { ...prev, matchingPairs: newPairs };
     });
   };
-
   const addMatchingPair = () => {
     setQuestionForm((prev) => ({
       ...prev,
-      matchingPairs: [...(prev.matchingPairs || []), { left: "", right: "" }],
+      matchingPairs: [...(prev.matchingPairs || []), { left: { text: "" }, right: { text: "" } }],
     }));
   };
 
@@ -543,7 +546,7 @@ export default function EditQuizPage() {
     if (questionForm.type === "matching") {
       const pairs = questionForm.matchingPairs || [];
       console.log("Validating matching pairs:", pairs);
-      const isEmpty = pairs.some((p) => !p.left.trim() || !p.right.trim());
+      const isEmpty = pairs.some((p) => !p.left.text.trim() || !p.right.text.trim());
       if (pairs.length === 0 || isEmpty) {
         toast.error("Please fill in all matching pairs");
         return;
@@ -570,7 +573,7 @@ export default function EditQuizPage() {
       setActionLoading(true);
 
       const questionData = buildQuestionBody(questionForm);
-
+      console.log("Adding Question with data:", questionData);
       const response = await quizAdminService.addQuestions(quizId, [
         questionData,
       ]);
@@ -593,7 +596,9 @@ export default function EditQuizPage() {
   // Open Edit Dialog
   const openEditDialog = (question: Question) => {
     setEditingQuestion(question);
-    setQuestionForm({
+    console.log("Editing Question:", question);
+    // 1. Tạo object dữ liệu trước để log
+    const formValues: QuestionFormData = {
       type: question.type,
       questionText: question.questionText || question.question || "",
       options: question.options || [
@@ -601,14 +606,17 @@ export default function EditQuizPage() {
         { text: "", isCorrect: false },
       ],
       // Load existing pairs or default
-      matchingPairs: question.matchingPairs || [
-        { left: "", right: "" },
-        { left: "", right: "" },
+      matchingPairs: question.matchingPair || [
+        { left: { text: "" }, right: { text: "" } },
+        { left: { text: "" }, right: { text: "" } },
       ],
       correctAnswer: question.correctAnswer || "",
       explanation: question.explanation || "",
       points: question.points || 10,
-    });
+    };
+    console.log("Pre-filling form with values:", formValues);
+    // 3. Cập nhật state
+    setQuestionForm(formValues);
     setShowEditDialog(true);
   };
 
@@ -624,7 +632,7 @@ export default function EditQuizPage() {
     // Validate Matching Update
     if (questionForm.type === "matching") {
       const pairs = questionForm.matchingPairs || [];
-      const isEmpty = pairs.some((p) => !p.left.trim() || !p.right.trim());
+      const isEmpty = pairs.some((p) => !p.left.text.trim() || !p.right.text.trim());
       if (pairs.length === 0 || isEmpty) {
         toast.error("Please fill in all matching pairs");
         return;

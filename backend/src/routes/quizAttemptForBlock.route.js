@@ -12,7 +12,7 @@ router.post(
 );
 
 router.post(
-  "/quiz-attempts/:attemptId/submit",
+  "/quiz-attempts/:attemptId/:lessonId/submit",
   auth.authenticate,
   asynchandler(quizAttemptForBlockController.submitQuiz)
 );

@@ -24,7 +24,6 @@ const LearningPathController = {
   },
 
   async assignLessonToPath(req, res) {
-
     const response = await LearningPathService.assignLessonToPath(req);
     res.status(response.code).json(response);
   },

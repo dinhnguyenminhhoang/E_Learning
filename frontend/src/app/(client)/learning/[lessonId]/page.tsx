@@ -147,10 +147,10 @@ export default function LearningPage() {
   };
 
   const handleBlockStart = async () => {
-    if (!activeBlockId || !pathId) return;
+    if (!activeBlockId || !pathId || !lessonId) return;
 
     try {
-      const response = await blockService.startBlock(activeBlockId, pathId);
+      const response = await blockService.startBlock(activeBlockId, pathId, lessonId);
 
       if (response.code === 200) {
         // Response structure: response.message.data OR response.data
@@ -289,11 +289,8 @@ export default function LearningPage() {
 
   const handleBlockContinue = () => {
     if (!activeBlock) return;
-    if (activeBlock.isQuiz) {
-      handleStartQuiz();
-    } else {
-      handleNext();
-    }
+    console.log("ok")
+    handleStartQuiz();
   };
 
   const handleStartQuiz = async () => {
@@ -341,7 +338,7 @@ export default function LearningPage() {
     if (!quizAttempt) return;
 
     try {
-      const response = await blockService.submitQuiz(quizAttempt._id, answers);
+      const response = await blockService.submitQuiz(quizAttempt._id, lessonId, answers);
 
       if (response.code === 200 && response.data) {
         setQuizResult(response.data.attempt);
