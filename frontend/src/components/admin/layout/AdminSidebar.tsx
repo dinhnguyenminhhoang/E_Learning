@@ -121,13 +121,7 @@ const menuItems: MenuItem[] = [
     label: "Người dùng",
     href: "/admin/users",
     icon: Users,
-  },
-  {
-    id: "settings",
-    label: "Cài đặt",
-    href: "/admin/settings",
-    icon: Settings,
-  },
+  }
 ];
 
 export function AdminSidebar() {

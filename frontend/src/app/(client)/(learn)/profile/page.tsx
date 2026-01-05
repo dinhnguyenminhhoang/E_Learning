@@ -60,11 +60,7 @@ export default function ProfilePage() {
   });
   const [saving, setSaving] = useState(false);
 
-  const [settings, setSettings] = useState({
-    studyReminder: true,
-    soundEffects: true,
-    darkMode: false,
-  });
+
 
   useEffect(() => {
     fetchData();
@@ -85,11 +81,7 @@ export default function ProfilePage() {
           phoneNumber: profileRes.data.phoneNumber || "",
           bio: profileRes.data.bio || "",
         });
-        setSettings({
-          studyReminder: profileRes.data.learningPreferences?.studyReminder ?? true,
-          soundEffects: true,
-          darkMode: false,
-        });
+
       }
 
       if (statsRes.code === 200) {
@@ -122,20 +114,7 @@ export default function ProfilePage() {
     }
   };
 
-  const handleSettingsChange = async (key: string, value: boolean) => {
-    setSettings((prev) => ({ ...prev, [key]: value }));
 
-    if (key === "studyReminder") {
-      try {
-        await profileService.updateProfile({
-          learningPreferences: { studyReminder: value }
-        });
-        toast.success("Đã cập nhật cài đặt");
-      } catch (error) {
-        toast.error("Lỗi cập nhật cài đặt");
-      }
-    }
-  };
 
   const handleSignOut = async () => {
     try {
@@ -225,7 +204,7 @@ export default function ProfilePage() {
       {/* Main Content */}
       <div className="mx-auto px-4 py-8 sm:px-6 lg:px-8">
         <Tabs defaultValue="overview" className="space-y-6" onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-4 lg:w-[450px] bg-white/80 backdrop-blur-sm">
+          <TabsList className="grid w-full grid-cols-3 lg:w-[350px] bg-white/80 backdrop-blur-sm">
             <TabsTrigger value="overview" className="gap-2">
               <BarChart3 className="w-4 h-4" />
               Tổng quan
@@ -237,15 +216,13 @@ export default function ProfilePage() {
             <TabsTrigger value="edit" className="gap-2">
               Chỉnh sửa
             </TabsTrigger>
-            <TabsTrigger value="settings" className="gap-2">
-              Cài đặt
-            </TabsTrigger>
+
           </TabsList>
 
           {/* OVERVIEW TAB */}
           <TabsContent value="overview" className="space-y-6">
             {/* Stats Grid */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
               <Card className="bg-gradient-to-br from-orange-50 to-orange-100 border-orange-200">
                 <CardContent className="p-6 flex flex-col items-center justify-center text-center space-y-2">
                   <div className="p-3 bg-orange-200 rounded-full">
@@ -266,20 +243,6 @@ export default function ProfilePage() {
                   <div>
                     <div className="text-3xl font-bold text-blue-700">{profile.statistics?.totalWordsLearned || 0}</div>
                     <div className="text-xs text-blue-600 uppercase font-semibold">Từ vựng</div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card className="bg-gradient-to-br from-green-50 to-green-100 border-green-200">
-                <CardContent className="p-6 flex flex-col items-center justify-center text-center space-y-2">
-                  <div className="p-3 bg-green-200 rounded-full">
-                    <Clock className="h-6 w-6 text-green-600" />
-                  </div>
-                  <div>
-                    <div className="text-3xl font-bold text-green-700">
-                      {totalStudyHours > 0 ? `${totalStudyHours}h` : `${totalStudyMinutes}m`}
-                    </div>
-                    <div className="text-xs text-green-600 uppercase font-semibold">Thời gian học</div>
                   </div>
                 </CardContent>
               </Card>
@@ -333,40 +296,6 @@ export default function ProfilePage() {
                 </CardContent>
               </Card>
             </div>
-
-            {/* Activity Chart */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <BarChart3 className="h-5 w-5 text-blue-600" />
-                  Hoạt động học tập
-                </CardTitle>
-                <CardDescription>Tiến độ học tập 7 ngày gần nhất</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="h-[200px] flex items-end justify-between gap-2 pt-4">
-                  {stats.length > 0 ? stats.map((stat, i) => (
-                    <div key={i} className="flex-1 flex flex-col items-center gap-2 group">
-                      <div
-                        className="w-full bg-gradient-to-t from-blue-500 to-blue-400 rounded-t-md relative group-hover:from-blue-600 group-hover:to-blue-500 transition-all duration-300 min-h-[4px]"
-                        style={{ height: `${Math.max(stat.studyTime * 2, 4)}%` }}
-                      >
-                        <div className="absolute -top-10 left-1/2 -translate-x-1/2 bg-gray-800 text-white text-xs py-1 px-2 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10">
-                          {stat.studyTime} phút
-                        </div>
-                      </div>
-                      <span className="text-xs text-gray-500 font-medium">
-                        {new Date(stat.date).toLocaleDateString('vi-VN', { weekday: 'short' })}
-                      </span>
-                    </div>
-                  )) : (
-                    <div className="flex-1 flex items-center justify-center text-gray-400">
-                      Chưa có dữ liệu hoạt động
-                    </div>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
           </TabsContent>
 
           {/* ACHIEVEMENTS TAB */}
@@ -500,71 +429,7 @@ export default function ProfilePage() {
             </Card>
           </TabsContent>
 
-          {/* SETTINGS TAB */}
-          <TabsContent value="settings">
-            <Card>
-              <CardHeader>
-                <CardTitle>Cài đặt</CardTitle>
-                <CardDescription>Quản lý tùy chọn ứng dụng</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 bg-blue-100 rounded-lg">
-                      <Bell className="h-5 w-5 text-blue-600" />
-                    </div>
-                    <div>
-                      <p className="font-medium">Nhắc nhở học tập</p>
-                      <p className="text-sm text-gray-500">Nhận thông báo nhắc nhở học mỗi ngày</p>
-                    </div>
-                  </div>
-                  <Switch
-                    checked={settings.studyReminder}
-                    onCheckedChange={(checked) => handleSettingsChange("studyReminder", checked)}
-                  />
-                </div>
 
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 bg-green-100 rounded-lg">
-                      <Volume2 className="h-5 w-5 text-green-600" />
-                    </div>
-                    <div>
-                      <p className="font-medium">Hiệu ứng âm thanh</p>
-                      <p className="text-sm text-gray-500">Phát âm thanh trong bài học</p>
-                    </div>
-                  </div>
-                  <Switch
-                    checked={settings.soundEffects}
-                    onCheckedChange={(checked) => handleSettingsChange("soundEffects", checked)}
-                  />
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 bg-purple-100 rounded-lg">
-                      <Moon className="h-5 w-5 text-purple-600" />
-                    </div>
-                    <div>
-                      <p className="font-medium">Chế độ tối</p>
-                      <p className="text-sm text-gray-500">Chuyển sang giao diện tối</p>
-                    </div>
-                  </div>
-                  <Switch
-                    checked={settings.darkMode}
-                    onCheckedChange={(checked) => handleSettingsChange("darkMode", checked)}
-                  />
-                </div>
-
-                <div className="pt-6 border-t">
-                  <h3 className="text-sm font-medium text-red-600 mb-4">Vùng nguy hiểm</h3>
-                  <Button variant="destructive" className="w-full sm:w-auto">
-                    Xóa tài khoản
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
         </Tabs>
       </div>
     </div>

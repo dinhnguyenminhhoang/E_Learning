@@ -3,7 +3,7 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Mic, MicOff, Loader2, ChevronLeft, Volume2, Bot, User } from "lucide-react";
+import { Mic, MicOff, Loader2, ChevronLeft, Volume2, Bot, User, Languages } from "lucide-react";
 import { speakingPracticeService } from "@/services/speakingPractice.service";
 import { aiAssistantService } from "@/services/aiAssistant.service";
 import { ttsService } from "@/services/tts.service";
@@ -14,6 +14,8 @@ interface Message {
     originalText?: string;
     correctedText?: string;
     hasErrors?: boolean;
+    translation?: string;
+    isTranslating?: boolean;
 }
 
 interface AIConversationProps {
@@ -24,7 +26,7 @@ export default function AIConversation({ onExit }: AIConversationProps) {
     const [messages, setMessages] = useState<Message[]>([
         {
             role: "assistant",
-            content: "Xin chào! Tôi là AI trợ lý của bạn. Hãy nói bất cứ điều gì bằng tiếng Anh và tôi sẽ trò chuyện với bạn, đồng thời giúp bạn sửa lỗi ngữ pháp. Hãy bắt đầu nào!"
+            content: "Hello! I am your AI assistant. Feel free to say anything in English, and I will chat with you while helping correct your grammar. Let's get started!"
         }
     ]);
     const [isRecording, setIsRecording] = useState(false);
@@ -43,6 +45,14 @@ export default function AIConversation({ onExit }: AIConversationProps) {
     useEffect(() => {
         scrollToBottom();
     }, [messages]);
+
+    const playMessage = async (text: string) => {
+        try {
+            await ttsService.speak(text);
+        } catch (err) {
+            console.error("TTS error:", err);
+        }
+    };
 
     const startRecording = useCallback(async () => {
         try {
@@ -71,10 +81,12 @@ export default function AIConversation({ onExit }: AIConversationProps) {
                     const practiceResult = await speakingPracticeService.analyzeSpeaking(audioBlob);
 
                     if (!practiceResult.transcribedText) {
+                        const errorMsg = "Xin lỗi, tôi không nghe rõ. Bạn có thể nói lại không?";
                         setMessages(prev => [...prev, {
                             role: "assistant",
-                            content: "Xin lỗi, tôi không nghe rõ. Bạn có thể nói lại không?"
+                            content: errorMsg
                         }]);
+                        playMessage(errorMsg);
                         setIsProcessing(false);
                         return;
                     }
@@ -91,17 +103,21 @@ export default function AIConversation({ onExit }: AIConversationProps) {
                     const textToSend = practiceResult.correctedText || practiceResult.transcribedText;
                     const aiResponse = await aiAssistantService.chat(
                         `Please respond to this in English (keep it conversational and brief): "${textToSend}"`,
-                        conversationId
+                        conversationId,
+                        "speaking_practice"
                     );
 
                     if (!conversationId && aiResponse.conversationId) {
                         setConversationId(aiResponse.conversationId);
                     }
 
+                    const aiContent = aiResponse.message.content;
                     setMessages(prev => [...prev, {
                         role: "assistant",
-                        content: aiResponse.message.content
+                        content: aiContent
                     }]);
+
+                    playMessage(aiContent);
 
                 } catch (err: any) {
                     setMessages(prev => [...prev, {
@@ -127,16 +143,41 @@ export default function AIConversation({ onExit }: AIConversationProps) {
         }
     }, [isRecording]);
 
-    const playMessage = async (text: string) => {
+    const handleTranslate = async (index: number) => {
+        const message = messages[index];
+        if (!message || message.role !== "assistant") return;
+
+        if (message.translation) {
+            return;
+        }
+
+        setMessages(prev => prev.map((msg, i) =>
+            i === index ? { ...msg, isTranslating: true } : msg
+        ));
+
         try {
-            await ttsService.speak(text);
-        } catch (err) {
-            console.error("TTS error:", err);
+            const response = await aiAssistantService.chat(
+                `Translate the following English text to Vietnamese (just the translation, no extra text): "${message.content}"`,
+                undefined
+            );
+
+            setMessages(prev => prev.map((msg, i) =>
+                i === index ? {
+                    ...msg,
+                    translation: response.message.content,
+                    isTranslating: false
+                } : msg
+            ));
+        } catch (error) {
+            console.error("Translation error:", error);
+            setMessages(prev => prev.map((msg, i) =>
+                i === index ? { ...msg, isTranslating: false } : msg
+            ));
         }
     };
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex flex-col">
+        <div className="h-screen overflow-hidden bg-gradient-to-br from-blue-50 via-white to-purple-50 flex flex-col">
             <div className="bg-white border-b border-gray-200 px-4 py-3">
                 <div className="mx-auto flex items-center justify-between">
                     <Button
@@ -182,18 +223,42 @@ export default function AIConversation({ onExit }: AIConversationProps) {
                                             <p className="text-green-200">✓ {msg.correctedText}</p>
                                         </div>
                                     )}
+
+                                    {msg.role === "assistant" && msg.translation && (
+                                        <div className="mt-3 pt-3 border-t border-gray-100">
+                                            <p className="text-sm text-gray-600 italic">
+                                                {msg.translation}
+                                            </p>
+                                        </div>
+                                    )}
                                 </Card>
 
                                 {msg.role === "assistant" && (
-                                    <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        onClick={() => playMessage(msg.content)}
-                                        className="text-gray-400 hover:text-blue-500 mt-1"
-                                    >
-                                        <Volume2 className="w-4 h-4 mr-1" />
-                                        Nghe
-                                    </Button>
+                                    <div className="flex gap-2 mt-1">
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            onClick={() => playMessage(msg.content)}
+                                            className="text-gray-400 hover:text-blue-500"
+                                        >
+                                            <Volume2 className="w-4 h-4 mr-1" />
+                                            Nghe
+                                        </Button>
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            onClick={() => handleTranslate(idx)}
+                                            disabled={msg.isTranslating}
+                                            className="text-gray-400 hover:text-purple-500"
+                                        >
+                                            {msg.isTranslating ? (
+                                                <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+                                            ) : (
+                                                <Languages className="w-4 h-4 mr-1" />
+                                            )}
+                                            Dịch
+                                        </Button>
+                                    </div>
                                 )}
                             </div>
 

@@ -42,7 +42,7 @@ WHISPER_MODEL_SIZE = os.getenv("WHISPER_MODEL_SIZE", "base")
 
 # OpenAI Configuration
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-3.5-turbo")
+OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-4o")
 
 print(f"Base Dir: {BASE_DIR}")
 print(f"Attempting to load T5 model from: {os.path.abspath(MODEL_PATH)}")
@@ -143,6 +143,9 @@ def detect_grammar_errors_optimized(original_text: str):
     # 1. T5 Inference
     input_with_prefix = f"grammar: {original_text}"
     try:
+        if DEVICE == "cuda":
+            torch.cuda.empty_cache()
+            
         encoded = tokenizer([input_with_prefix], return_tensors="pt", padding=True, truncation=True, max_length=128).to(DEVICE)
         with torch.no_grad():
             outputs = model.generate(**encoded, max_length=128, num_beams=2, early_stopping=True)
@@ -151,7 +154,7 @@ def detect_grammar_errors_optimized(original_text: str):
             corrected_text = corrected_text.replace("grammar:", "", 1).strip()
     except Exception as e:
         print(f"T5 Inference Error: {e}")
-        return [], ""
+        return [], original_text
 
     # 2. Diff Logic (Improved)
     def tokenize(text):
@@ -539,11 +542,6 @@ async def speaking_practice(
 
         # 3. T5 Check (Dùng hàm mới detect_grammar_errors_optimized)
         errors, corrected_text = detect_grammar_errors_optimized(transcribed_text)
-
-        corrected_text = tokenizer.decode(outputs[0], skip_special_tokens=True)
-        
-        if corrected_text.startswith("grammar:"):
-            corrected_text = corrected_text.replace("grammar:", "", 1).strip()
         
         print(f"[Speaking Practice] Corrected: {corrected_text}")
         

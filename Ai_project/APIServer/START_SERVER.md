@@ -32,7 +32,7 @@ Then edit the `.env` file and add your OpenAI API key:
 
 ```env
 OPENAI_API_KEY=your_openai_api_key_here
-OPENAI_MODEL=gpt-3.5-turbo
+OPENAI_MODEL=gpt-4o
 WHISPER_MODEL_SIZE=base
 ```
 
@@ -157,7 +157,7 @@ You should see:
 
 **How it works**:
 1. Uses **T5 model** (local) to detect grammar errors
-2. Uses **OpenAI GPT-3.5-turbo** to grade and provide Vietnamese feedback
+2. Uses **OpenAI gpt-4o** to grade and provide Vietnamese feedback
 3. Returns score (0-100), CEFR level (A1-C2), and suggestions in Vietnamese
 
 ## Troubleshooting

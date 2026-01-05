@@ -329,8 +329,7 @@ export default function EditBlockPage() {
     }
 
     return (
-        <div className="p-6 mx-auto max-w-4xl">
-            {/* Header */}
+        <div className="p-6 mx-auto">
             <div className="mb-8">
                 <Button
                     variant="ghost"
@@ -455,7 +454,7 @@ export default function EditBlockPage() {
                             </select>
                         </div>
 
-                    {/* Duration hiển thị trong GrammarBlockForm, không lặp lại ở đây */}
+                        {/* Duration hiển thị trong GrammarBlockForm, không lặp lại ở đây */}
                     </div>
 
                     {/* Lesson */}

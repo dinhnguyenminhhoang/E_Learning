@@ -249,7 +249,7 @@ export default function CreateBlockPage() {
     };
 
     return (
-        <div className="p-6 mx-auto max-w-4xl">
+        <div className="p-6 mx-auto">
             {/* Header */}
             <div className="mb-8">
                 <Button

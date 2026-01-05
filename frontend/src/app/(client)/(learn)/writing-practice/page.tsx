@@ -84,29 +84,15 @@ export default function WritingPracticePage() {
         return count;
     };
 
-    const handleStartPractice = async () => {
-        try {
-            setLoading(true);
+    const handleStartPractice = () => {
+        // Build URL with query params
+        const params = new URLSearchParams();
+        params.append('count', '20');
+        if (selectedLevel) params.append('level', selectedLevel);
+        if (contentType !== 'all') params.append('type', contentType);
 
-            const params: { level?: string; type?: string; count?: number } = { count: 20 };
-            if (selectedLevel) params.level = selectedLevel;
-            if (contentType !== "all") params.type = contentType;
-
-            const result = await writingTemplateService.getRandomTemplates(params);
-
-            if (result.data.length === 0) {
-                toast.error("Không tìm thấy mẫu phù hợp");
-                return;
-            }
-
-            setTemplates(result.data);
-            setCurrentIndex(0);
-            setMode("template-practice");
-        } catch (error: any) {
-            toast.error(error.message || "Không thể tải mẫu luyện tập");
-        } finally {
-            setLoading(false);
-        }
+        // Navigate to writing-practice-test with params
+        router.push(`/writing-practice-test?${params.toString()}`);
     };
 
     const handleExit = () => {
@@ -222,8 +208,8 @@ export default function WritingPracticePage() {
                                     key={type}
                                     onClick={() => setContentType(type)}
                                     className={`p-3 rounded-xl flex flex-col items-center gap-2 transition-all ${contentType === type
-                                            ? "bg-gradient-to-r from-blue-500 to-purple-500 text-white"
-                                            : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                                        ? "bg-gradient-to-r from-blue-500 to-purple-500 text-white"
+                                        : "bg-gray-100 text-gray-600 hover:bg-gray-200"
                                         }`}
                                 >
                                     {contentTypeIcons[type]}
@@ -237,8 +223,8 @@ export default function WritingPracticePage() {
                                     key={type}
                                     onClick={() => setContentType(type)}
                                     className={`p-3 rounded-xl flex flex-col items-center gap-2 transition-all ${contentType === type
-                                            ? "bg-gradient-to-r from-blue-500 to-purple-500 text-white"
-                                            : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                                        ? "bg-gradient-to-r from-blue-500 to-purple-500 text-white"
+                                        : "bg-gray-100 text-gray-600 hover:bg-gray-200"
                                         }`}
                                 >
                                     {contentTypeIcons[type]}
@@ -260,8 +246,8 @@ export default function WritingPracticePage() {
                                     key={level}
                                     onClick={() => setSelectedLevel(selectedLevel === level ? null : level)}
                                     className={`p-4 rounded-xl transition-all ${selectedLevel === level
-                                            ? `bg-gradient-to-r ${color} text-white`
-                                            : "bg-gray-50 hover:bg-gray-100"
+                                        ? `bg-gradient-to-r ${color} text-white`
+                                        : "bg-gray-50 hover:bg-gray-100"
                                         }`}
                                 >
                                     <div className={`text-2xl font-bold mb-1 ${selectedLevel === level ? "text-white" : "text-gray-800"

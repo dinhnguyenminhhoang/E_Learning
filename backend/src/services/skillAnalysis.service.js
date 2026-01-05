@@ -270,12 +270,8 @@ class SkillAnalysisService {
       }
 
       // Accuracy from speaking answers
-      const speakingAnswerAccuracy =
-        speakingAnswersCount > 0
-          ? (totalCorrect / speakingAnswersCount) * 100
-          : 0;
       if (speakingAnswersCount > 0) {
-        totalAccuracy += speakingAnswerAccuracy;
+        totalAccuracy += totalCorrect * 100;
       }
 
       // From speaking quiz attempts
@@ -470,7 +466,7 @@ class SkillAnalysisService {
 
       // Accuracy from writing grading scores
       if (writingAnswersCount > 0) {
-        totalAccuracy += totalWritingScore / writingAnswersCount;
+        totalAccuracy += totalWritingScore;
       }
 
       // From writing quiz attempts

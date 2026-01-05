@@ -16,7 +16,9 @@ router.post("/submit", authenticate, async (req, res) => {
 
         const wordCount = userText.trim().split(/\s+/).length;
         const grammarErrorCount = feedback?.grammarErrors?.length || 0;
-        const score = feedback?.score || Math.max(0, 100 - (grammarErrorCount * 5));
+        const score = (feedback?.score !== undefined && feedback?.score !== null)
+            ? feedback.score
+            : Math.max(0, 100 - (grammarErrorCount * 5));
 
         console.log(`[Writing Practice] User ${req.user._id} - Words: ${wordCount}, Errors: ${grammarErrorCount}, Score: ${score}`);
 

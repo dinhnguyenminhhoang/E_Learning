@@ -39,10 +39,11 @@ class AIAssistantService {
     /**
      * Send a message to the AI assistant
      */
-    async chat(message: string, conversationId?: string): Promise<ChatResponse> {
+    async chat(message: string, conversationId?: string, mode?: string): Promise<ChatResponse> {
         const response = await apiClient.post<any>("/v1/api/ai-assistant/chat", {
             message,
             conversationId,
+            mode,
         });
         return response.metadata;
     }

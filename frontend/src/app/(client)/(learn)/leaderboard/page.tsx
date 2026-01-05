@@ -63,7 +63,7 @@ export default function LeaderboardPage() {
             </div>
 
             {/* Header with Premium Gradient */}
-            <div className="relative bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 text-white pt-12 pb-20 px-4 shadow-2xl overflow-hidden">
+            <div className="relative bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 text-white pt-12 pb-40 px-4 shadow-2xl overflow-hidden">
                 {/* Animated Glow Effect */}
                 <div className="absolute inset-0 bg-gradient-to-r from-blue-400/20 via-purple-400/20 to-pink-400/20 animate-pulse" />
 
@@ -72,7 +72,7 @@ export default function LeaderboardPage() {
                 <Star className="absolute top-16 left-16 w-5 h-5 text-blue-200 animate-pulse delay-150" />
                 <Sparkles className="absolute bottom-12 right-1/4 w-4 h-4 text-pink-300 animate-pulse delay-300" />
 
-                <div className="max-w-6xl mx-auto text-center space-y-6 relative z-10">
+                <div className="max-w-6xl mx-auto text-center space-y-4 relative z-20">
                     <div className="flex items-center justify-center gap-3 mb-2">
                         <Trophy className="h-12 w-12 text-yellow-300 drop-shadow-lg animate-bounce" />
                         <h1 className="text-5xl font-black bg-clip-text text-transparent bg-gradient-to-r from-white via-yellow-100 to-white">
@@ -111,7 +111,7 @@ export default function LeaderboardPage() {
                 </div>
             </div>
 
-            <div className="max-w-6xl mx-auto px-4 -mt-12 space-y-8 relative z-10">
+            <div className="max-w-6xl mx-auto px-4 -mt-16 space-y-8 relative z-10">
                 {/* Top 3 Podium - Enhanced */}
                 {!loading && top3.length > 0 && (
                     <div className="flex justify-center items-end gap-6 mb-12">

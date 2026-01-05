@@ -937,7 +937,7 @@ class QuizAttemptForBlockService {
   }
 
   async makeCompleteBlockInLesson(req) {
-    const {blockId, lessonId } = req.params;
+    const { blockId, lessonId } = req.params;
     const { userId } = req.user._id;
 
     await this._markBlockCompletedWhenNoExercise(userId, blockId, lessonId);

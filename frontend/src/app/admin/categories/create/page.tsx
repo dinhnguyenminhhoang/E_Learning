@@ -52,7 +52,7 @@ export default function CreateCategoryPage() {
     };
 
     return (
-        <div className="p-6 max-w-4xl mx-auto">
+        <div className="p-6 mx-auto">
             {/* Header */}
             <div className="mb-8">
                 <Button

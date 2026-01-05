@@ -44,12 +44,7 @@ const menuItems = [
         title: "Users",
         href: "/admin/users",
         icon: Users,
-    },
-    {
-        title: "Settings",
-        href: "/admin/settings",
-        icon: Settings,
-    },
+    }
 ];
 
 export function AdminSidebar() {

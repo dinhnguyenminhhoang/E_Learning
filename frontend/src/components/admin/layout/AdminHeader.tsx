@@ -18,23 +18,11 @@ export function AdminHeader() {
 
   return (
     <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b bg-white px-8">
-      {/* Search */}
       <div className="flex w-full max-w-md items-center space-x-2">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-          <Input placeholder="Tìm kiếm..." className="pl-10" />
-        </div>
+
       </div>
 
-      {/* Actions */}
       <div className="flex items-center space-x-4">
-        {/* Notifications */}
-        <Button variant="ghost" size="icon" className="relative cursor-pointer">
-          <Bell className="h-5 w-5" />
-          <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-red-500" />
-        </Button>
-
-        {/* User Menu */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" className="flex items-center space-x-2 cursor-pointer">
@@ -45,11 +33,6 @@ export function AdminHeader() {
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-56">
-            <DropdownMenuLabel>Tài khoản của tôi</DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem className="cursor-pointer">Hồ sơ</DropdownMenuItem>
-            <DropdownMenuItem className="cursor-pointer">Cài đặt</DropdownMenuItem>
-            <DropdownMenuSeparator />
             <DropdownMenuItem onClick={() => signOut()} className="cursor-pointer">
               Đăng xuất
             </DropdownMenuItem>

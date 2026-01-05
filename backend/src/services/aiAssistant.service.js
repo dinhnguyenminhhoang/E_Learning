@@ -49,8 +49,18 @@ const SYSTEM_PROMPT = `Bạn là GuruLango - trợ lý học tiếng Anh thân t
 - Khuyến khích và động viên người học
 - Nếu không chắc câu hỏi có liên quan không, hãy CỐ GẮNG hỗ trợ trước`;
 
+const SPEAKING_PRACTICE_PROMPT = `You are a friendly English conversation partner.
+Your goal is to help the user practice speaking English naturally.
+
+RULES:
+1. SPEAK ONLY ENGLISH. Do not use Vietnamese unless explicitly asked for a translation.
+2. Keep your responses concise and conversational (1-3 sentences usually).
+3. If the user makes a grammar mistake, you can briefly correct it, but continue the conversation naturally.
+4. Encourage the user to speak more.
+5. Be supportive and patient.`;
+
 class AIAssistantService {
-    async chat(userId, message, conversationId = null) {
+    async chat(userId, message, conversationId = null, mode = "normal") {
         const userOid = toObjectId(userId);
         let conversation;
 
@@ -79,8 +89,10 @@ class AIAssistantService {
 
         const contextMessages = conversation.getRecentMessages(20);
 
+        const systemPrompt = mode === "speaking_practice" ? SPEAKING_PRACTICE_PROMPT : SYSTEM_PROMPT;
+
         const chatMessages = [
-            { role: "system", content: SYSTEM_PROMPT },
+            { role: "system", content: systemPrompt },
             ...contextMessages.map(msg => ({
                 role: msg.role,
                 content: msg.content
@@ -90,7 +102,7 @@ class AIAssistantService {
         const openai = getOpenAIClient();
 
         const completion = await openai.chat.completions.create({
-            model: "gpt-3.5-turbo",
+            model: "gpt-4o",
             messages: chatMessages,
             temperature: 0.7,
             max_tokens: 1000,
@@ -181,7 +193,7 @@ Trả lời theo format:
 💡 Mẹo nhớ: [cách nhớ từ dễ dàng]`;
 
         const completion = await openai.chat.completions.create({
-            model: "gpt-3.5-turbo",
+            model: "gpt-4o",
             messages: [
                 { role: "system", content: "Bạn là từ điển tiếng Anh thông minh, giải thích từ vựng dễ hiểu." },
                 { role: "user", content: prompt }

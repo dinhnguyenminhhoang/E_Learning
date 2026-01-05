@@ -40,7 +40,7 @@ class AIService {
 
         try {
             const completion = await openai.chat.completions.create({
-                model: "gpt-3.5-turbo",
+                model: "gpt-4o",
                 messages: chatMessages,
                 temperature: 0.7,
                 max_tokens: 1000,
@@ -122,7 +122,7 @@ Trả lời theo format:
 
         try {
             const completion = await openai.chat.completions.create({
-                model: "gpt-3.5-turbo",
+                model: "gpt-4o",
                 messages: [
                     { role: "system", content: "Bạn là từ điển tiếng Anh thông minh, giải thích từ vựng dễ hiểu." },
                     { role: "user", content: prompt }
@@ -164,7 +164,7 @@ CHỈ trả về JSON, không có text khác.`;
 
         try {
             const completion = await openai.chat.completions.create({
-                model: "gpt-3.5-turbo",
+                model: "gpt-4o",
                 messages: [
                     {
                         role: "system",
@@ -258,7 +258,7 @@ Make topics diverse, relevant to modern life, and engaging for language learners
 
         try {
             const completion = await openai.chat.completions.create({
-                model: "gpt-3.5-turbo",
+                model: "gpt-4o",
                 messages: [
                     {
                         role: "system",
@@ -342,7 +342,7 @@ Make content diverse, practical, and useful for daily communication.`;
 
         try {
             const completion = await openai.chat.completions.create({
-                model: "gpt-3.5-turbo",
+                model: "gpt-4o",
                 messages: [
                     {
                         role: "system",
@@ -414,8 +414,9 @@ STRICT SCORING RULES:
 2. If the text is irrelevant to the topic/prompt, the MAXIMUM score is 20.
 3. CRITICAL: If the text is identical or nearly identical to the prompt "${writingPrompt}", the score MUST be 0.
 4. If the text is gibberish or nonsensical, the score MUST be 0.
-5. Deduct points heavily for spelling and grammar errors, especially in short texts.
-6. Be strict. Do not give high scores for poor quality work.
+5. CRITICAL: The writing MUST be in English. If the user writes in Vietnamese or any other language, the score MUST be 0.
+6. Deduct points heavily for spelling and grammar errors, especially in short texts.
+7. Be strict. Do not give high scores for poor quality work.
 
 Return a JSON object with this structure:
 {
@@ -447,7 +448,7 @@ IMPORTANT: The "error_text" MUST be the exact substring from the original text s
 
         try {
             const completion = await openai.chat.completions.create({
-                model: "gpt-3.5-turbo",
+                model: "gpt-4o",
                 messages: [
                     {
                         role: "system",

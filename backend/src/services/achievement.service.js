@@ -17,10 +17,8 @@ class AchievementService {
             const user = await User.findById(userId);
             const userStats = user?.statistics || {};
 
-            // First, run checkAndUnlockAchievements to sync any pending achievements
             await this.checkAndUnlockAchievements(userId, userStats);
 
-            // Now get updated user achievements
             const userAchievements = await UserAchievementRepository.getUserAchievements(userId);
 
             const userAchievementMap = new Map();

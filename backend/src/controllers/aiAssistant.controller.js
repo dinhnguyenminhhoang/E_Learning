@@ -6,13 +6,13 @@ const AIAssistantService = require("../services/aiAssistant.service");
 
 class AIAssistantController {
     chat = async (req, res, next) => {
-        const { message, conversationId } = req.body;
+        const { message, conversationId, mode } = req.body;
         const userId = req.user._id;
         if (!message || message.trim().length === 0) {
             throw new badRequestError("Message is required");
         }
 
-        const result = await AIAssistantService.chat(userId, message.trim(), conversationId);
+        const result = await AIAssistantService.chat(userId, message.trim(), conversationId, mode);
 
         new SuccessResponse({
             message: "Message sent successfully",

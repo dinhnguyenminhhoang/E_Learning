@@ -78,11 +78,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       const { accessToken, user: storedUser } = getStoredAuthData();
 
       if (accessToken && storedUser) {
-        // Ensure stored user has the correct type
         const user: User = storedUser.roles?.every((r: any) => typeof r === 'string')
           ? mapAuthResponseToUser(storedUser as AuthResponse["user"])
           : storedUser as User;
-        
+
         const isAdminUser = checkIsAdmin(user.roles);
 
         setAuthState({
@@ -126,6 +125,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       pathname === "/signup" ||
       pathname === "/signin" ||
       pathname.includes("/reset-passsword") ||
+      pathname.includes("/terms") ||
+      pathname.includes("/privacy") ||
       pathname === "/verify-email";
 
     if (isAdminRoute && !authState.isAdmin) {
