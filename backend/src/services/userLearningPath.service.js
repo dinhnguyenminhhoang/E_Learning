@@ -23,6 +23,7 @@ class UserLearningPathService {
     const newRecord = await UserLearningPathRepository.create({
       user: userId,
       learningPath: learningPathId,
+      listPath: [learningPathId],
       target: targetId || null,
       status: "active",
       progress: {
@@ -38,11 +39,42 @@ class UserLearningPathService {
     return newRecord;
   }
 
+  async assignNewPathToUser(req) {
+    const userId = req.user._id;
+    const { learningPathId } = req.body;
+    if (!learningPathId) {
+      return ResponseBuilder.badRequest("learningPathId is required.");
+    }
+    const existing = await UserLearningPathRepository.existingPathByUser(
+      userId,
+      learningPathId
+    );
+
+    if (existing) {
+      existing.learningPath = learningPathId;
+      await existing.save();
+      return ResponseBuilder.success("Learning path updated for user.", existing);
+    }
+    
+    const userLearningPath  = await UserLearningPathRepository.findByUserIdWithPopulate(userId);
+    userLearningPath.listPath.push(learningPathId);
+    userLearningPath.learningPath = learningPathId;
+    await userLearningPath.save();
+    return ResponseBuilder.success("Learning path assigned to user.", userLearningPath);
+  }
+
   async getUserLearningPaths(req) {
     const userId = req.user._id;
     const paths = await UserLearningPathRepository.findByUserId(userId);
     return ResponseBuilder.success("Fetched user learning paths", paths);
   }
+
+  async getPathsByUser(req){
+    const userId = req.user._id;
+    const paths =  await UserLearningPathRepository.findPathsByUser(userId);
+    return ResponseBuilder.success("Fetched user learning paths", paths);
+  }
+
 
   /**
    * Get comprehensive user overview/dashboard data

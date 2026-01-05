@@ -6,6 +6,12 @@ class LearningPathService {
     return await apiClient.post("/v1/api/learning-path/", data);
   }
 
+  async assignPathToUser(data: {
+    learningPathId: string;
+  }) {
+    return await apiClient.post("/v1/api/user-learning-path/assign", data);
+  }
+
   async attachQuizToLevel(data: {
     learningPathId: string;
     levelOrder: number;
