@@ -76,12 +76,36 @@ export default function WritingPracticeCard({
                     setGradingResult(data.grading);
 
                     const score = data.grading.score || 0;
+
+                    try {
+                        const submitResult = await writingPracticeService.submitWritingPractice({
+                            templateId: template._id,
+                            prompt: template.prompt,
+                            userText: text.trim(),
+                            feedback: {
+                                score: data.grading.score,
+                                grammarErrors: errors.map(e => ({
+                                    error: e.message,
+                                    suggestion: e.replacements?.[0]?.value || "",
+                                    position: e.offset,
+                                })),
+                                vocabularyFeedback: data.grading.detailed_analysis?.vocabulary?.comment,
+                                structureFeedback: data.grading.detailed_analysis?.coherence?.comment,
+                                overallFeedback: data.grading.overall_comment,
+                            }
+                        });
+
+                        console.log("[Writing Practice] Submitted successfully:", submitResult);
+                    } catch (submitError) {
+                        console.error("[Writing Practice] Submit failed:", submitError);
+                    }
+
                     if (score >= 80) {
-                        toast.success(`Xuất sắc! Điểm: ${score}/100`);
+                        toast.success(`Xuất sắc! Điểm: ${score}/100 - Đã lưu kết quả!`);
                     } else if (score >= 60) {
-                        toast.success(`Tốt! Điểm: ${score}/100`);
+                        toast.success(`Tốt! Điểm: ${score}/100 - Đã lưu kết quả!`);
                     } else {
-                        toast.error(`Điểm: ${score}/100 - Cần cải thiện`);
+                        toast.error(`Điểm: ${score}/100 - Cần cải thiện. Đã lưu kết quả!`);
                     }
                 } else {
                     if (errors.length === 0) {

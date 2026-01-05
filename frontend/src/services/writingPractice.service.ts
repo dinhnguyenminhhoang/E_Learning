@@ -28,6 +28,42 @@ export interface GradeWritingResponse {
     grading?: GradingResult;
 }
 
+export interface WritingPracticeSubmission {
+    templateId?: string;
+    prompt?: string;
+    userText: string;
+    feedback?: {
+        score?: number;
+        grammarErrors?: Array<{
+            error: string;
+            suggestion: string;
+            position: number;
+        }>;
+        vocabularyFeedback?: string;
+        structureFeedback?: string;
+        overallFeedback?: string;
+    };
+}
+
+export interface WritingPracticeResult {
+    attemptId: string;
+    score: number;
+    wordCount: number;
+    grammarErrorCount: number;
+}
+
+export interface WritingStats {
+    totalAttempts: number;
+    avgScore: number;
+    totalWords: number;
+    recentAttempts: Array<{
+        score: number;
+        wordCount: number;
+        grammarErrorCount: number;
+        completedAt: string;
+    }>;
+}
+
 class WritingPracticeService {
     async gradeWriting(text: string, context?: { topic?: string; prompt?: string }, language: string = "en-US"): Promise<GradeWritingResponse> {
         const response = await apiClient.post<any>("/v1/api/ai/grade-writing-gpt", {
@@ -37,6 +73,16 @@ class WritingPracticeService {
             prompt: context?.prompt
         });
 
+        return response.metadata;
+    }
+
+    async submitWritingPractice(submission: WritingPracticeSubmission): Promise<WritingPracticeResult> {
+        const response = await apiClient.post<any>("/v1/api/writing-practice/submit", submission);
+        return response.metadata;
+    }
+
+    async getWritingStats(): Promise<WritingStats> {
+        const response = await apiClient.get<any>("/v1/api/writing-practice/stats");
         return response.metadata;
     }
 }

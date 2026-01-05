@@ -415,6 +415,42 @@ Format JSON:
 }}
 """
 
+def build_speaking_grading_prompt(transcribed_text: str, target_text: str, accuracy: float):
+    """Tạo prompt cho ChatGPT để chấm điểm bài nói."""
+    return f"""
+Bạn là một giáo viên tiếng Anh chuyên nghiệp, đang chấm điểm bài luyện nói cho học viên Việt Nam.
+
+**Câu mục tiêu (Target):** {target_text}
+**Học viên đã nói (Transcribed):** {transcribed_text}
+**Độ chính xác so với câu mục tiêu:** {accuracy}%
+
+QUAN TRỌNG - Quy tắc chấm điểm:
+- Nếu accuracy = 100% (nói ĐÚNG hoàn toàn): score PHẢI từ 90-100
+- Nếu accuracy >= 80%: score PHẢI từ 70-89
+- Nếu accuracy >= 50%: score từ 40-69
+- Nếu accuracy < 50%: score từ 0-39
+
+Yêu cầu:
+1. Tính điểm tổng (score) dựa trên quy tắc trên
+2. pronunciation_score = {min(100, accuracy + 10)} (vì đã nhận diện được đúng từ)
+3. accuracy_score = {accuracy}
+4. Đưa ra nhận xét bằng tiếng Việt
+5. Xác định trình độ CEFR (A1–C2) dựa trên độ khó của câu và điểm số
+6. Trả về **CHỈ** JSON, không có text nào khác
+
+JSON (ví dụ với accuracy 100%):
+{{
+  "score": 95,
+  "pronunciation_score": 100,
+  "accuracy_score": 100,
+  "level": "B1",
+  "strengths": ["Phát âm chính xác", "Nói đúng câu mục tiêu"],
+  "weaknesses": [],
+  "suggestions": ["Tiếp tục luyện tập với câu khó hơn"],
+  "overall_comment": "Tuyệt vời! Bạn đã nói đúng hoàn toàn."
+}}
+"""
+
 def call_openai_for_grading(prompt: str):
     """Gọi OpenAI API để chấm điểm và nhận xét bài viết."""
     if not openai_client:
@@ -437,6 +473,7 @@ def call_openai_for_grading(prompt: str):
         print(f"Error calling OpenAI: {e}")
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"OpenAI API error: {str(e)}")
+
 
 # -----------------------------
 # Grammar Grading Endpoint
@@ -499,20 +536,21 @@ async def grade_text(payload: GrammarGradeRequest):
 # Speaking Practice Endpoint (STT + Spellcheck)
 # -----------------------------
 @app.post("/api/v1/speaking-practice")
-async def speaking_practice(audio: UploadFile = File(...)):
+async def speaking_practice(
+    audio: UploadFile = File(...),
+    target_text: str = Form(None)
+):
     """
-    Speaking practice endpoint: Transcribe audio and check spelling/grammar.
+    Speaking practice endpoint: Transcribe audio and compare with target text.
     - Sử dụng Whisper để chuyển audio thành text
-    - Sử dụng T5 để kiểm tra và sửa lỗi chính tả/ngữ pháp
-    - Trả về cả text gốc và text đã sửa
+    - So sánh với target_text để kiểm tra độ chính xác
+    - Nếu không có target_text, kiểm tra lỗi ngữ pháp bằng T5
     """
     if not whisper_model:
         raise HTTPException(status_code=500, detail="Whisper model is not loaded. Check server logs.")
     
-    if not model or not tokenizer:
-        raise HTTPException(status_code=500, detail="T5 Model is not loaded. Check server logs.")
-    
     print(f"[Speaking Practice] Received audio file: {audio.filename}, content_type: {audio.content_type}")
+    print(f"[Speaking Practice] Target text: {target_text}")
     
     try:
         # Step 1: Save uploaded audio to temp file
@@ -540,12 +578,91 @@ async def speaking_practice(audio: UploadFile = File(...)):
             return {
                 "status": "success",
                 "transcribed_text": "",
-                "corrected_text": "",
+                "corrected_text": target_text or "",
+                "errors": [],
+                "has_errors": False,
+                "accuracy": 0,
+                "is_correct": False
+            }
+        
+        # Step 3: Compare with target text if provided
+        if target_text:
+            # Normalize both texts for comparison
+            normalized_transcription = normalize_text(transcribed_text)
+            normalized_target = normalize_text(target_text)
+            
+            # Calculate accuracy
+            accuracy = calculate_similarity(normalized_transcription, normalized_target)
+            
+            print(f"[Speaking Practice] Comparing: '{normalized_transcription}' vs '{normalized_target}'")
+            print(f"[Speaking Practice] Accuracy: {accuracy}%")
+            
+            # Use ChatGPT for detailed grading
+            if openai_client:
+                try:
+                    prompt = build_speaking_grading_prompt(transcribed_text, target_text, accuracy)
+                    openai_output = call_openai_for_grading(prompt)
+                    print(f"[Speaking Practice] OpenAI response: {openai_output[:200]}...")
+                    
+                    # Parse JSON from OpenAI
+                    cleaned_output = openai_output.strip().replace("```json", "").replace("```", "").strip()
+                    json_match = re.search(r'\{.*\}', cleaned_output, re.DOTALL)
+                    
+                    if json_match:
+                        grading = json.loads(json_match.group(0))
+                        print(f"[Speaking Practice] Grading: score={grading.get('score')}, level={grading.get('level')}")
+                        
+                        return {
+                            "status": "success",
+                            "transcribed_text": transcribed_text,
+                            "target_text": target_text,
+                            "accuracy": accuracy,
+                            "grading": grading
+                        }
+                except Exception as e:
+                    print(f"[Speaking Practice] ChatGPT grading error: {e}")
+                    traceback.print_exc()
+            
+            # Fallback if ChatGPT fails: return basic comparison result
+            is_correct = accuracy >= 80.0
+            
+            # Calculate fallback score based on accuracy
+            if accuracy >= 95:
+                fallback_score = 95
+            elif accuracy >= 80:
+                fallback_score = int(70 + (accuracy - 80) * 1.25)  # 70-95
+            elif accuracy >= 50:
+                fallback_score = int(40 + (accuracy - 50) * 1.0)   # 40-70
+            else:
+                fallback_score = int(accuracy * 0.8)  # 0-40
+            
+            return {
+                "status": "success",
+                "transcribed_text": transcribed_text,
+                "target_text": target_text,
+                "accuracy": accuracy,
+                "grading": {
+                    "score": fallback_score,
+                    "pronunciation_score": min(100, int(accuracy) + 10),
+                    "accuracy_score": int(accuracy),
+                    "level": "A1" if accuracy < 50 else "A2" if accuracy < 80 else "B1",
+                    "strengths": ["Phát âm đúng câu mục tiêu"] if is_correct else ["Đã hoàn thành bài tập"],
+                    "weaknesses": [] if is_correct else ["Cần cải thiện độ chính xác"],
+                    "suggestions": ["Tiếp tục luyện tập với câu khó hơn"] if is_correct else ["Lắng nghe kỹ câu mẫu trước khi nói"],
+                    "overall_comment": f"Độ chính xác: {accuracy}%. " + ("Tuyệt vời! Bạn đã nói đúng." if is_correct else "Hãy cố gắng nói đúng câu mục tiêu.")
+                }
+            }
+        
+        # Fallback: No target text, use T5 for grammar check
+        if not model or not tokenizer:
+            return {
+                "status": "success",
+                "transcribed_text": transcribed_text,
+                "corrected_text": transcribed_text,
                 "errors": [],
                 "has_errors": False
             }
         
-        # Step 3: Spellcheck with T5
         input_with_prefix = f"grammar: {transcribed_text}"
         
         encoded = tokenizer(
@@ -571,7 +688,7 @@ async def speaking_practice(audio: UploadFile = File(...)):
         
         print(f"[Speaking Practice] Corrected: {corrected_text}")
         
-        # Step 4: Find differences/errors
+        # Find differences/errors
         errors = []
         has_errors = transcribed_text.lower().strip() != corrected_text.lower().strip()
         

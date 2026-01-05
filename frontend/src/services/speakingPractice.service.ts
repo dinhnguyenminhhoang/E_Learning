@@ -9,23 +9,32 @@ const getToken = () => {
     return "";
 };
 
-export interface SpeakingError {
-    original: string;
-    corrected: string;
-    position: number;
+export interface SpeakingGrading {
+    score: number;
+    pronunciationScore?: number;
+    accuracyScore?: number;
+    level: string;
+    strengths: string[];
+    weaknesses: string[];
+    suggestions: string[];
+    overallComment: string;
 }
 
 export interface SpeakingPracticeResult {
     transcribedText: string;
-    correctedText: string;
-    errors: SpeakingError[];
-    hasErrors: boolean;
+    targetText: string;
+    accuracy: number;
+    grading: SpeakingGrading;
 }
 
-const analyzeSpeaking = async (audioBlob: Blob): Promise<SpeakingPracticeResult> => {
+const analyzeSpeaking = async (audioBlob: Blob, targetText?: string): Promise<SpeakingPracticeResult> => {
     const token = getToken();
     const formData = new FormData();
     formData.append("audio", audioBlob, "recording.webm");
+
+    if (targetText) {
+        formData.append("targetText", targetText);
+    }
 
     let response;
     try {
@@ -56,7 +65,23 @@ const analyzeSpeaking = async (audioBlob: Blob): Promise<SpeakingPracticeResult>
         throw new Error(result.message || "Speaking practice analysis failed");
     }
 
-    return result.data;
+    // Map snake_case from backend to camelCase
+    const data = result.data;
+    return {
+        transcribedText: data.transcribedText,
+        targetText: data.targetText,
+        accuracy: data.accuracy,
+        grading: {
+            score: data.grading?.score ?? 0,
+            pronunciationScore: data.grading?.pronunciation_score,
+            accuracyScore: data.grading?.accuracy_score,
+            level: data.grading?.level ?? "A1",
+            strengths: data.grading?.strengths ?? [],
+            weaknesses: data.grading?.weaknesses ?? [],
+            suggestions: data.grading?.suggestions ?? [],
+            overallComment: data.grading?.overall_comment ?? ""
+        }
+    };
 };
 
 const requestMicrophonePermission = async (): Promise<MediaStream> => {

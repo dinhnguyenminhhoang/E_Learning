@@ -189,3 +189,96 @@ export interface UserOverview {
   };
   quickActions?: QuickAction[];
 }
+
+// NEW: Skill Analysis Types
+export interface SkillScore {
+  skill: 'listening' | 'speaking' | 'reading' | 'writing' | 'grammar' | 'vocabulary';
+  score: number; // 0-100
+  category: 'strong' | 'moderate' | 'weak';
+  accuracy: number;
+  completionRate: number;
+  totalAttempts: number;
+  lastPracticed?: string;
+  grammarErrorRate?: number;
+  totalWordsLearned?: number;
+}
+
+export interface SkillAnalysis {
+  skills: SkillScore[];
+  overallStrength: number;
+  weakestSkill: string;
+  strongestSkill: string;
+  lastUpdated: string;
+}
+
+// NEW: Recommendation Types
+export interface RecommendedLesson {
+  _id: string;
+  title: string;
+  description: string;
+  skill: string;
+  topic: string;
+  level: string;
+  duration_minutes: number;
+  thumbnail?: string;
+  recommendedFor: string;
+  priority: 'high' | 'medium' | 'low';
+  reason?: string;
+}
+
+// NEW: Performance Data Types
+export interface PerformanceData {
+  accuracyTrend: {
+    labels: string[];
+    data: number[];
+  };
+  studyTimeDistribution: {
+    labels: string[];
+    data: number[];
+  };
+  skillImprovements: Array<{
+    skill: string;
+    change: number;
+  }>;
+}
+
+// NEW: Achievement Types
+export interface Achievement {
+  _id: string;
+  achievement: {
+    name: string;
+    description: string;
+    icon: string;
+    rarity: 'common' | 'rare' | 'epic' | 'legendary';
+  };
+  unlockedAt: string;
+  progress: number;
+  isCompleted: boolean;
+}
+
+// NEW: Study Schedule Types
+export interface StudySchedule {
+  suggestedTime: string;
+  suggestedDuration: number; // minutes
+  suggestedActivities: string[];
+  reasoning: string;
+}
+
+// NEW: Enhanced UserOverview
+export interface EnhancedUserOverview extends UserOverview {
+  skillAnalysis?: SkillAnalysis;
+  recommendations?: RecommendedLesson[];
+  performanceData?: PerformanceData;
+  achievements?: Achievement[];
+  studySchedule?: StudySchedule;
+  pathSuggestion?: {
+    shouldEnroll: boolean;
+    suggestedPath?: {
+      _id: string;
+      title: string;
+      description: string;
+      level: string;
+    };
+    reason?: string;
+  };
+}
