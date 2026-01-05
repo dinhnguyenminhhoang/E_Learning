@@ -7,31 +7,15 @@ const LearningPath = require("../models/LearningPath");
 const UserLearningPathRepository = require("../repositories/userLearningPath.repo");
 const UserProgressRepository = require("../repositories/userProgress.repo");
 
-/**
- * Service for generating personalized recommendations
- * - Lesson recommendations based on weak skills
- * - Learning path suggestions
- * - Study schedule suggestions
- */
 class RecommendationService {
-  /**
-   * Get recommended lessons based on weak skills
-   * @param {String} userId - User ID
-   * @param {String} learningPathId - Learning Path ID
-   * @param {Array} weakSkills - Array of weak skill objects
-   * @param {Number} limit - Max number of recommendations
-   * @returns {Array} Recommended lessons
-   */
   async getRecommendedLessons(userId, learningPathId, weakSkills, limit = 5) {
     try {
       if (!weakSkills || weakSkills.length === 0) {
         return [];
       }
 
-      // 1. Sort weak skills by priority (weakest first)
       const sortedSkills = [...weakSkills].sort((a, b) => a.score - b.score);
 
-      // 2. Get completed lessons to exclude
       const userProgress = await UserProgressRepository.findByUserAndPath(
         userId,
         learningPathId
@@ -50,11 +34,9 @@ class RecommendationService {
         });
       }
 
-      // 3. For each weak skill, find 2-3 lessons
       const recommendations = [];
 
       for (const weakSkill of sortedSkills) {
-        // Find lessons for this skill
         const lessons = await Lesson.find({
           skill: weakSkill.skill,
           status: STATUS.ACTIVE,
@@ -64,7 +46,6 @@ class RecommendationService {
           .limit(3)
           .lean();
 
-        // Add to recommendations with metadata
         lessons.forEach((lesson) => {
           if (recommendations.length < limit) {
             recommendations.push({
@@ -76,7 +57,6 @@ class RecommendationService {
           }
         });
 
-        // Break if we have enough recommendations
         if (recommendations.length >= limit) {
           break;
         }
@@ -89,12 +69,6 @@ class RecommendationService {
     }
   }
 
-  /**
-   * Suggest new learning path if user is close to completing current path
-   * @param {String} userId - User ID
-   * @param {String} currentPathId - Current Learning Path ID
-   * @returns {Object} Path suggestion
-   */
   async suggestNewLearningPath(userId, currentPathId) {
     try {
       // 1. Get user's current learning path
@@ -175,11 +149,6 @@ class RecommendationService {
     }
   }
 
-  /**
-   * Find next level learning path
-   * @param {Object} currentPath - Current learning path
-   * @returns {Object} Next level path
-   */
   async findNextLevelPath(currentPath) {
     try {
       const levelOrder = {
@@ -217,13 +186,6 @@ class RecommendationService {
     }
   }
 
-  /**
-   * Generate study schedule suggestions
-   * @param {String} userId - User ID
-   * @param {Number} dailyGoal - User's daily goal
-   * @param {String} availability - User's preferred study time (optional)
-   * @returns {Object} Study schedule suggestion
-   */
   async generateStudySchedule(userId, dailyGoal = 10, availability = null) {
     try {
       // Default suggestions based on daily goal
@@ -252,8 +214,8 @@ class RecommendationService {
       const reasoning = dailyGoal <= 5
         ? "Light study session to build consistency"
         : dailyGoal <= 10
-        ? "Balanced study session for steady progress"
-        : "Intensive study session for fast improvement";
+          ? "Balanced study session for steady progress"
+          : "Intensive study session for fast improvement";
 
       return {
         suggestedTime,

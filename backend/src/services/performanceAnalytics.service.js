@@ -5,17 +5,8 @@ const QuizAttempt = require("../models/QuizAttempt");
 const QuizAttemptForBlock = require("../models/QuizAttemptForBlock");
 const UserProgress = require("../models/UserProgress");
 
-/**
- * Service for performance analytics and trend tracking
- * Provides data for charts and visualizations
- */
 class PerformanceAnalyticsService {
-  /**
-   * Get comprehensive performance data for charts
-   * @param {String} userId - User ID
-   * @param {String} period - Time period ('week', 'month')
-   * @returns {Object} Performance data for charts
-   */
+
   async getPerformanceData(userId, period = "week") {
     try {
       const days = period === "week" ? 7 : 30;
@@ -40,18 +31,11 @@ class PerformanceAnalyticsService {
     }
   }
 
-  /**
-   * Get accuracy trend over time
-   * @param {String} userId - User ID
-   * @param {Number} days - Number of days to look back
-   * @returns {Object} Accuracy trend data
-   */
   async getAccuracyTrend(userId, days = 7) {
     try {
       const startDate = new Date();
       startDate.setDate(startDate.getDate() - days);
 
-      // Get quiz attempts from the last N days
       const quizAttempts = await QuizAttempt.find({
         user: toObjectId(userId),
         status: "completed",
@@ -61,7 +45,6 @@ class PerformanceAnalyticsService {
         .sort({ completedAt: 1 })
         .lean();
 
-      // Get quiz attempts for blocks
       const blockQuizAttempts = await QuizAttemptForBlock.find({
         user: toObjectId(userId),
         status: "completed",
@@ -71,10 +54,8 @@ class PerformanceAnalyticsService {
         .sort({ completedAt: 1 })
         .lean();
 
-      // Combine all attempts
       const allAttempts = [...quizAttempts, ...blockQuizAttempts];
 
-      // Group by date and calculate average accuracy per day
       const dailyAccuracy = {};
       const dayNames = this.getDayNames(days);
 
@@ -117,12 +98,6 @@ class PerformanceAnalyticsService {
     }
   }
 
-  /**
-   * Get study time distribution over the week
-   * @param {String} userId - User ID
-   * @param {Number} days - Number of days to look back
-   * @returns {Object} Study time distribution data
-   */
   async getStudyTimeDistribution(userId, days = 7) {
     try {
       const startDate = new Date();
@@ -207,16 +182,7 @@ class PerformanceAnalyticsService {
     }
   }
 
-  /**
-   * Get skill improvement trend over time
-   * @param {String} userId - User ID
-   * @param {String} skill - Skill name
-   * @param {Number} days - Number of days to look back
-   * @returns {Object} Skill improvement data
-   */
   async getSkillImprovementTrend(userId, skill, days = 30) {
-    // This can be implemented later by comparing current skill scores
-    // with historical scores (requires storing historical snapshots)
     return {
       skill,
       change: 0,
@@ -224,11 +190,6 @@ class PerformanceAnalyticsService {
     };
   }
 
-  /**
-   * Helper: Get day names for the last N days
-   * @param {Number} days - Number of days
-   * @returns {Array} Day names
-   */
   getDayNames(days) {
     const dayNamesShort = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
     const names = [];

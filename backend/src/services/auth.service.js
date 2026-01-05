@@ -112,7 +112,6 @@ class AuthService {
           `Account is locked. Try again in ${lockTimeRemaining} minutes`
         );
       }
-
       if (user.status === "inactive") {
         throw new Error("Account is deactivated. Please contact support");
       }
@@ -135,8 +134,7 @@ class AuthService {
       }
 
       if (
-        !user.verification?.emailVerified &&
-        process.env.REQUIRE_EMAIL_VERIFICATION === "true"
+        !user.verification?.emailVerified
       ) {
         // Generate new verification token
         const verificationToken = await generateVerificationToken(user._id);

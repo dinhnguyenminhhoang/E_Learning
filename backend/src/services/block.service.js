@@ -18,19 +18,10 @@ class BlockService {
     }
     return block;
   }
-
-  /**
-   * Escape regex special chars to build safe regex for title matching
-   * @private
-   */
   _escapeRegex(text = "") {
     return text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   }
 
-  /**
-   * Ensure block title is unique (case-insensitive) within a lesson (if provided)
-   * @private
-   */
   async _ensureUniqueTitle(title, lessonId, excludeId = null) {
     if (!title) return;
     const regex = new RegExp(`^${this._escapeRegex(title)}$`, "i");
@@ -53,15 +44,7 @@ class BlockService {
       );
     }
   }
-  /**
-   * Format block data theo cấu trúc giống request khi tạo block
-   * @private
-   * @param {Object} block - Block object từ database
-   * @param {String|null} exerciseId - Exercise (Quiz) ID nếu có (từ lesson.blocks)
-   * @returns {Object} Formatted block data
-   */
   _formatBlockResponse(block, exerciseId = null) {
-    // Base fields cho tất cả block types
     const baseData = {
       _id: block._id,
       type: block.type,
@@ -117,13 +100,6 @@ class BlockService {
     }
   }
 
-  /**
-   * Lấy exercise (Quiz) ID từ lesson cho block cụ thể
-   * @private
-   * @param {String} blockId - Block ID
-   * @param {String} lessonId - Lesson ID
-   * @returns {Promise<String|null>} Exercise (Quiz) ID hoặc null
-   */
   async _getBlockExercise(blockId, lessonId) {
     if (!lessonId) return null;
 
@@ -152,12 +128,6 @@ class BlockService {
     }
   }
 
-  /**
-   * Lấy block by ID với format response giống request khi tạo
-   * @param {Object} req - Express request object
-   * @param {String} req.params.blockId - Block ID
-   * @returns {Promise<Object>} Response object với formatted block data
-   */
   async getBlockById(req) {
     const { blockId } = req.params;
     const block = await this.existingBlock(blockId);
