@@ -19,4 +19,16 @@ router.get(
   asynchandler(UserLearningPath.getPathByUser)
 );
 
+router.get(
+  "/paths-by-user",
+  auth.authenticate,
+  asynchandler(UserLearningPath.getPathsByUser)
+);
+
+router.post(
+  "/assign",
+  auth.authenticate,
+  asynchandler(UserLearningPath.assignLearningPath)
+);
+
 module.exports = router;

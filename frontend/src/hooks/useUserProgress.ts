@@ -25,9 +25,8 @@ export function useUserProgress() {
     try {
       setLoading(true);
       setError(null);
-
+      console.log("Fetching user progress...");
       const response = (await userLearningPathService.getPathByUser()) as any;
-
       if (response.code === 200 && response.data) {
         const data = Array.isArray(response.data) ? response.data[0] : response.data;
         if (data) {

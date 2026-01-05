@@ -136,6 +136,10 @@ export interface UserLearningPath {
   status: string;
 }
 
+export interface Paths {
+  
+}
+
 // User Overview/Dashboard Types
 export interface RecentLesson {
   id: string;
