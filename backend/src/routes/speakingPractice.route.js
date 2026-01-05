@@ -5,6 +5,7 @@ const router = express.Router();
 const multer = require("multer");
 const ResponseBuilder = require("../types/response/baseResponse");
 const { authenticate } = require("../middlewares/auth");
+const SpeakingPracticeAttempt = require("../models/SpeakingPracticeAttempt");
 
 const storage = multer.memoryStorage();
 const upload = multer({
@@ -27,11 +28,18 @@ router.post("/analyze", authenticate, upload.single("audio"), async (req, res) =
             return res.status(400).json(ResponseBuilder.badRequest("Audio file is required"));
         }
 
+        const targetText = req.body.targetText || "";
+        const templateId = req.body.templateId || null;
         console.log(`[Speaking Practice] Received audio: ${req.file.originalname}, size: ${req.file.size} bytes`);
+        console.log(`[Speaking Practice] Target text: ${targetText}`);
 
         const formData = new FormData();
         const audioBlob = new Blob([req.file.buffer], { type: req.file.mimetype });
         formData.append("audio", audioBlob, req.file.originalname || "recording.webm");
+
+        if (targetText) {
+            formData.append("target_text", targetText);
+        }
 
         let response;
         try {
@@ -53,14 +61,42 @@ router.post("/analyze", authenticate, upload.single("audio"), async (req, res) =
         }
 
         const result = await response.json();
-        console.log(`[Speaking Practice] Result - Transcribed: "${result.transcribed_text}", Has errors: ${result.has_errors}`);
+        console.log(`[Speaking Practice] Result - Transcribed: "${result.transcribed_text}", Accuracy: ${result.accuracy || "N/A"}, Score: ${result.grading?.score || "N/A"}`);
+
+        // Save attempt to database for skill analysis tracking
+        try {
+            const attemptData = {
+                user: req.user._id,
+                prompt: targetText,
+                transcription: result.transcribed_text,
+                accuracy: result.accuracy || 0,
+                score: result.grading?.score || 0,
+                feedback: {
+                    pronunciationScore: result.grading?.pronunciation_score,
+                    overallFeedback: result.grading?.overall_comment,
+                    suggestions: result.grading?.suggestions || [],
+                },
+                status: "completed",
+                completedAt: new Date(),
+            };
+
+            if (templateId) {
+                attemptData.templateId = templateId;
+            }
+
+            await SpeakingPracticeAttempt.create(attemptData);
+            console.log(`[Speaking Practice] Attempt saved for user ${req.user._id}`);
+        } catch (saveError) {
+            console.error(`[Speaking Practice] Failed to save attempt:`, saveError.message);
+            // Don't fail the request if saving fails
+        }
 
         return res.json(
             ResponseBuilder.success("Speaking practice analysis complete", {
                 transcribedText: result.transcribed_text,
-                correctedText: result.corrected_text,
-                errors: result.errors,
-                hasErrors: result.has_errors
+                targetText: result.target_text,
+                accuracy: result.accuracy,
+                grading: result.grading
             })
         );
 

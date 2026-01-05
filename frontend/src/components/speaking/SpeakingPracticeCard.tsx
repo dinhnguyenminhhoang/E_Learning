@@ -3,8 +3,8 @@
 import { useState, useRef, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Mic, MicOff, Loader2, CheckCircle, XCircle, RotateCcw, Volume2 } from "lucide-react";
-import { speakingPracticeService, SpeakingPracticeResult, SpeakingError } from "@/services/speakingPractice.service";
+import { Mic, MicOff, Loader2, CheckCircle, XCircle, RotateCcw, Volume2, Star, TrendingUp, AlertCircle, Lightbulb } from "lucide-react";
+import { speakingPracticeService, SpeakingPracticeResult } from "@/services/speakingPractice.service";
 import { ttsService } from "@/services/tts.service";
 
 interface SpeakingPracticeCardProps {
@@ -49,11 +49,12 @@ export default function SpeakingPracticeCard({ sentence, onComplete }: SpeakingP
 
                 try {
                     const audioBlob = new Blob(audioChunksRef.current, { type: "audio/webm" });
-                    const practiceResult = await speakingPracticeService.analyzeSpeaking(audioBlob);
+                    const practiceResult = await speakingPracticeService.analyzeSpeaking(audioBlob, sentence);
                     setResult(practiceResult);
                     onComplete?.(practiceResult);
-                } catch (err: any) {
-                    setError(err.message || "Có lỗi xảy ra khi phân tích giọng nói");
+                } catch (err: unknown) {
+                    const errorMessage = err instanceof Error ? err.message : "Có lỗi xảy ra khi phân tích giọng nói";
+                    setError(errorMessage);
                 } finally {
                     setIsProcessing(false);
                 }
@@ -61,10 +62,11 @@ export default function SpeakingPracticeCard({ sentence, onComplete }: SpeakingP
 
             recorder.start();
             setIsRecording(true);
-        } catch (err: any) {
-            setError(err.message || "Không thể truy cập microphone");
+        } catch (err: unknown) {
+            const errorMessage = err instanceof Error ? err.message : "Không thể truy cập microphone";
+            setError(errorMessage);
         }
-    }, [onComplete]);
+    }, [onComplete, sentence]);
 
     const stopRecording = useCallback(() => {
         if (mediaRecorderRef.current && isRecording) {
@@ -86,27 +88,24 @@ export default function SpeakingPracticeCard({ sentence, onComplete }: SpeakingP
         }
     }, [sentence]);
 
-    const renderHighlightedText = (text: string, errors: SpeakingError[], isOriginal: boolean) => {
-        if (!errors.length) return text;
+    const getScoreColor = (score: number) => {
+        if (score >= 80) return "text-green-600";
+        if (score >= 60) return "text-yellow-600";
+        if (score >= 40) return "text-orange-600";
+        return "text-red-600";
+    };
 
-        const words = text.split(" ");
-        const errorPositions = new Set(errors.map(e => e.position));
+    const getScoreBgColor = (score: number) => {
+        if (score >= 80) return "from-green-50 to-emerald-50";
+        if (score >= 60) return "from-yellow-50 to-amber-50";
+        if (score >= 40) return "from-orange-50 to-amber-50";
+        return "from-red-50 to-rose-50";
+    };
 
-        return (
-            <span>
-                {words.map((word, idx) => {
-                    const isError = errorPositions.has(idx);
-                    return (
-                        <span
-                            key={idx}
-                            className={`${isError ? (isOriginal ? "bg-red-200 text-red-700" : "bg-green-200 text-green-700") : ""} px-0.5 rounded`}
-                        >
-                            {word}{idx < words.length - 1 ? " " : ""}
-                        </span>
-                    );
-                })}
-            </span>
-        );
+    const getLevelBadgeColor = (level: string) => {
+        if (level.startsWith("C")) return "bg-purple-100 text-purple-700";
+        if (level.startsWith("B")) return "bg-blue-100 text-blue-700";
+        return "bg-gray-100 text-gray-700";
     };
 
     return (
@@ -171,54 +170,114 @@ export default function SpeakingPracticeCard({ sentence, onComplete }: SpeakingP
 
             {result && (
                 <div className="space-y-4 mt-4">
-                    <div className="bg-gradient-to-r from-gray-50 to-slate-50 rounded-xl p-4">
-                        <div className="flex items-center gap-2 mb-2">
-                            <span className="text-sm font-medium text-gray-500">Bạn đã nói:</span>
-                            {result.hasErrors && (
-                                <span className="text-xs bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded-full">
-                                    Có lỗi
-                                </span>
-                            )}
+                    {/* Score Header */}
+                    <div className={`bg-gradient-to-r ${getScoreBgColor(result.grading.score)} rounded-xl p-4`}>
+                        <div className="flex items-center justify-between mb-3">
+                            <div className="flex items-center gap-3">
+                                <div className={`text-4xl font-bold ${getScoreColor(result.grading.score)}`}>
+                                    {result.grading.score}
+                                </div>
+                                <div className="text-sm text-gray-500">/ 100 điểm</div>
+                            </div>
+                            <span className={`px-3 py-1 rounded-full text-sm font-medium ${getLevelBadgeColor(result.grading.level)}`}>
+                                {result.grading.level}
+                            </span>
                         </div>
+
+                        {/* Score Breakdown */}
+                        <div className="grid grid-cols-2 gap-3 mt-3">
+                            {result.grading.pronunciationScore !== undefined && (
+                                <div className="bg-white/60 rounded-lg p-2">
+                                    <div className="text-xs text-gray-500">Phát âm</div>
+                                    <div className={`text-lg font-semibold ${getScoreColor(result.grading.pronunciationScore)}`}>
+                                        {result.grading.pronunciationScore}%
+                                    </div>
+                                </div>
+                            )}
+                            <div className="bg-white/60 rounded-lg p-2">
+                                <div className="text-xs text-gray-500">Độ chính xác</div>
+                                <div className={`text-lg font-semibold ${getScoreColor(result.accuracy)}`}>
+                                    {result.accuracy}%
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Transcription */}
+                    <div className="bg-gradient-to-r from-gray-50 to-slate-50 rounded-xl p-4">
+                        <div className="text-sm font-medium text-gray-500 mb-2">Bạn đã nói:</div>
                         <p className="text-lg text-gray-800">
                             {result.transcribedText ? (
-                                renderHighlightedText(result.transcribedText, result.errors, true)
+                                <span>&ldquo;{result.transcribedText}&rdquo;</span>
                             ) : (
                                 <span className="text-gray-400 italic">Không nhận được giọng nói</span>
                             )}
                         </p>
+                        {result.targetText && result.transcribedText && result.transcribedText.toLowerCase() !== result.targetText.toLowerCase() && (
+                            <p className="text-sm text-gray-500 mt-2">
+                                Câu mục tiêu: <span className="text-green-600 font-medium">&ldquo;{result.targetText}&rdquo;</span>
+                            </p>
+                        )}
                     </div>
 
-                    {result.hasErrors && result.correctedText && (
-                        <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl p-4">
+                    {/* Overall Comment */}
+                    {result.grading.overallComment && (
+                        <div className="bg-blue-50 rounded-xl p-4">
+                            <div className="flex items-start gap-2">
+                                <AlertCircle className="w-5 h-5 text-blue-600 mt-0.5" />
+                                <p className="text-sm text-gray-700">{result.grading.overallComment}</p>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Strengths */}
+                    {result.grading.strengths.length > 0 && (
+                        <div className="bg-green-50 rounded-xl p-4">
                             <div className="flex items-center gap-2 mb-2">
-                                <CheckCircle className="w-4 h-4 text-green-600" />
-                                <span className="text-sm font-medium text-green-600">Câu đã sửa:</span>
+                                <Star className="w-5 h-5 text-green-600" />
+                                <span className="text-sm font-medium text-green-700">Điểm mạnh</span>
                             </div>
-                            <p className="text-lg text-gray-800">
-                                {renderHighlightedText(result.correctedText, result.errors, false)}
-                            </p>
-                        </div>
-                    )}
-
-                    {!result.hasErrors && result.transcribedText && (
-                        <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl p-4">
-                            <div className="flex items-center gap-2">
-                                <CheckCircle className="w-6 h-6 text-green-600" />
-                                <span className="text-lg font-medium text-green-600">Tuyệt vời! Không có lỗi nào.</span>
-                            </div>
-                        </div>
-                    )}
-
-                    {result.errors.length > 0 && (
-                        <div className="bg-yellow-50 rounded-xl p-4">
-                            <p className="text-sm font-medium text-yellow-700 mb-2">Chi tiết lỗi:</p>
                             <ul className="space-y-1">
-                                {result.errors.map((err, idx) => (
-                                    <li key={idx} className="text-sm text-gray-600">
-                                        <span className="text-red-600 line-through">{err.original}</span>
-                                        {" → "}
-                                        <span className="text-green-600 font-medium">{err.corrected}</span>
+                                {result.grading.strengths.map((strength, idx) => (
+                                    <li key={idx} className="text-sm text-gray-700 flex items-start gap-2">
+                                        <CheckCircle className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" />
+                                        {strength}
+                                    </li>
+                                ))}
+                            </ul>
+                        </div>
+                    )}
+
+                    {/* Weaknesses */}
+                    {result.grading.weaknesses.length > 0 && (
+                        <div className="bg-orange-50 rounded-xl p-4">
+                            <div className="flex items-center gap-2 mb-2">
+                                <TrendingUp className="w-5 h-5 text-orange-600" />
+                                <span className="text-sm font-medium text-orange-700">Cần cải thiện</span>
+                            </div>
+                            <ul className="space-y-1">
+                                {result.grading.weaknesses.map((weakness, idx) => (
+                                    <li key={idx} className="text-sm text-gray-700 flex items-start gap-2">
+                                        <XCircle className="w-4 h-4 text-orange-500 mt-0.5 flex-shrink-0" />
+                                        {weakness}
+                                    </li>
+                                ))}
+                            </ul>
+                        </div>
+                    )}
+
+                    {/* Suggestions */}
+                    {result.grading.suggestions.length > 0 && (
+                        <div className="bg-purple-50 rounded-xl p-4">
+                            <div className="flex items-center gap-2 mb-2">
+                                <Lightbulb className="w-5 h-5 text-purple-600" />
+                                <span className="text-sm font-medium text-purple-700">Gợi ý cải thiện</span>
+                            </div>
+                            <ul className="space-y-1">
+                                {result.grading.suggestions.map((suggestion, idx) => (
+                                    <li key={idx} className="text-sm text-gray-700 flex items-start gap-2">
+                                        <span className="text-purple-500">•</span>
+                                        {suggestion}
                                     </li>
                                 ))}
                             </ul>

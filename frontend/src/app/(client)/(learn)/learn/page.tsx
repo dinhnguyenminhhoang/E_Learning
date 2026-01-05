@@ -3,13 +3,22 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { userLearningPathService } from "@/services/userLearningPath.service";
-import { UserOverview } from "@/types/learning";
+import { EnhancedUserOverview } from "@/types/learning";
 import { toast } from "react-hot-toast";
 import Link from "next/link";
 
+// Import new components
+import SkillRadarChart from "@/components/overview/SkillRadarChart";
+import SkillBreakdownCard from "@/components/overview/SkillBreakdownCard";
+import PerformanceLineChart from "@/components/overview/PerformanceLineChart";
+import RecommendationList from "@/components/overview/RecommendationList";
+import AchievementsShowcase from "@/components/overview/AchievementsShowcase";
+import StudyScheduleCard from "@/components/overview/StudyScheduleCard";
+import PathSuggestionBanner from "@/components/overview/PathSuggestionBanner";
+
 export default function LearnPage() {
   const { user } = useAuth();
-  const [overview, setOverview] = useState<UserOverview | null>(null);
+  const [overview, setOverview] = useState<EnhancedUserOverview | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -67,19 +76,36 @@ export default function LearnPage() {
     );
   }
 
-  const { user: userInfo, dailyProgress, learningPath, recentLessons, vocabularyStats, quickActions } = overview;
+  const {
+    user: userInfo,
+    dailyProgress,
+    learningPath,
+    recentLessons,
+    vocabularyStats,
+    quickActions,
+    skillAnalysis,
+    recommendations,
+    performanceData,
+    achievements,
+    studySchedule,
+    pathSuggestion
+  } = overview;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
       <div className="mx-auto p-8">
+        {/* Header */}
         <div className="mb-8">
           <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-2">
             Xin chào, {userInfo?.name || "bạn"}! 👋
           </h1>
           <p className="text-gray-600 text-lg">
-            Hãy tiếp tục hành trình học tiếng Anh của bạn
+            Here's your comprehensive learning overview and personalized recommendations
           </p>
         </div>
+
+        {/* Path Suggestion Banner */}
+        {pathSuggestion && <PathSuggestionBanner suggestion={pathSuggestion} />}
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Main Content - Left Side */}
@@ -122,6 +148,26 @@ export default function LearnPage() {
                   {dailyProgress.percentage}% hoàn thành
                 </div>
               </div>
+            )}
+
+            {/* NEW: Skill Analysis - Radar Chart */}
+            {skillAnalysis && skillAnalysis.skills && skillAnalysis.skills.length > 0 && (
+              <SkillRadarChart skills={skillAnalysis.skills} />
+            )}
+
+            {/* NEW: Skill Breakdown */}
+            {skillAnalysis && skillAnalysis.skills && skillAnalysis.skills.length > 0 && (
+              <SkillBreakdownCard skills={skillAnalysis.skills} />
+            )}
+
+            {/* NEW: Performance Charts */}
+            {performanceData && (
+              <PerformanceLineChart data={performanceData.accuracyTrend} />
+            )}
+
+            {/* NEW: Recommendations */}
+            {recommendations && recommendations.length > 0 && (
+              <RecommendationList recommendations={recommendations} />
             )}
 
             {/* Learning Path Overview */}
@@ -220,6 +266,9 @@ export default function LearnPage() {
 
           {/* Sidebar - Right Side */}
           <div className="space-y-6">
+            {/* NEW: Study Schedule */}
+            {studySchedule && <StudyScheduleCard schedule={studySchedule} />}
+
             {/* Quick Actions */}
             {quickActions && quickActions.length > 0 && (
               <div className="bg-white rounded-3xl shadow-lg p-6 border border-gray-100">
@@ -242,6 +291,11 @@ export default function LearnPage() {
                   ))}
                 </div>
               </div>
+            )}
+
+            {/* NEW: Achievements Showcase */}
+            {achievements && achievements.length > 0 && (
+              <AchievementsShowcase achievements={achievements} />
             )}
 
             {/* Vocabulary Statistics */}

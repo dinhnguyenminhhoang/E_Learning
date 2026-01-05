@@ -118,7 +118,7 @@ class UserLearningPathService {
         return false;
       }).length;
 
-      const dailyGoal = userLearningPath.dailyGoal || 10;
+      const dailyGoal = (userLearningPath.dailyGoal && userLearningPath.dailyGoal > 0) ? userLearningPath.dailyGoal : 10;
       const dailyProgressPercentage = Math.min(
         Math.round((lessonsCompletedToday / dailyGoal) * 100),
         100
@@ -263,6 +263,90 @@ class UserLearningPathService {
         ],
       };
 
+      // NEW: Import enhanced services
+      const SkillAnalysisService = require("./skillAnalysis.service");
+      const RecommendationService = require("./recommendation.service");
+      const PerformanceAnalyticsService = require("./performanceAnalytics.service");
+      const UserAchievement = require("../models/UserAchievement");
+
+      // NEW: Skill Analysis (pass vocabularyStats for accurate word count)
+      let skillAnalysis = null;
+      try {
+        skillAnalysis = await SkillAnalysisService.analyzeUserSkills(
+          userId,
+          learningPathId,
+          vocabularyStats.totalWords // Pass actual word count
+        );
+      } catch (error) {
+        console.error("Error analyzing skills:", error);
+      }
+
+      // NEW: Recommendations based on weak skills
+      let recommendations = [];
+      if (skillAnalysis) {
+        const weakSkills = skillAnalysis.skills.filter(
+          (s) => s.category === "weak" || s.category === "moderate"
+        );
+        try {
+          recommendations = await RecommendationService.getRecommendedLessons(
+            userId,
+            learningPathId,
+            weakSkills,
+            5
+          );
+        } catch (error) {
+          console.error("Error getting recommendations:", error);
+        }
+      }
+
+      // NEW: Performance Analytics
+      let performanceData = null;
+      try {
+        performanceData = await PerformanceAnalyticsService.getPerformanceData(
+          userId,
+          "week"
+        );
+      } catch (error) {
+        console.error("Error getting performance data:", error);
+      }
+
+      // NEW: Achievements (recently unlocked)
+      let achievements = [];
+      try {
+        achievements = await UserAchievement.find({
+          user: toObjectId(userId),
+          isCompleted: true,
+        })
+          .populate("achievement", "name description icon rarity")
+          .sort({ unlockedAt: -1 })
+          .limit(5)
+          .lean();
+      } catch (error) {
+        console.error("Error getting achievements:", error);
+      }
+
+      // NEW: Study Schedule Suggestion
+      let studySchedule = null;
+      try {
+        studySchedule = await RecommendationService.generateStudySchedule(
+          userId,
+          dailyGoal
+        );
+      } catch (error) {
+        console.error("Error generating study schedule:", error);
+      }
+
+      // NEW: Learning Path Suggestion
+      let pathSuggestion = null;
+      try {
+        pathSuggestion = await RecommendationService.suggestNewLearningPath(
+          userId,
+          learningPathId
+        );
+      } catch (error) {
+        console.error("Error suggesting new path:", error);
+      }
+
       // Build overview response
       const overview = {
         hasLearningPath: true,
@@ -308,6 +392,13 @@ class UserLearningPathService {
             link: "/quizzes",
           },
         ],
+        // NEW: Enhanced features
+        skillAnalysis,
+        recommendations,
+        performanceData,
+        achievements,
+        studySchedule,
+        pathSuggestion,
       };
 
       return ResponseBuilder.success(

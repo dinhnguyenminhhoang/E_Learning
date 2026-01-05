@@ -53,13 +53,15 @@ export default function SpeakingPracticeSwiper({
     };
 
     const calculateScore = () => {
-        let correct = 0;
+        let totalScore = 0;
+        let count = 0;
         results.forEach((result) => {
-            if (!result.hasErrors && result.transcribedText) {
-                correct++;
+            if (result.grading && result.transcribedText) {
+                totalScore += result.grading.score;
+                count++;
             }
         });
-        return Math.round((correct / sentences.length) * 100);
+        return count > 0 ? Math.round(totalScore / count) : 0;
     };
 
     if (isCompleted) {
@@ -92,9 +94,9 @@ export default function SpeakingPracticeSwiper({
                             <span className="font-medium text-blue-600">{results.size}</span>
                         </div>
                         <div className="flex justify-between text-sm">
-                            <span className="text-gray-600">Không có lỗi:</span>
+                            <span className="text-gray-600">Điểm cao (≥80):</span>
                             <span className="font-medium text-green-600">
-                                {Array.from(results.values()).filter(r => !r.hasErrors && r.transcribedText).length}
+                                {Array.from(results.values()).filter(r => r.grading && r.grading.score >= 80).length}
                             </span>
                         </div>
                     </div>
@@ -143,6 +145,7 @@ export default function SpeakingPracticeSwiper({
             </div>
 
             <SpeakingPracticeCard
+                key={currentSentence.id}
                 sentence={currentSentence.text}
                 onComplete={handlePracticeComplete}
             />

@@ -311,6 +311,74 @@ async def grade_text(payload: GrammarGradeRequest):
         if not openai_client:
             raise HTTPException(status_code=503, detail="OpenAI API key not configured")
 
+    return f"""
+Bạn là một hệ thống chấm điểm và nhận xét bài viết tiếng Anh dành cho người học Việt Nam.
+
+Dưới đây là bài viết của học viên:
+---
+{text}
+---
+
+{error_description}
+
+Yêu cầu:
+1. Dựa trên các lỗi grammar ở trên (nếu có), hãy chấm điểm bài viết theo thang 0–100.
+2. Nhận xét tổng quan về bài viết bằng **tiếng Việt** (không nhận xét lan man, nhận xét đúng trọng tâm).
+3. Gợi ý cách cải thiện bằng **tiếng Việt**.
+4. Xác định trình độ dựa theo CEFR (A1–C2).
+5. Trả về **đúng định dạng JSON**, không thêm chữ nào ngoài JSON.
+
+Format JSON:
+{{
+  "score": <number>,
+  "level": "<A1-C2>",
+  "overall_comment": "<Nhận xét tiếng Việt>",
+  "suggestions": ["<gợi ý 1>", "<gợi ý 2>"]
+}}
+"""
+
+def build_speaking_grading_prompt(transcribed_text: str, target_text: str, accuracy: float):
+    """Tạo prompt cho ChatGPT để chấm điểm bài nói."""
+    return f"""
+Bạn là một giáo viên tiếng Anh chuyên nghiệp, đang chấm điểm bài luyện nói cho học viên Việt Nam.
+
+**Câu mục tiêu (Target):** {target_text}
+**Học viên đã nói (Transcribed):** {transcribed_text}
+**Độ chính xác so với câu mục tiêu:** {accuracy}%
+
+QUAN TRỌNG - Quy tắc chấm điểm:
+- Nếu accuracy = 100% (nói ĐÚNG hoàn toàn): score PHẢI từ 90-100
+- Nếu accuracy >= 80%: score PHẢI từ 70-89
+- Nếu accuracy >= 50%: score từ 40-69
+- Nếu accuracy < 50%: score từ 0-39
+
+Yêu cầu:
+1. Tính điểm tổng (score) dựa trên quy tắc trên
+2. pronunciation_score = {min(100, accuracy + 10)} (vì đã nhận diện được đúng từ)
+3. accuracy_score = {accuracy}
+4. Đưa ra nhận xét bằng tiếng Việt
+5. Xác định trình độ CEFR (A1–C2) dựa trên độ khó của câu và điểm số
+6. Trả về **CHỈ** JSON, không có text nào khác
+
+JSON (ví dụ với accuracy 100%):
+{{
+  "score": 95,
+  "pronunciation_score": 100,
+  "accuracy_score": 100,
+  "level": "B1",
+  "strengths": ["Phát âm chính xác", "Nói đúng câu mục tiêu"],
+  "weaknesses": [],
+  "suggestions": ["Tiếp tục luyện tập với câu khó hơn"],
+  "overall_comment": "Tuyệt vời! Bạn đã nói đúng hoàn toàn."
+}}
+"""
+
+def call_openai_for_grading(prompt: str):
+    """Gọi OpenAI API để chấm điểm và nhận xét bài viết."""
+    if not openai_client:
+        raise HTTPException(status_code=500, detail="OpenAI client is not initialized. Check API key.")
+
+    try:
         response = openai_client.chat.completions.create(
             model=OPENAI_MODEL,
             messages=[
@@ -321,8 +389,43 @@ async def grade_text(payload: GrammarGradeRequest):
         )
         openai_output_raw = response.choices[0].message.content
 
-        # Bước 4: Clean & Parse JSON (Logic từ ví dụ của bạn)
-        cleaned_output = openai_output_raw.strip().replace("```json", "").replace("```", "").strip()
+        return response.choices[0].message.content
+
+    except Exception as e:
+        print(f"Error calling OpenAI: {e}")
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"OpenAI API error: {str(e)}")
+
+
+# -----------------------------
+# Grammar Grading Endpoint
+# -----------------------------
+@app.post("/api/v1/grade_text")
+async def grade_text(payload: GrammarGradeRequest):
+    """
+    Chấm điểm bài viết tiếng Anh.
+    - Sử dụng T5 model để phát hiện lỗi ngữ pháp
+    - Sử dụng OpenAI để chấm điểm và đưa ra nhận xét bằng tiếng Việt
+    """
+    print(f"[Grade] Received text: {payload.text[:100]}...")
+
+    try:
+        # Bước 1: Phát hiện lỗi ngữ pháp bằng T5
+        errors, corrected_text = detect_grammar_errors_with_t5(payload.text)
+        print(f"[Grade] Detected {len(errors)} errors")
+
+        # Bước 2: Tạo prompt cho OpenAI
+        prompt = build_grading_prompt(payload.text, errors, corrected_text)
+
+        # Bước 3: Gọi OpenAI để chấm điểm
+        openai_output = call_openai_for_grading(prompt)
+        print(f"[Grade] OpenAI response: {openai_output[:200]}...")
+
+        # Bước 4: Parse JSON từ OpenAI
+        # Làm sạch output (loại bỏ markdown code blocks nếu có)
+        cleaned_output = openai_output.strip().replace("```json", "").replace("```", "").strip()
+
+        # Tìm JSON object
         json_match = re.search(r'\{.*\}', cleaned_output, re.DOTALL)
         
         if not json_match:
@@ -351,9 +454,21 @@ async def grade_text(payload: GrammarGradeRequest):
 
 # --- 5. Speaking Practice (Updated Logic) ---
 @app.post("/api/v1/speaking-practice")
-async def speaking_practice(audio: UploadFile = File(...)):
-    if not whisper_model or not model:
-        raise HTTPException(status_code=500, detail="Models not loaded.")
+async def speaking_practice(
+    audio: UploadFile = File(...),
+    target_text: str = Form(None)
+):
+    """
+    Speaking practice endpoint: Transcribe audio and compare with target text.
+    - Sử dụng Whisper để chuyển audio thành text
+    - So sánh với target_text để kiểm tra độ chính xác
+    - Nếu không có target_text, kiểm tra lỗi ngữ pháp bằng T5
+    """
+    if not whisper_model:
+        raise HTTPException(status_code=500, detail="Whisper model is not loaded. Check server logs.")
+    
+    print(f"[Speaking Practice] Received audio file: {audio.filename}, content_type: {audio.content_type}")
+    print(f"[Speaking Practice] Target text: {target_text}")
     
     temp_path = None
     try:
@@ -367,13 +482,146 @@ async def speaking_practice(audio: UploadFile = File(...)):
         transcribed_text = result["text"].strip()
         
         if not transcribed_text:
-            os.unlink(temp_path)
-            return {"status": "success", "transcribed_text": "", "errors": [], "has_errors": False}
+            return {
+                "status": "success",
+                "transcribed_text": "",
+                "corrected_text": target_text or "",
+                "errors": [],
+                "has_errors": False,
+                "accuracy": 0,
+                "is_correct": False
+            }
+        
+        # Step 3: Compare with target text if provided
+        if target_text:
+            # Normalize both texts for comparison
+            normalized_transcription = normalize_text(transcribed_text)
+            normalized_target = normalize_text(target_text)
+            
+            # Calculate accuracy
+            accuracy = calculate_similarity(normalized_transcription, normalized_target)
+            
+            print(f"[Speaking Practice] Comparing: '{normalized_transcription}' vs '{normalized_target}'")
+            print(f"[Speaking Practice] Accuracy: {accuracy}%")
+            
+            # Use ChatGPT for detailed grading
+            if openai_client:
+                try:
+                    prompt = build_speaking_grading_prompt(transcribed_text, target_text, accuracy)
+                    openai_output = call_openai_for_grading(prompt)
+                    print(f"[Speaking Practice] OpenAI response: {openai_output[:200]}...")
+                    
+                    # Parse JSON from OpenAI
+                    cleaned_output = openai_output.strip().replace("```json", "").replace("```", "").strip()
+                    json_match = re.search(r'\{.*\}', cleaned_output, re.DOTALL)
+                    
+                    if json_match:
+                        grading = json.loads(json_match.group(0))
+                        print(f"[Speaking Practice] Grading: score={grading.get('score')}, level={grading.get('level')}")
+                        
+                        return {
+                            "status": "success",
+                            "transcribed_text": transcribed_text,
+                            "target_text": target_text,
+                            "accuracy": accuracy,
+                            "grading": grading
+                        }
+                except Exception as e:
+                    print(f"[Speaking Practice] ChatGPT grading error: {e}")
+                    traceback.print_exc()
+            
+            # Fallback if ChatGPT fails: return basic comparison result
+            is_correct = accuracy >= 80.0
+            
+            # Calculate fallback score based on accuracy
+            if accuracy >= 95:
+                fallback_score = 95
+            elif accuracy >= 80:
+                fallback_score = int(70 + (accuracy - 80) * 1.25)  # 70-95
+            elif accuracy >= 50:
+                fallback_score = int(40 + (accuracy - 50) * 1.0)   # 40-70
+            else:
+                fallback_score = int(accuracy * 0.8)  # 0-40
+            
+            return {
+                "status": "success",
+                "transcribed_text": transcribed_text,
+                "target_text": target_text,
+                "accuracy": accuracy,
+                "grading": {
+                    "score": fallback_score,
+                    "pronunciation_score": min(100, int(accuracy) + 10),
+                    "accuracy_score": int(accuracy),
+                    "level": "A1" if accuracy < 50 else "A2" if accuracy < 80 else "B1",
+                    "strengths": ["Phát âm đúng câu mục tiêu"] if is_correct else ["Đã hoàn thành bài tập"],
+                    "weaknesses": [] if is_correct else ["Cần cải thiện độ chính xác"],
+                    "suggestions": ["Tiếp tục luyện tập với câu khó hơn"] if is_correct else ["Lắng nghe kỹ câu mẫu trước khi nói"],
+                    "overall_comment": f"Độ chính xác: {accuracy}%. " + ("Tuyệt vời! Bạn đã nói đúng." if is_correct else "Hãy cố gắng nói đúng câu mục tiêu.")
+                }
+            }
+        
+        # Fallback: No target text, use T5 for grammar check
+        if not model or not tokenizer:
+            return {
+                "status": "success",
+                "transcribed_text": transcribed_text,
+                "corrected_text": transcribed_text,
+                "errors": [],
+                "has_errors": False
+            }
+        
+        input_with_prefix = f"grammar: {transcribed_text}"
+        
+        encoded = tokenizer(
+            [input_with_prefix],
+            return_tensors="pt",
+            padding=True,
+            truncation=True,
+            max_length=128
+        ).to(DEVICE)
 
         # 3. T5 Check (Dùng hàm mới detect_grammar_errors_optimized)
         errors, corrected_text = detect_grammar_errors_optimized(transcribed_text)
 
-        os.unlink(temp_path)
+        corrected_text = tokenizer.decode(outputs[0], skip_special_tokens=True)
+        
+        if corrected_text.startswith("grammar:"):
+            corrected_text = corrected_text.replace("grammar:", "", 1).strip()
+        
+        print(f"[Speaking Practice] Corrected: {corrected_text}")
+        
+        # Find differences/errors
+        errors = []
+        has_errors = transcribed_text.lower().strip() != corrected_text.lower().strip()
+        
+        if has_errors:
+            original_words = transcribed_text.split()
+            corrected_words = corrected_text.split()
+            
+            for i, (orig, corr) in enumerate(zip(original_words, corrected_words)):
+                if orig.lower() != corr.lower():
+                    errors.append({
+                        "original": orig,
+                        "corrected": corr,
+                        "position": i
+                    })
+            
+            # Handle length differences
+            if len(original_words) > len(corrected_words):
+                for i in range(len(corrected_words), len(original_words)):
+                    errors.append({
+                        "original": original_words[i],
+                        "corrected": "(removed)",
+                        "position": i
+                    })
+            elif len(corrected_words) > len(original_words):
+                for i in range(len(original_words), len(corrected_words)):
+                    errors.append({
+                        "original": "(missing)",
+                        "corrected": corrected_words[i],
+                        "position": i
+                    })
+        
         return {
             "status": "success",
             "transcribed_text": transcribed_text,

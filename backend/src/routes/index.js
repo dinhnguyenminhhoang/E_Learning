@@ -31,6 +31,8 @@ router.use(`/v1/api/tts`, require("./tts.route"));
 router.use(`/v1/api/ai-assistant`, require("./aiAssistant.route"));
 router.use(`/v1/api/stt`, require("./stt.route"));
 router.use(`/v1/api/speaking-practice`, require("./speakingPractice.route"));
+router.use(`/v1/api/listening-practice`, require("./listeningPractice.route"));
+router.use(`/v1/api/writing-practice`, require("./writingPractice.route"));
 router.use(`/v1/api/speaking-templates`, require("./speakingTemplate.route"));
 router.use(`/v1/api/admin/speaking-templates`, require("./speakingTemplateAdmin.route"));
 router.use(`/v1/api/writing-templates`, require("./writingTemplate.route"));
