@@ -39,4 +39,21 @@ router.get(
   asynchandler(CardDeckController.getCardDeckByCategory)
 );
 
+// ===== STATISTICS ROUTES =====
+router.post(
+  "/:cardDeckId/increment-view",
+  auth.authenticate,
+  asynchandler(CardDeckController.incrementCardDeckView)
+);
+router.post(
+  "/:cardDeckId/increment-study",
+  auth.authenticate,
+  asynchandler(CardDeckController.incrementCardDeckStudy)
+);
+router.post(
+  "/:cardDeckId/update-card-count",
+  auth.authenticate,
+  asynchandler(CardDeckController.updateCardDeckCardCount)
+);
+
 module.exports = router;

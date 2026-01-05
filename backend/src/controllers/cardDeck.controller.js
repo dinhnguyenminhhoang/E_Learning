@@ -32,6 +32,22 @@ const CardDeckController = {
     const response = await CardDeckService.getCardDeckByCategory(req);
     res.status(response.code).json(response);
   },
+
+  // ===== STATISTICS CONTROLLERS =====
+  async incrementCardDeckView(req, res) {
+    const response = await CardDeckService.incrementCardDeckView(req);
+    res.status(response.code).json(response);
+  },
+
+  async incrementCardDeckStudy(req, res) {
+    const response = await CardDeckService.incrementCardDeckStudy(req);
+    res.status(response.code).json(response);
+  },
+
+  async updateCardDeckCardCount(req, res) {
+    const response = await CardDeckService.updateCardDeckCardCount(req);
+    res.status(response.code).json(response);
+  },
 };
 
 module.exports = CardDeckController;

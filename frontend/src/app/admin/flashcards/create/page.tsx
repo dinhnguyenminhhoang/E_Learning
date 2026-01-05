@@ -7,18 +7,25 @@ import { categoryService } from "@/services/category.service";
 import { CreateCardDeckInput } from "@/types/admin";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ArrowLeft, Save } from "lucide-react";
+import { ArrowLeft, Save, Tag, X } from "lucide-react";
 import { toast } from "react-hot-toast";
+import { Badge } from "@/components/ui/badge";
 
 export default function CreateFlashcardDeckPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [categories, setCategories] = useState<any[]>([]);
+  const [tagInput, setTagInput] = useState("");
   const [formData, setFormData] = useState<CreateCardDeckInput>({
     title: "",
     description: "",
     category: "",
     status: "active",
+    level: "beginner",
+    difficulty: "medium",
+    thumbnail: "",
+    tags: [],
+    isPublic: true,
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -36,6 +43,11 @@ export default function CreateFlashcardDeckPage() {
         description: formData.description,
         status: formData.status,
         categoryId: formData.category,
+        level: formData.level,
+        difficulty: formData.difficulty,
+        thumbnail: formData.thumbnail,
+        tags: formData.tags,
+        isPublic: formData.isPublic,
       });
       if (response.code === 200) {
         toast.success("Deck created successfully!");
@@ -47,6 +59,26 @@ export default function CreateFlashcardDeckPage() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleAddTag = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter" && tagInput.trim()) {
+      e.preventDefault();
+      if (!formData.tags?.includes(tagInput.trim())) {
+        setFormData((prev) => ({
+          ...prev,
+          tags: [...(prev.tags || []), tagInput.trim()],
+        }));
+      }
+      setTagInput("");
+    }
+  };
+
+  const handleRemoveTag = (tagToRemove: string) => {
+    setFormData((prev) => ({
+      ...prev,
+      tags: prev.tags?.filter((tag) => tag !== tagToRemove) || [],
+    }));
   };
 
   const handleChange = (
@@ -139,6 +171,51 @@ export default function CreateFlashcardDeckPage() {
               </select>
             </div>
 
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                Level
+              </label>
+              <select
+                name="level"
+                value={formData.level}
+                onChange={handleChange}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="beginner">Beginner</option>
+                <option value="intermediate">Intermediate</option>
+                <option value="advanced">Advanced</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                Difficulty
+              </label>
+              <select
+                name="difficulty"
+                value={formData.difficulty}
+                onChange={handleChange}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="easy">Easy</option>
+                <option value="medium">Medium</option>
+                <option value="hard">Hard</option>
+              </select>
+            </div>
+
+            <div className="md:col-span-2">
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                Thumbnail URL
+              </label>
+              <Input
+                type="text"
+                name="thumbnail"
+                value={formData.thumbnail}
+                onChange={handleChange}
+                placeholder="https://example.com/image.jpg"
+              />
+            </div>
+
             <div className="md:col-span-2">
               <label className="block text-sm font-semibold text-gray-700 mb-2">
                 Description
@@ -151,6 +228,63 @@ export default function CreateFlashcardDeckPage() {
                 rows={4}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none"
               />
+            </div>
+
+            <div className="md:col-span-2">
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                <Tag className="w-4 h-4 inline mr-1" />
+                Tags
+              </label>
+              <Input
+                type="text"
+                value={tagInput}
+                onChange={(e) => setTagInput(e.target.value)}
+                onKeyDown={handleAddTag}
+                placeholder="Type a tag and press Enter"
+              />
+              {formData.tags && formData.tags.length > 0 && (
+                <div className="flex flex-wrap gap-2 mt-3">
+                  {formData.tags.map((tag, index) => (
+                    <Badge
+                      key={index}
+                      variant="secondary"
+                      className="px-3 py-1 bg-blue-50 text-blue-700 hover:bg-blue-100"
+                    >
+                      {tag}
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveTag(tag)}
+                        className="ml-2 hover:text-blue-900"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </Badge>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="md:col-span-2">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  name="isPublic"
+                  checked={formData.isPublic}
+                  onChange={(e) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      isPublic: e.target.checked,
+                    }))
+                  }
+                  className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-2 focus:ring-blue-500"
+                />
+                <span className="text-sm font-semibold text-gray-700">
+                  Make this deck public
+                </span>
+              </label>
+              <p className="text-xs text-gray-500 ml-6 mt-1">
+                Public decks can be viewed and studied by all users
+              </p>
             </div>
           </div>
 

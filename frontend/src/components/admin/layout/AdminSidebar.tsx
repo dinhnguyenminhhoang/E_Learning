@@ -144,7 +144,7 @@ export function AdminSidebar() {
   };
 
   const renderMenuItem = (item: MenuItem, level: number = 0) => {
-    const isActive = pathname === item.href;
+    const isActive = pathname?.includes(item.href);
     const isExpanded = expandedItems.includes(item.id);
     const hasChildren = item.children && item.children.length > 0;
 

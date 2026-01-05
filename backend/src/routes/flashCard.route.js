@@ -13,4 +13,8 @@ router.get("/getById/:id", asynchandler(flashcardController.getOne));
 router.put("/:id", validateUpdateFlashcard, asynchandler(flashcardController.update));
 router.delete("/delete/:id", asynchandler(flashcardController.delete));
 
+// ===== STATISTICS ROUTES =====
+router.post("/:id/increment-view", asynchandler(flashcardController.incrementView));
+router.post("/:id/increment-study", asynchandler(flashcardController.incrementStudy));
+
 module.exports = router;

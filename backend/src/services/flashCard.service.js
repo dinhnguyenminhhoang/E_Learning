@@ -7,13 +7,21 @@ const { STATUS } = require("../constants/status.constans");
 const HTTP_STATUS = require("../constants/httpStatus");
 
 class FlashcardService {
-  async createFlashcard(data) {
+  async createFlashcard(data, userId = null) {
+    // Auto-set createdBy if userId provided
+    if (userId) {
+      data.createdBy = userId;
+    }
+
     const existingFlashcard = await flashcardRepository.getFlashCardByFrontBack(
       data.frontText
     );
     if (existingFlashcard) {
       if (existingFlashcard.status === STATUS.DELETED) {
         data.status = STATUS.ACTIVE;
+        if (userId) {
+          data.updatedBy = userId;
+        }
         const restored = await flashcardRepository.update(
           existingFlashcard._id,
           data
@@ -30,17 +38,29 @@ class FlashcardService {
     });
   }
 
-  async getFlashcardById(id) {
+  async getFlashcardById(id, incrementView = false) {
     const flashcard = await flashcardRepository.findById(id);
     if (!flashcard || flashcard.length === 0) {
       return ResponseBuilder.notFoundError();
     }
+
+    // Optionally increment view count
+    if (incrementView && flashcard.incrementView) {
+      await flashcard.incrementView();
+    }
+
     return ResponseBuilder.success(RESPONSE_MESSAGES.SUCCESS.FETCHED, {
       flashcard: flashcard,
     });
   }
 
-  async updateFlashcard(id, data) {
+  async updateFlashcard(id, data, userId = null) {
+    // Auto-set updatedBy if userId provided
+    if (userId) {
+      data.updatedBy = userId;
+      data.updatedAt = new Date();
+    }
+
     const flashcard = await flashcardRepository.update(id, data);
     if (!flashcard || flashcard.length === 0) {
       return ResponseBuilder.notFoundError();
@@ -82,6 +102,29 @@ class FlashcardService {
     return ResponseBuilder.success(RESPONSE_MESSAGES.SUCCESS.FETCHED, {
       flashcards,
     });
+  }
+
+  // ===== NEW METHODS FOR STATISTICS =====
+  async incrementFlashcardView(id) {
+    const flashcard = await flashcardRepository.findById(id, {
+      populate: false,
+    });
+    if (!flashcard) {
+      return ResponseBuilder.notFoundError();
+    }
+    await flashcard.incrementView();
+    return ResponseBuilder.success("View count incremented");
+  }
+
+  async incrementFlashcardStudy(id) {
+    const flashcard = await flashcardRepository.findById(id, {
+      populate: false,
+    });
+    if (!flashcard) {
+      return ResponseBuilder.notFoundError();
+    }
+    await flashcard.incrementStudy();
+    return ResponseBuilder.success("Study count incremented");
   }
 }
 

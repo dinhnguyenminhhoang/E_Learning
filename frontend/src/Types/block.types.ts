@@ -25,21 +25,50 @@ export interface WordInfo {
 
 export interface Flashcard {
   _id: string;
+  word: WordInfo | null;
   frontText: string;
   backText: string;
-  difficulty: string;
+  cardDeck: string | CardDeckInfo;
+  difficulty: "easy" | "medium" | "hard";
   tags: string[];
-  word: WordInfo | null;
+  // Media fields
+  images?: string[];
+  audio?: string;
+  hint?: string;
+  explanation?: string;
+  // Statistics
+  viewCount?: number;
+  studyCount?: number;
+  // Status & metadata
+  status?: "active" | "inactive";
+  createdBy?: string;
+  updatedBy?: string;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface CardDeckInfo {
   _id: string;
   title: string;
   description?: string;
-  level?: string;
-  thumbnail?: string;
   target?: any;
+  level?: "beginner" | "intermediate" | "advanced";
   categoryId?: any;
+  thumbnail?: string;
+  // Classification
+  tags?: string[];
+  difficulty?: "easy" | "medium" | "hard";
+  isPublic?: boolean;
+  // Statistics
+  viewCount?: number;
+  studyCount?: number;
+  cardCount?: number;
+  // Status & metadata
+  status?: "active" | "inactive";
+  createdBy?: string;
+  updatedBy?: string;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface BlockData {

@@ -6,9 +6,13 @@ const { STATUS } = require("../constants/status.constans");
 
 const getCardDeckById = async (cardDeckId) => {
   return await CardDeck.findById(new mongoose.Types.ObjectId(cardDeckId))
-    .select("title description level thumbnail status target categoryId")
-    .populate("categoryId", "name")
+    .select(
+      "title description level thumbnail status target categoryId tags difficulty isPublic viewCount studyCount cardCount createdBy updatedBy createdAt updatedAt"
+    )
+    .populate("categoryId", "name description")
     .populate("target", "name tags")
+    .populate("createdBy", "name email avatar")
+    .populate("updatedBy", "name email avatar")
     .exec();
 };
 

@@ -14,7 +14,8 @@ import {
     Layers,
     CheckCircle,
     XCircle,
-    Loader2,
+    Eye,
+    BookOpen,
 } from "lucide-react";
 import { toast } from "react-hot-toast";
 import { cn } from "@/lib/utils";
@@ -26,7 +27,7 @@ import {
     TableHeader,
     TableRow,
 } from "@/components/ui/table";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
     Select,
@@ -201,6 +202,8 @@ export default function FlashcardsPage() {
                                 <TableHead>Deck Info</TableHead>
                                 <TableHead>Category</TableHead>
                                 <TableHead className="text-center">Cards</TableHead>
+                                <TableHead className="text-center">Difficulty</TableHead>
+                                <TableHead className="text-center">Stats</TableHead>
                                 <TableHead className="text-center">Status</TableHead>
                                 <TableHead className="text-right">Actions</TableHead>
                             </TableRow>
@@ -224,7 +227,7 @@ export default function FlashcardsPage() {
                                 ))
                             ) : decks.length === 0 ? (
                                 <TableRow>
-                                    <TableCell colSpan={6} className="h-24 text-center">
+                                    <TableCell colSpan={8} className="h-24 text-center">
                                         <div className="flex flex-col items-center justify-center text-muted-foreground">
                                             <Layers className="h-8 w-8 mb-2 opacity-50" />
                                             <p>No flashcard decks found</p>
@@ -260,8 +263,33 @@ export default function FlashcardsPage() {
                                         </TableCell>
                                         <TableCell className="text-center">
                                             <Badge variant="secondary" className="bg-blue-50 text-blue-700 hover:bg-blue-100">
-                                                {deck.cards?.length ?? 0}
+                                                {deck.cardCount ?? deck.cards?.length ?? 0}
                                             </Badge>
+                                        </TableCell>
+                                        <TableCell className="text-center">
+                                            <Badge
+                                                variant="outline"
+                                                className={cn(
+                                                    deck.difficulty === "easy" && "bg-green-50 text-green-700 border-green-200",
+                                                    deck.difficulty === "medium" && "bg-yellow-50 text-yellow-700 border-yellow-200",
+                                                    deck.difficulty === "hard" && "bg-red-50 text-red-700 border-red-200",
+                                                    !deck.difficulty && "bg-gray-50 text-gray-700 border-gray-200"
+                                                )}
+                                            >
+                                                {deck.difficulty || "medium"}
+                                            </Badge>
+                                        </TableCell>
+                                        <TableCell className="text-center">
+                                            <div className="flex items-center justify-center gap-3 text-sm">
+                                                <div className="flex items-center gap-1 text-muted-foreground" title="Views">
+                                                    <Eye className="w-3.5 h-3.5" />
+                                                    <span>{deck.viewCount ?? 0}</span>
+                                                </div>
+                                                <div className="flex items-center gap-1 text-muted-foreground" title="Studies">
+                                                    <BookOpen className="w-3.5 h-3.5" />
+                                                    <span>{deck.studyCount ?? 0}</span>
+                                                </div>
+                                            </div>
                                         </TableCell>
                                         <TableCell className="text-center">
                                             <Badge

@@ -226,10 +226,18 @@ export interface CardDeck {
   category?: string; // ID or name depending on usage
   categoryId?: { _id: string; name: string }; // Populated category
   thumbnail?: string;
-  level?: string;
+  level?: "beginner" | "intermediate" | "advanced";
+  difficulty?: "easy" | "medium" | "hard";
   target?: { _id: string; name: string };
-  cards: FlashCard[];
+  tags?: string[];
+  isPublic?: boolean;
+  viewCount?: number;
+  studyCount?: number;
+  cardCount?: number;
+  cards?: FlashCard[];
   status: "active" | "inactive";
+  createdBy?: string;
+  updatedBy?: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -247,6 +255,12 @@ export interface FlashCard {
 export interface CreateCardDeckInput {
     title: string;
     description?: string;
+    category?: string;
     categoryId?: string;
-    status: 'active' | 'inactive';
+    level?: "beginner" | "intermediate" | "advanced";
+    difficulty?: "easy" | "medium" | "hard";
+    thumbnail?: string;
+    tags?: string[];
+    isPublic?: boolean;
+    status?: 'active' | 'inactive';
 }

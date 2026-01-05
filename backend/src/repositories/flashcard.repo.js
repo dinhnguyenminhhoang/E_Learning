@@ -7,9 +7,10 @@ class FlashcardRepository {
   constructor() {
     this.model = FlashCard;
     this.defaultPopulate = [
-      { path: "word", select: "text" },
-      { path: "cardDeck", select: "name" },
-      { path: "updatedBy", select: "name email" },
+      { path: "word", select: "text pronunciation audio partOfSpeech" },
+      { path: "cardDeck", select: "title description level difficulty" },
+      { path: "createdBy", select: "name email avatar" },
+      { path: "updatedBy", select: "name email avatar" },
     ];
   }
 

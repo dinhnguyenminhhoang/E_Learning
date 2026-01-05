@@ -53,10 +53,60 @@ const cardDeckSchema = new Schema(
       },
     },
 
+    // ===== CLASSIFICATION =====
+    tags: [
+      {
+        type: String,
+        trim: true,
+      },
+    ],
+
+    difficulty: {
+      type: String,
+      enum: ["easy", "medium", "hard"],
+      default: "medium",
+      index: true,
+    },
+
+    isPublic: {
+      type: Boolean,
+      default: true,
+      index: true,
+    },
+
+    // ===== STATISTICS =====
+    viewCount: {
+      type: Number,
+      default: 0,
+      min: 0,
+      index: true,
+    },
+
+    studyCount: {
+      type: Number,
+      default: 0,
+      min: 0,
+      index: true,
+    },
+
+    cardCount: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+
+    // ===== STATUS & METADATA =====
     status: {
       type: String,
       enum: Object.values(STATUS),
       default: STATUS.ACTIVE,
+      index: true,
+    },
+
+    createdBy: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
+      required: false,
       index: true,
     },
 
@@ -67,7 +117,8 @@ const cardDeckSchema = new Schema(
     },
 
     updatedBy: {
-      type: String,
+      type: Schema.Types.ObjectId,
+      ref: "User",
       default: null,
     },
   },
@@ -93,6 +144,9 @@ const cardDeckSchema = new Schema(
 cardDeckSchema.index({ title: "text", description: "text" });
 cardDeckSchema.index({ target: 1, level: 1, status: 1 });
 cardDeckSchema.index({ createdAt: -1, status: 1 });
+cardDeckSchema.index({ createdBy: 1, isPublic: 1, status: 1 });
+cardDeckSchema.index({ studyCount: -1, viewCount: -1 }); // For popular decks
+cardDeckSchema.index({ tags: 1 });
 
 // ===== VIRTUALS =====
 cardDeckSchema.virtual("shortDescription").get(function () {
@@ -104,6 +158,26 @@ cardDeckSchema.virtual("shortDescription").get(function () {
 // ===== METHODS =====
 cardDeckSchema.methods.archive = function () {
   this.status = "archived";
+  return this.save();
+};
+
+cardDeckSchema.methods.incrementView = function () {
+  this.viewCount += 1;
+  return this.save();
+};
+
+cardDeckSchema.methods.incrementStudy = function () {
+  this.studyCount += 1;
+  return this.save();
+};
+
+cardDeckSchema.methods.updateCardCount = async function () {
+  const Flashcard = require("./FlashCard");
+  const count = await Flashcard.countDocuments({
+    cardDeck: this._id,
+    status: "active",
+  });
+  this.cardCount = count;
   return this.save();
 };
 
