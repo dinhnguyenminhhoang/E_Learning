@@ -138,7 +138,24 @@ class AuthService {
         !user.verification?.emailVerified &&
         process.env.REQUIRE_EMAIL_VERIFICATION === "true"
       ) {
-        throw new Error("Please verify your email before signing in");
+        // Generate new verification token
+        const verificationToken = await generateVerificationToken(user._id);
+        const verificationUrl = `${process.env.FRONTEND_URL}/verify-email?token=${verificationToken}`;
+
+        // Send verification email
+        const emailData = {
+          to: user.email,
+          subject: "Verify Your Email Address - Portfolio Marketplace",
+          template: "verification",
+          data: {
+            name: user.name,
+            verificationUrl,
+            expiresIn: "24 hours",
+          },
+        };
+        await sendTemplatedEmail(emailData);
+
+        throw new Error("Tài khoản chưa được kích hoạt. Một email kích hoạt mới đã được gửi đến hòm thư của bạn. Vui lòng kiểm tra và kích hoạt tài khoản.");
       }
       await userRepository.updateLoginInfo(user._id, {
         ipAddress,

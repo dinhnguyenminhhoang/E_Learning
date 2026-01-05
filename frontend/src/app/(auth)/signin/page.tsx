@@ -50,7 +50,6 @@ export default function SignInPage() {
     try {
       await signIn(formData.email, formData.password, formData.rememberMe);
     } catch (err: any) {
-      console.error("Sign in error:", err);
       setError(
         err?.response?.data?.message ||
         err?.message ||
