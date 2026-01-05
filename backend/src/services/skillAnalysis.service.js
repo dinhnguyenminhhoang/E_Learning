@@ -159,11 +159,20 @@ class SkillAnalysisService {
 
       console.log(`[SkillAnalysis] Listening skill - Accuracy: ${avgAccuracy.toFixed(2)}, Completion: ${completionRate.toFixed(2)}%, Attempts: ${totalAttempts}`);
 
+      // Get last attempt date for decay calculation
+      const allAttempts = [
+        ...listeningPracticeAttempts.map(a => a.completedAt || a.createdAt),
+        ...listeningQuizAttempts.map(a => a.completedAt || a.createdAt),
+        ...examAttempts.map(a => a.completedAt)
+      ].filter(Boolean).sort((a, b) => new Date(b) - new Date(a));
+      const lastAttemptDate = allAttempts[0] || null;
+
       const result = this.calculateSkillStrength(
         avgAccuracy,
         completionRate,
         totalAttempts,
-        "listening"
+        "listening",
+        { lastAttemptDate }
       );
 
       console.log(`[SkillAnalysis] Listening final score: ${result.score}`);
@@ -287,11 +296,20 @@ class SkillAnalysisService {
 
       console.log(`[SkillAnalysis] Speaking skill - Accuracy: ${avgAccuracy.toFixed(2)}, Completion: ${completionRate.toFixed(2)}%, Attempts: ${totalAttempts}`);
 
+      // Get last attempt date for decay calculation
+      const allAttemptDates = [
+        ...speakingPracticeAttempts.map(a => a.completedAt || a.createdAt),
+        ...validSpeakingQuizzes.map(a => a.completedAt || a.createdAt),
+        ...examAttempts.map(a => a.completedAt)
+      ].filter(Boolean).sort((a, b) => new Date(b) - new Date(a));
+      const lastAttemptDate = allAttemptDates[0] || null;
+
       const result = this.calculateSkillStrength(
         avgAccuracy,
         completionRate,
         totalAttempts,
-        "speaking"
+        "speaking",
+        { lastAttemptDate }
       );
 
       console.log(`[SkillAnalysis] Speaking final score: ${result.score}`);
@@ -473,12 +491,20 @@ class SkillAnalysisService {
 
       console.log(`[SkillAnalysis] Writing skill - Accuracy: ${avgAccuracy.toFixed(2)}, Completion: ${completionRate.toFixed(2)}%, Attempts: ${totalAttempts}`);
 
+      // Get last attempt date for decay calculation
+      const allAttemptDates = [
+        ...writingPracticeAttempts.map(a => a.completedAt || a.createdAt),
+        ...validWritingQuizzes.map(a => a.completedAt || a.createdAt),
+        ...examAttempts.map(a => a.completedAt)
+      ].filter(Boolean).sort((a, b) => new Date(b) - new Date(a));
+      const lastAttemptDate = allAttemptDates[0] || null;
+
       const result = this.calculateSkillStrength(
         avgAccuracy,
         completionRate,
         totalAttempts,
         "writing",
-        { grammarErrorRate: writingAnswersCount > 0 ? totalGrammarErrors / writingAnswersCount : 0 }
+        { grammarErrorRate: writingAnswersCount > 0 ? totalGrammarErrors / writingAnswersCount : 0, lastAttemptDate }
       );
 
       console.log(`[SkillAnalysis] Writing final score: ${result.score}`);
@@ -553,16 +579,28 @@ class SkillAnalysisService {
       // 3. Get exam attempts for grammar sections
       const examAttempts = await this.getExamAttemptsBySkill(userId, "grammar");
 
-      // 4. Get lesson progress for grammar lessons
-      const lessonProgress = await this.getLessonProgressBySkill(
+      // 4. Get completed grammar blocks (grammar is at block level, not lesson level)
+      const grammarBlockProgress = await this.getCompletedBlocksByType(
         userId,
         learningPathId,
         "grammar"
       );
 
+      const completedGrammarBlocks = grammarBlockProgress.completedCount || 0;
+      const totalGrammarBlocks = grammarBlockProgress.totalCount || 0;
+      const grammarBlockCompletionRate = grammarBlockProgress.completionRate || 0;
+
+      console.log(`[SkillAnalysis] Grammar blocks: ${completedGrammarBlocks}/${totalGrammarBlocks} completed (${grammarBlockCompletionRate.toFixed(1)}%)`);
+
       // 5. Calculate metrics
-      let totalAccuracy = grammarAccuracy;
-      let totalAttempts = writingAnswersCount;
+      let totalAccuracy = 0;
+      let totalAttempts = 0;
+
+      // Add grammar accuracy from writing errors
+      if (writingAnswersCount > 0) {
+        totalAccuracy += grammarAccuracy;
+        totalAttempts += writingAnswersCount;
+      }
 
       // From grammar quiz attempts
       validGrammarQuizzes.forEach((attempt) => {
@@ -576,9 +614,19 @@ class SkillAnalysisService {
         totalAttempts++;
       });
 
+      // IMPORTANT: Count completed grammar blocks as "attempts" with 100% accuracy
+      // This ensures grammar skill increases when user completes grammar blocks
+      if (completedGrammarBlocks > 0) {
+        // Each completed grammar block = 1 attempt with 100% accuracy
+        totalAccuracy += completedGrammarBlocks * 100;
+        totalAttempts += completedGrammarBlocks;
+      }
+
       const avgAccuracy =
         totalAttempts > 0 ? totalAccuracy / totalAttempts : 0;
-      const completionRate = lessonProgress.completionRate || 0;
+      const completionRate = grammarBlockCompletionRate;
+
+      console.log(`[SkillAnalysis] Grammar skill - Accuracy: ${avgAccuracy.toFixed(2)}, Completion: ${completionRate.toFixed(2)}%, Attempts: ${totalAttempts} (${completedGrammarBlocks} from blocks)`);
 
       return this.calculateSkillStrength(
         avgAccuracy,
@@ -694,7 +742,7 @@ class SkillAnalysisService {
    * @param {Number} completionRate - Lesson completion rate (0-100)
    * @param {Number} attempts - Total attempts/practice count
    * @param {String} skillName - Name of the skill
-   * @param {Object} extras - Extra metrics for specific skills
+   * @param {Object} extras - Extra metrics for specific skills (including lastAttemptDate for decay)
    * @returns {Object} Skill score object
    */
   calculateSkillStrength(
@@ -715,6 +763,8 @@ class SkillAnalysisService {
         accuracy: 0,
         completionRate: Math.round(completionRate * 10) / 10,
         totalAttempts: 0,
+        decayApplied: false,
+        penaltyApplied: false,
         ...extras,
       };
     }
@@ -740,10 +790,45 @@ class SkillAnalysisService {
     const experienceBonus = Math.min(Math.sqrt(attempts) * 3, 15);
 
     // Calculate raw strength
-    const rawStrength = baseScore + completionBonus + experienceBonus;
+    let rawStrength = baseScore + completionBonus + experienceBonus;
+
+    // ============ NEW: LOW SCORE PENALTY ============
+    // If accuracy is very low, apply additional penalty
+    let penaltyFactor = 1.0;
+    let penaltyApplied = false;
+    if (accuracyRate < 20 && attempts >= 3) {
+      penaltyFactor = 0.8; // -20% for very low scores
+      penaltyApplied = true;
+    } else if (accuracyRate < 40 && attempts >= 3) {
+      penaltyFactor = 0.9; // -10% for low scores
+      penaltyApplied = true;
+    }
+    rawStrength = rawStrength * penaltyFactor;
+
+    // ============ NEW: DECAY SYSTEM ============
+    // If no recent practice, reduce score
+    let decayFactor = 1.0;
+    let decayApplied = false;
+    if (extras.lastAttemptDate) {
+      const now = new Date();
+      const lastAttempt = new Date(extras.lastAttemptDate);
+      const daysSinceLastAttempt = Math.floor((now - lastAttempt) / (1000 * 60 * 60 * 24));
+
+      if (daysSinceLastAttempt > 30) {
+        decayFactor = 0.7; // -30% after 30 days
+        decayApplied = true;
+      } else if (daysSinceLastAttempt > 14) {
+        decayFactor = 0.8; // -20% after 14 days
+        decayApplied = true;
+      } else if (daysSinceLastAttempt > 7) {
+        decayFactor = 0.9; // -10% after 7 days
+        decayApplied = true;
+      }
+    }
+    rawStrength = rawStrength * decayFactor;
 
     // Normalize to 0-100
-    const normalizedStrength = Math.min(rawStrength, 100);
+    const normalizedStrength = Math.max(0, Math.min(rawStrength, 100));
 
     // Categorize
     let category;
@@ -758,6 +843,8 @@ class SkillAnalysisService {
       accuracy: Math.round(accuracyRate * 10) / 10,
       completionRate: Math.round(completionRate * 10) / 10,
       totalAttempts: attempts,
+      decayApplied,
+      penaltyApplied,
       ...extras,
     };
   }
@@ -820,9 +907,9 @@ class SkillAnalysisService {
    */
   async getLessonProgressBySkill(userId, learningPathId, skill) {
     try {
-      // For grammar and vocabulary, return 0 as they don't have lessons
-      // (grammar comes from quiz/writing analysis, vocabulary from flashcards)
-      if (skill === "grammar" || skill === "vocabulary") {
+      // For vocabulary only, return 0 as vocabulary doesn't have lessons
+      // (vocabulary comes from flashcards/cardDecks, not lessons)
+      if (skill === "vocabulary") {
         return { completedCount: 0, totalCount: 0, completionRate: 0 };
       }
 
@@ -830,7 +917,7 @@ class SkillAnalysisService {
       const totalLessons = await Lesson.countDocuments();
       console.log(`[SkillAnalysis] Total lessons in DB: ${totalLessons}`);
 
-      // Get all lessons with this skill (only works for: listening, speaking, reading, writing)
+      // Get all lessons with this skill (works for: listening, speaking, reading, writing, grammar)
       const lessons = await Lesson.find({
         skill: skill,
         status: { $ne: "deleted" }
@@ -910,6 +997,86 @@ class SkillAnalysisService {
       };
     } catch (error) {
       console.error("Error getting lesson progress by skill:", error);
+      return { completedCount: 0, totalCount: 0, completionRate: 0 };
+    }
+  }
+
+  /**
+   * Get completed blocks by block type (for grammar blocks)
+   * @param {String} userId - User ID
+   * @param {String} learningPathId - Learning Path ID
+   * @param {String} blockType - Block type (e.g., "grammar", "vocabulary", "media")
+   * @returns {Object} { completedCount, totalCount, completionRate }
+   */
+  async getCompletedBlocksByType(userId, learningPathId, blockType) {
+    try {
+      const ContentBlock = require("../models/subModel/contentBlock.schema");
+
+      // 1. Get all blocks of this type from DB
+      const allBlocks = await ContentBlock.find({
+        type: blockType,
+        status: { $ne: "deleted" }
+      })
+        .select("_id type")
+        .lean();
+
+      if (!allBlocks || allBlocks.length === 0) {
+        console.log(`[SkillAnalysis] No ${blockType} blocks found in DB`);
+        return { completedCount: 0, totalCount: 0, completionRate: 0 };
+      }
+
+      const blockIds = allBlocks.map((b) => b._id.toString());
+      console.log(`[SkillAnalysis] Found ${blockIds.length} ${blockType} blocks in DB`);
+
+      // 2. Get user progress
+      const userProgressDocs = await UserProgress.find({
+        user: toObjectId(userId),
+        learningPath: toObjectId(learningPathId),
+      })
+        .select("lessonProgress")
+        .lean();
+
+      if (!userProgressDocs || userProgressDocs.length === 0) {
+        console.log(`[SkillAnalysis] No UserProgress found for user ${userId}`);
+        return {
+          completedCount: 0,
+          totalCount: blockIds.length,
+          completionRate: 0,
+        };
+      }
+
+      // 3. Count completed blocks of this type
+      const completedBlockIds = new Set();
+
+      userProgressDocs.forEach((up) => {
+        if (up.lessonProgress && Array.isArray(up.lessonProgress)) {
+          up.lessonProgress.forEach((lp) => {
+            if (lp.blockProgress && Array.isArray(lp.blockProgress)) {
+              lp.blockProgress.forEach((bp) => {
+                const blockIdStr = bp.blockId ? bp.blockId.toString() : null;
+                if (blockIdStr && bp.isCompleted && blockIds.includes(blockIdStr)) {
+                  completedBlockIds.add(blockIdStr);
+                }
+              });
+            }
+          });
+        }
+      });
+
+      const completedCount = completedBlockIds.size;
+      const completionRate = blockIds.length > 0
+        ? (completedCount / blockIds.length) * 100
+        : 0;
+
+      console.log(`[SkillAnalysis] ${blockType} blocks: ${completedCount}/${blockIds.length} completed (${completionRate.toFixed(1)}%)`);
+
+      return {
+        completedCount,
+        totalCount: blockIds.length,
+        completionRate,
+      };
+    } catch (error) {
+      console.error(`Error getting completed blocks by type (${blockType}):`, error);
       return { completedCount: 0, totalCount: 0, completionRate: 0 };
     }
   }
