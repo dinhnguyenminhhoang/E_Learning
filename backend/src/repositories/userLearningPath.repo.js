@@ -13,7 +13,7 @@ class UserLearningPathRepository {
   async findByUserAndPath(userId, learningPathId) {
     return await UserLearningPath.findOne({
       user: userId,
-      learningPath: learningPathId,
+      currentPath: learningPathId,
     }).lean();
   }
 

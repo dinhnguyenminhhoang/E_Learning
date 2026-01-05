@@ -22,7 +22,8 @@ class UserLearningPathService {
 
     const newRecord = await UserLearningPathRepository.create({
       user: userId,
-      learningPath: learningPathId,
+      learningPaths: [learningPathId],
+      currentPath: learningPathId,
       target: targetId || null,
       status: "active",
       progress: {

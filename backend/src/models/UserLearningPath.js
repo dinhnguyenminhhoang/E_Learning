@@ -14,7 +14,14 @@ const userLearningPathSchema = new Schema(
       index: true,
     },
 
-    learningPath: {
+    learningPaths: [
+      {
+        type: Schema.Types.ObjectId,
+        ref: "LearningPath",
+      },
+    ],
+
+    currentPath: {
       type: Schema.Types.ObjectId,
       ref: "LearningPath",
       required: true,
