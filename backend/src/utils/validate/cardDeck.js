@@ -34,7 +34,6 @@ const createCardDeckSchema = Joi.object({
   categoryId: Joi.string()
     .regex(/^[0-9a-fA-F]{24}$/)
     .required(),
-
   thumbnail: Joi.string().uri().optional(),
 
   status: Joi.string()
@@ -44,7 +43,6 @@ const createCardDeckSchema = Joi.object({
 
 const updateCardDeckSchema = makeFieldsOptional(createCardDeckSchema, [
   "title",
-  "target",
   "level",
   "categoryId",
   "status",
