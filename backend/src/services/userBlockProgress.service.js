@@ -120,11 +120,12 @@ class UserBlockProgressService {
     );
 
     if (!progress) {
-      return ResponseBuilder.notFoundError();
+      return ResponseBuilder.notFoundError("Block progress not found for this user and block");
     }
 
     if (!progress.exerciseCompleted) {
-      return ResponseBuilder.forbiddenError();
+      console.log(`[completeBlock] exerciseCompleted is false for blockId: ${blockId}, userId: ${userId}`);
+      return ResponseBuilder.forbiddenError("Please complete the exercise before finishing the block");
     }
 
     await progress.complete();

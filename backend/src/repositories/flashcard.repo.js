@@ -69,7 +69,6 @@ class FlashcardRepository {
     return this.model.find({
       cardDeck: deckId,
       status: STATUS.ACTIVE,
-      updatedAt: null,
     });
   }
 
@@ -83,7 +82,6 @@ class FlashcardRepository {
       .find({
         cardDeck: deckId,
         status: STATUS.ACTIVE,
-        updatedAt: null,
       })
       .populate({
         path: "word",
@@ -95,7 +93,7 @@ class FlashcardRepository {
   }
 
   async findByDifficulty(difficulty) {
-    return this.model.find({ difficulty, status: "active", updatedAt: null });
+    return this.model.find({ difficulty, status: "active" });
   }
 
   async search(query, options = {}) {
@@ -104,7 +102,6 @@ class FlashcardRepository {
       const searchQuery = {
         $text: { $search: query },
         status: "active",
-        updatedAt: null,
       };
 
       return this.model

@@ -65,8 +65,11 @@ export function RefPicker({
 
     // Load selected item info when value changes
     useEffect(() => {
-        if (value && !selectedItem) {
+        if (value) {
+            // Always reload when value changes to ensure correct data
             loadSelectedItem();
+        } else {
+            setSelectedItem(null);
         }
     }, [value]);
 
@@ -81,7 +84,18 @@ export function RefPicker({
                     break;
                 case "cardDeck":
                     response = await flashcardAdminService.getById(value);
-                    if (response.data) setSelectedItem(response.data);
+                    // Backend returns { data: { cardDeck: {...} } }
+                    const cardDeck = response.data?.cardDeck || response.data;
+                    if (cardDeck) {
+                        setSelectedItem({
+                            _id: cardDeck._id,
+                            title: cardDeck.title,
+                            name: cardDeck.name,
+                            description: cardDeck.description,
+                            level: cardDeck.level,
+                            status: cardDeck.status,
+                        });
+                    }
                     break;
                 case "quiz":
                     response = await quizAdminService.getById(value);

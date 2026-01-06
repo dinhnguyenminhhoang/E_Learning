@@ -6,7 +6,7 @@ import { blockService } from "@/services/block.service";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { ArrowLeft, Save } from "lucide-react";
+import { ArrowLeft, Save, Sparkles } from "lucide-react";
 import { toast } from "react-hot-toast";
 import { GrammarBlockForm, GrammarBlockFormData } from "@/components/admin/blocks/forms/GrammarBlockForm";
 import { VocabularyBlockForm, VocabularyBlockFormData } from "@/components/admin/blocks/forms/VocabularyBlockForm";
@@ -59,6 +59,7 @@ const STATUS_OPTIONS = [
 export default function CreateBlockPage() {
     const router = useRouter();
     const [loading, setLoading] = useState(false);
+    const [aiGenerating, setAiGenerating] = useState(false);
     const [formData, setFormData] = useState<BlockFormData>({
         type: "grammar",
         title: "",
@@ -248,6 +249,82 @@ export default function CreateBlockPage() {
         }
     };
 
+    const handleAIGenerate = async () => {
+        if (!formData.title.trim()) {
+            toast.error("Vui lòng nhập tiêu đề block trước khi generate");
+            return;
+        }
+
+        try {
+            setAiGenerating(true);
+            toast.loading("AI đang tạo nội dung...", { id: "ai-generate" });
+
+            const response: any = await blockService.aiGenerateBlockContent({
+                type: formData.type,
+                title: formData.title,
+                difficulty: formData.difficulty,
+                skill: formData.skill,
+            });
+
+            if (response.code === 200 && response.data) {
+                const generatedData = response.data;
+
+                // Update form based on block type
+                if (formData.type === "grammar" && generatedData.topic) {
+                    handleCommonFieldChange("description", generatedData.description || "");
+                    handleGrammarChange({
+                        topic: generatedData.topic,
+                        explanation: generatedData.explanation || "",
+                        examples: generatedData.examples || [],
+                        videoUrl: generatedData.videoUrl || "",
+                        sourceType: generatedData.videoUrl ? "youtube" : "upload",
+                    });
+                } else if (formData.type === "vocabulary" && generatedData.description) {
+                    handleCommonFieldChange("description", generatedData.description || "");
+                    // Note: suggestedWords is for reference, admin still needs to create card deck
+                    if (generatedData.suggestedWords && generatedData.suggestedWords.length > 0) {
+                        toast.success(
+                            `Đã tạo gợi ý ${generatedData.suggestedWords.length} từ vựng. Vui lòng tạo card deck riêng.`,
+                            { duration: 5000 }
+                        );
+                    }
+                } else if (formData.type === "media" && generatedData.sourceUrl) {
+                    handleCommonFieldChange("description", generatedData.description || "");
+                    handleMediaChange({
+                        sourceUrl: generatedData.sourceUrl,
+                        sourceType: "youtube",
+                        transcript: generatedData.transcript || "",
+                        tasks: generatedData.tasks || [],
+                    });
+                } else if (formData.type === "quiz" && generatedData.description) {
+                    handleCommonFieldChange("description", generatedData.description || "");
+                    // Note: suggestedQuestions is for reference only
+                    toast.success("Đã tạo gợi ý câu hỏi quiz. Vui lòng xem description.", {
+                        duration: 5000,
+                    });
+                }
+
+                toast.success("AI đã tạo nội dung thành công! Vui lòng kiểm tra và chỉnh sửa.", {
+                    id: "ai-generate",
+                    duration: 4000,
+                });
+            } else {
+                toast.error(response.message || "Không thể tạo nội dung với AI", {
+                    id: "ai-generate",
+                });
+            }
+        } catch (error: any) {
+            console.error("Error generating with AI:", error);
+            const message =
+                error?.response?.data?.message ||
+                error?.message ||
+                "Không thể tạo nội dung với AI";
+            toast.error(message, { id: "ai-generate" });
+        } finally {
+            setAiGenerating(false);
+        }
+    };
+
     return (
         <div className="p-6 mx-auto">
             {/* Header */}
@@ -293,9 +370,21 @@ export default function CreateBlockPage() {
 
                     {/* Title */}
                     <div>
-                        <label className="block text-sm font-semibold text-gray-700 mb-2">
-                            Tiêu đề <span className="text-red-500">*</span>
-                        </label>
+                        <div className="flex items-center justify-between mb-2">
+                            <label className="block text-sm font-semibold text-gray-700">
+                                Tiêu đề <span className="text-red-500">*</span>
+                            </label>
+                            <Button
+                                type="button"
+                                onClick={handleAIGenerate}
+                                disabled={!formData.title.trim() || aiGenerating}
+                                size="sm"
+                                className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white disabled:opacity-50"
+                            >
+                                <Sparkles className="w-4 h-4 mr-2" />
+                                {aiGenerating ? "Đang tạo..." : "AI Generate"}
+                            </Button>
+                        </div>
                         <Input
                             value={formData.title}
                             onChange={(e) => handleCommonFieldChange("title", e.target.value)}

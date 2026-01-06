@@ -30,6 +30,18 @@ class BlockService {
     );
   }
 
+  async markVocabularyComplete(blockId: string) {
+    return await apiClient.post(
+      `/v1/api/block/${blockId}/vocabulary-complete`
+    );
+  }
+
+  async completeBlock(blockId: string) {
+    return await apiClient.post(
+      `/v1/api/user-block-progress/blocks/${blockId}/complete`
+    );
+  }
+
   async startQuiz(blockId: string) {
     return await apiClient.post<StartQuizResponse>(
       `/v1/api/blocks/${blockId}/quiz/start`
@@ -77,6 +89,15 @@ class BlockService {
 
   async deleteBlock(id: string) {
     return await apiClient.delete(`/v1/api/lesson/blocks/${id}`);
+  }
+
+  async aiGenerateBlockContent(params: {
+    type: string;
+    title: string;
+    difficulty?: string;
+    skill?: string;
+  }) {
+    return await apiClient.post("/v1/api/block/ai-generate", params);
   }
 }
 

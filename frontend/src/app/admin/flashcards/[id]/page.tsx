@@ -14,11 +14,8 @@ import {
     Save,
     Plus,
     Trash2,
-    CheckCircle,
-    XCircle,
     Tag,
     X,
-    Search,
     ChevronsUpDown,
     Check,
     Upload,
@@ -133,10 +130,17 @@ export default function FlashcardDetailPage() {
 
         try {
             setSaving(true);
-            const response = await flashcardAdminService.update(deckId, {
+
+            // Remove empty thumbnail to avoid validation errors
+            // Don't send cards array - cards are created separately via FlashCard API
+            const submitData: any = {
                 ...formData,
-                cards: cards,
-            });
+            };
+            if (!submitData.thumbnail || submitData.thumbnail.trim() === '') {
+                delete submitData.thumbnail;
+            }
+
+            const response = await flashcardAdminService.update(deckId, submitData);
             if (response.code === 200) {
                 toast.success("Deck updated successfully!");
                 router.push("/admin/flashcards");
@@ -166,7 +170,7 @@ export default function FlashcardDetailPage() {
         }
     };
 
-    const handleAddCard = () => {
+    const handleAddCard = async () => {
         if (!newCard.front.trim() || !newCard.back.trim()) {
             toast.error("Both front and back are required");
             return;
@@ -175,16 +179,52 @@ export default function FlashcardDetailPage() {
             toast.error("Please select a word");
             return;
         }
-        setCards([...cards, { ...newCard, _id: `temp-${Date.now()}` }]);
-        setNewCard({ front: "", back: "", word: "", images: [] });
-        setShowAddCard(false);
-        toast.success("Card added");
+
+        try {
+            // Create flashcard via API immediately
+            const response = await flashcardAdminService.createFlashcard({
+                word: newCard.word,
+                frontText: newCard.front,
+                backText: newCard.back,
+                cardDeck: deckId,
+                images: newCard.images.filter(img => img.trim() !== ''),
+                difficulty: formData.difficulty || 'easy',
+                tags: formData.tags || [],
+            });
+
+            if (response.code === 200 || response.code === 201) {
+                // Add the created card to local state for display
+                setCards([...cards, {
+                    _id: response.data._id,
+                    front: newCard.front,
+                    back: newCard.back,
+                }]);
+                setNewCard({ front: "", back: "", word: "", images: [] });
+                setShowAddCard(false);
+                toast.success("Card added successfully!");
+            }
+        } catch (error) {
+            console.error("Error creating flashcard:", error);
+            toast.error("Failed to add card");
+        }
     };
 
-    const handleDeleteCard = (index: number) => {
-        const updated = [...cards];
-        updated.splice(index, 1);
-        setCards(updated);
+    const handleDeleteCard = async (index: number) => {
+        const card = cards[index];
+        if (!card._id) return;
+
+        try {
+            const response = await flashcardAdminService.deleteFlashcard(card._id);
+            if (response.code === 200) {
+                const updated = [...cards];
+                updated.splice(index, 1);
+                setCards(updated);
+                toast.success("Card deleted successfully!");
+            }
+        } catch (error) {
+            console.error("Error deleting flashcard:", error);
+            toast.error("Failed to delete card");
+        }
     };
 
     const handleAddTag = (e: React.KeyboardEvent<HTMLInputElement>) => {

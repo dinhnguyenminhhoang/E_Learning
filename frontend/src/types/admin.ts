@@ -263,4 +263,5 @@ export interface CreateCardDeckInput {
     tags?: string[];
     isPublic?: boolean;
     status?: 'active' | 'inactive';
+    cards?: { front: string; back: string; _id?: string }[];
 }

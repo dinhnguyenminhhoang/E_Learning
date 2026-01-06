@@ -22,7 +22,26 @@ const getCardDeck = async (req) => {
     });
   }
 
-  return ResponseBuilder.success("Fetch card deck successfully", { cardDeck });
+  // Fetch flashcards for this deck
+  const flashcards = await FlashcardRepo.findByDeck(cardDeckId);
+  const cards = flashcards
+    .filter((fc) => fc.status === STATUS.ACTIVE)
+    .map((fc) => ({
+      _id: fc._id,
+      front: fc.frontText,
+      back: fc.backText,
+      word: fc.word,
+      images: fc.images || [],
+      difficulty: fc.difficulty,
+      tags: fc.tags || [],
+    }));
+
+  return ResponseBuilder.success("Fetch card deck successfully", {
+    cardDeck: {
+      ...cardDeck.toObject(),
+      cards,
+    },
+  });
 };
 
 const createCardDeck = async (req) => {

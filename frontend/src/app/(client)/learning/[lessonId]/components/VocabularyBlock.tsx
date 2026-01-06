@@ -3,13 +3,12 @@
 import { useState, useEffect, useRef } from "react";
 import { CardDeckInfo, Flashcard } from "@/types/block.types";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight, Volume2, BookOpen, CheckCircle, X, FileText, Sparkles, Mic, MicOff, Loader2, TestTube2, Lightbulb, Info } from "lucide-react";
+import { ChevronLeft, ChevronRight, Volume2, BookOpen, CheckCircle, X, FileText, Sparkles, Mic, MicOff, Loader2, TestTube2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ttsService } from "@/services/tts.service";
 import { sttService, type PronunciationResult } from "@/services/stt.service";
 import { toast } from "react-hot-toast";
 import { AudioTestModal } from "@/components/audio/AudioTestModal";
-import { flashcardService } from "@/services/flashcard.service";
 
 interface VocabularyBlockProps {
     cardDeck: CardDeckInfo;
@@ -113,16 +112,10 @@ export function VocabularyBlock({
 
         setLearnedCards((prev) => {
             const newSet = new Set(prev);
-            const wasLearned = newSet.has(cardId);
-
-            if (wasLearned) {
+            if (newSet.has(cardId)) {
                 newSet.delete(cardId);
             } else {
                 newSet.add(cardId);
-                // Track study count when user marks card as learned
-                flashcardService.incrementFlashcardStudy(cardId).catch((error) => {
-                    console.error("Failed to track flashcard study:", error);
-                });
             }
             return newSet;
         });
@@ -200,16 +193,6 @@ export function VocabularyBlock({
     useEffect(() => {
         setPronunciationResult(null);
     }, [currentIndex]);
-
-    // Track view count when card is displayed
-    useEffect(() => {
-        if (currentCard?._id) {
-            // Increment view count for the current flashcard
-            flashcardService.incrementFlashcardView(currentCard._id).catch((error) => {
-                console.error("Failed to track flashcard view:", error);
-            });
-        }
-    }, [currentIndex, currentCard?._id]);
 
     if (!currentCard) {
         return (
@@ -559,72 +542,6 @@ export function VocabularyBlock({
                                         )}
                                     </div>
                                 )}
-
-                                {/* Hint Section */}
-                                {currentCard.hint && (
-                                    <div className="mt-6 bg-yellow-50/80 backdrop-blur p-4 rounded-lg border border-yellow-200">
-                                        <div className="flex items-start gap-2">
-                                            <Lightbulb className="w-5 h-5 text-yellow-600 mt-0.5 flex-shrink-0" />
-                                            <div>
-                                                <h4 className="text-sm font-semibold text-yellow-800 mb-1">
-                                                    Gợi ý:
-                                                </h4>
-                                                <p className="text-sm text-gray-700">
-                                                    {currentCard.hint}
-                                                </p>
-                                            </div>
-                                        </div>
-                                    </div>
-                                )}
-
-                                {/* Explanation Section */}
-                                {currentCard.explanation && (
-                                    <div className="mt-4 bg-blue-50/80 backdrop-blur p-4 rounded-lg border border-blue-200">
-                                        <div className="flex items-start gap-2">
-                                            <Info className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" />
-                                            <div>
-                                                <h4 className="text-sm font-semibold text-blue-800 mb-1">
-                                                    Giải thích chi tiết:
-                                                </h4>
-                                                <p className="text-sm text-gray-700 leading-relaxed">
-                                                    {currentCard.explanation}
-                                                </p>
-                                            </div>
-                                        </div>
-                                    </div>
-                                )}
-
-                                {/* Images from flashcard */}
-                                {currentCard.images && currentCard.images.length > 0 && (
-                                    <div className="mt-4">
-                                        <h4 className="text-sm font-semibold text-gray-700 mb-2">
-                                            Hình ảnh:
-                                        </h4>
-                                        <div className="grid grid-cols-2 gap-3">
-                                            {currentCard.images.map((img: string, idx: number) => (
-                                                <img
-                                                    key={idx}
-                                                    src={img}
-                                                    alt={`Flashcard image ${idx + 1}`}
-                                                    className="w-full rounded-lg shadow-md object-cover"
-                                                />
-                                            ))}
-                                        </div>
-                                    </div>
-                                )}
-
-                                {/* Audio from flashcard */}
-                                {currentCard.audio && (
-                                    <div className="mt-4">
-                                        <h4 className="text-sm font-semibold text-gray-700 mb-2">
-                                            Audio phát âm:
-                                        </h4>
-                                        <audio controls className="w-full">
-                                            <source src={currentCard.audio} type="audio/mpeg" />
-                                            Trình duyệt của bạn không hỗ trợ phát audio.
-                                        </audio>
-                                    </div>
-                                )}
                             </div>
                         </div>
                     </div>
@@ -731,10 +648,3 @@ export function VocabularyBlock({
         </div>
     );
 }
-
-
-
-
-
-
-

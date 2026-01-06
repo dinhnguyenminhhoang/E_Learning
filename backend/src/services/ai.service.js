@@ -487,6 +487,156 @@ IMPORTANT: The "error_text" MUST be the exact substring from the original text s
             throw error;
         }
     }
+
+    async generateBlockContent({ type, title, difficulty = "intermediate", skill = "reading" }) {
+        const openai = getOpenAIClient();
+
+        const prompts = {
+            grammar: `Generate content for an English grammar lesson block titled "${title}".
+
+Requirements:
+- Level: ${difficulty} (beginner = A1-A2, intermediate = B1-B2, advanced = B2-C1)
+- Skill focus: ${skill}
+- Create comprehensive grammar learning content
+
+Return ONLY a valid JSON object with this exact structure (no markdown, no code blocks):
+{
+  "topic": "Grammar topic name in English",
+  "description": "Brief description in Vietnamese (1-2 sentences)",
+  "explanation": "Detailed explanation in Vietnamese with clear examples",
+  "examples": [
+    "English example sentence 1 - Dịch tiếng Việt",
+    "English example sentence 2 - Dịch tiếng Việt",
+    "English example sentence 3 - Dịch tiếng Việt"
+  ],
+  "videoUrl": "YouTube embed URL (https://www.youtube.com/embed/VIDEO_ID) - find relevant grammar tutorial video, if none suitable use empty string"
+}
+
+Make content educational, clear, and practical for Vietnamese learners.`,
+
+            vocabulary: `Generate content for an English vocabulary lesson block titled "${title}".
+
+Requirements:
+- Level: ${difficulty} (beginner = A1-A2, intermediate = B1-B2, advanced = B2-C1)
+- Skill focus: ${skill}
+- Create comprehensive vocabulary learning content
+
+Return ONLY a valid JSON object with this exact structure (no markdown, no code blocks):
+{
+  "description": "Brief description in Vietnamese (1-2 sentences) explaining what vocabulary will be learned",
+  "suggestedWords": [
+    {"word": "word1", "meaning": "nghĩa tiếng Việt", "partOfSpeech": "noun/verb/adj/etc"},
+    {"word": "word2", "meaning": "nghĩa tiếng Việt", "partOfSpeech": "noun/verb/adj/etc"},
+    {"word": "word3", "meaning": "nghĩa tiếng Việt", "partOfSpeech": "noun/verb/adj/etc"},
+    (suggest 10-15 words total)
+  ]
+}
+
+Make vocabulary practical, relevant to the title topic, and appropriate for the level.`,
+
+            media: `Generate content for an English media lesson block titled "${title}".
+
+Requirements:
+- Level: ${difficulty} (beginner = A1-A2, intermediate = B1-B2, advanced = B2-C1)
+- Skill focus: ${skill}
+- Create comprehensive media learning content
+
+Return ONLY a valid JSON object with this exact structure (no markdown, no code blocks):
+{
+  "description": "Brief description in Vietnamese (1-2 sentences) about the media content",
+  "sourceUrl": "YouTube embed URL (https://www.youtube.com/embed/VIDEO_ID) - find relevant English learning video matching the title and level",
+  "transcript": "Brief summary or key points from the video in Vietnamese (3-5 sentences)",
+  "tasks": [
+    {"question": "Comprehension question 1 in Vietnamese", "answer": "Expected answer"},
+    {"question": "Comprehension question 2 in Vietnamese", "answer": "Expected answer"},
+    {"question": "Comprehension question 3 in Vietnamese", "answer": "Expected answer"}
+  ]
+}
+
+Make content engaging and appropriate for ${skill} skill development.`,
+
+            quiz: `Generate content for an English quiz block titled "${title}".
+
+Requirements:
+- Level: ${difficulty} (beginner = A1-A2, intermediate = B1-B2, advanced = B2-C1)
+- Skill focus: ${skill}
+- Create a comprehensive quiz
+
+Return ONLY a valid JSON object with this exact structure (no markdown, no code blocks):
+{
+  "description": "Brief description in Vietnamese (1-2 sentences) about what the quiz tests",
+  "suggestedQuestions": [
+    {
+      "question": "Question text in English",
+      "options": ["Option A", "Option B", "Option C", "Option D"],
+      "correctAnswer": "Option A",
+      "explanation": "Explanation in Vietnamese why this is correct"
+    }
+    (generate 5-10 questions)
+  ]
+}
+
+Make questions clear, educational, and appropriate for the level.`
+        };
+
+        const prompt = prompts[type];
+        if (!prompt) {
+            throw new Error(`Unsupported block type: ${type}`);
+        }
+
+        try {
+            const completion = await openai.chat.completions.create({
+                model: "gpt-4o",
+                messages: [
+                    {
+                        role: "system",
+                        content: "You are an expert English teacher creating educational content. Return only valid JSON without markdown formatting."
+                    },
+                    {
+                        role: "user",
+                        content: prompt
+                    }
+                ],
+                temperature: 0.7,
+                max_tokens: 2000,
+            });
+
+            const responseText = completion.choices[0]?.message?.content?.trim();
+
+            if (!responseText) {
+                throw new Error("Empty response from AI");
+            }
+
+            // Clean up response
+            let cleanedResponse = responseText;
+            if (cleanedResponse.startsWith("```json")) {
+                cleanedResponse = cleanedResponse.slice(7);
+            }
+            if (cleanedResponse.startsWith("```")) {
+                cleanedResponse = cleanedResponse.slice(3);
+            }
+            if (cleanedResponse.endsWith("```")) {
+                cleanedResponse = cleanedResponse.slice(0, -3);
+            }
+            cleanedResponse = cleanedResponse.trim();
+
+            const result = JSON.parse(cleanedResponse);
+
+            return result;
+        } catch (error) {
+            console.error("[AIService] Error generating block content:", error);
+
+            if (error.code === "insufficient_quota") {
+                throw new Error("AI API quota exceeded. Please try again later.");
+            }
+
+            if (error instanceof SyntaxError) {
+                throw new Error("Failed to parse AI response. Please try again.");
+            }
+
+            throw error;
+        }
+    }
 }
 
 module.exports = new AIService();

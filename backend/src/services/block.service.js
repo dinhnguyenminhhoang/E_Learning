@@ -7,9 +7,11 @@ const LessonRepository = require("../repositories/lesson.repo");
 const QuizAttemptForBlockRepository = require("../repositories/quizAttemptForBlock.repo");
 const CardDeckRepo = require("../repositories/cardDeck.repo");
 const FlashcardRepo = require("../repositories/flashcard.repo");
+const UserBlockProgressRepo = require("../repositories/userBlockProgress.repo");
 const ResponseBuilder = require("../types/response/baseResponse");
 const AppError = require("../utils/appError");
 const { STATUS } = require("../constants/status.constans");
+const HTTP_STATUS = require("../constants/httpStatus");
 class BlockService {
   async existingBlock(blockId) {
     const block = await BlockRepository.getBlockById(toObjectId(blockId));
@@ -163,6 +165,22 @@ class BlockService {
       formattedBlock.cardDeck =
         formattedBlock.cardDeck._id?.toString() ||
         formattedBlock.cardDeck.toString();
+    }
+
+    // Fetch flashcards for vocabulary block
+    if (block.type === "vocabulary" && formattedBlock.cardDeck) {
+      const flashcards = await FlashcardRepo.findByDeck(formattedBlock.cardDeck);
+      formattedBlock.flashcards = flashcards
+        .filter((fc) => fc.status === STATUS.ACTIVE)
+        .map((fc) => ({
+          _id: fc._id,
+          front: fc.frontText,
+          back: fc.backText,
+          word: fc.word,
+          images: fc.images || [],
+          difficulty: fc.difficulty,
+          tags: fc.tags || [],
+        }));
     }
 
     return ResponseBuilder.success(
@@ -423,6 +441,54 @@ class BlockService {
             )
             : 0,
       },
+    });
+  }
+
+  /**
+   * Mark vocabulary block as completed when all flashcards are studied
+   */
+  async markVocabularyComplete(req) {
+    const { blockId } = req.params;
+    const userId = req.user._id;
+
+    console.log(`[markVocabularyComplete] blockId: ${blockId}, userId: ${userId}`);
+
+    // Validate block exists and is vocabulary type
+    const block = await this.existingBlock(blockId);
+    if (block.type !== "vocabulary") {
+      throw new AppError(
+        "This endpoint is only for vocabulary blocks",
+        HTTP_STATUS.BAD_REQUEST
+      );
+    }
+
+    // Find UserBlockProgress for this user and block
+    const blockProgress = await UserBlockProgressRepo.findByUserAndBlock(
+      userId,
+      blockId
+    );
+
+    console.log(`[markVocabularyComplete] blockProgress found:`, !!blockProgress);
+
+    if (!blockProgress) {
+      throw new AppError(
+        "Block progress not found. Please start the block first.",
+        HTTP_STATUS.NOT_FOUND
+      );
+    }
+
+    console.log(`[markVocabularyComplete] Before: exerciseCompleted = ${blockProgress.exerciseCompleted}`);
+
+    // Mark exerciseCompleted as true
+    blockProgress.exerciseCompleted = true;
+    await blockProgress.save();
+
+    console.log(`[markVocabularyComplete] After save: exerciseCompleted = ${blockProgress.exerciseCompleted}`);
+
+    return ResponseBuilder.success("Vocabulary block marked as completed", {
+      isComplete: blockProgress.exerciseCompleted,
+      blockId: blockProgress.block,
+      status: blockProgress.status,
     });
   }
 
@@ -882,6 +948,40 @@ class BlockService {
       return ResponseBuilder.success("Block deleted successfully");
     } catch (error) {
       throw new AppError("Failed to remove block from lesson.", 500);
+    }
+  }
+
+  async aiGenerateBlockContent(req) {
+    const { type, title, difficulty, skill } = req.body;
+
+    if (!type || !title) {
+      throw new AppError("Type and title are required", 400);
+    }
+
+    const validTypes = ["grammar", "vocabulary", "media", "quiz"];
+    if (!validTypes.includes(type)) {
+      throw new AppError("Invalid block type", 400);
+    }
+
+    try {
+      const aiService = require("./ai.service");
+      const generatedContent = await aiService.generateBlockContent({
+        type,
+        title,
+        difficulty: difficulty || "intermediate",
+        skill: skill || "reading",
+      });
+
+      return ResponseBuilder.success(
+        "Block content generated successfully",
+        generatedContent
+      );
+    } catch (error) {
+      console.error("[BlockService] AI generation error:", error);
+      throw new AppError(
+        error.message || "Failed to generate block content with AI",
+        500
+      );
     }
   }
 }
