@@ -48,9 +48,9 @@ class BlockService {
     );
   }
 
-  async startQuiz(blockId: string) {
+  async startQuiz(blockId: string, lessonId: string) {
     return await apiClient.post<StartQuizResponse>(
-      `/v1/api/blocks/${blockId}/quiz/start`
+      `/v1/api/blocks/${blockId}/quiz/start?lessonId=${lessonId}`
     );
   }
 
