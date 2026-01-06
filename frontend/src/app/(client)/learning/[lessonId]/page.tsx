@@ -105,6 +105,14 @@ export default function LearningPage() {
   const fetchBlocks = async () => {
     try {
       setLoading(true);
+
+      // Initialize UserBlockProgress for this lesson if not exists
+      try {
+        await blockService.initializeBlockProgress(lessonId);
+      } catch (error) {
+        console.log("Block progress already initialized or error:", error);
+      }
+
       const response = (await learningPathService.getLearningPathHierarchy({
         learningPathId: pathId!,
         isBlock: true,

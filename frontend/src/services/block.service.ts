@@ -42,6 +42,12 @@ class BlockService {
     );
   }
 
+  async initializeBlockProgress(lessonId: string) {
+    return await apiClient.post(
+      `/v1/api/user-block-progress/lessons/${lessonId}/blocks/initialize`
+    );
+  }
+
   async startQuiz(blockId: string) {
     return await apiClient.post<StartQuizResponse>(
       `/v1/api/blocks/${blockId}/quiz/start`
