@@ -16,14 +16,14 @@ const achievementService = require("./achievement.service");
 
 class QuizAttemptForBlockService {
 
-  async startQuizAttempt(userId, blockId) {
+  async startQuizAttempt(userId, blockId, lessonId) {
     try {
-
+      console.log("Starting quiz attempt for user:", userId, "block:", blockId);
       const block = await BlockRepository.getBlockById(toObjectId(blockId));
+      console.log("Fetched block:", block);
       if (!block) {
         return ResponseBuilder.notFoundError("Block not found");
       }
-      let lessonId = block.lessonId;
       if (!lessonId) {
         const lessons = await LessonRepository.getLessonsByBlockId(blockId);
         if (lessons && lessons.length > 0) {

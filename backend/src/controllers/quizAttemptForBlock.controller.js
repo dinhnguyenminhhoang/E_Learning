@@ -3,11 +3,13 @@ const quizAttemptForBlockService = require("../services/quizAttemptForBlock.serv
 class QuizAttemptForBlockController {
   async startQuiz(req, res) {
     const { blockId } = req.params;
+    let { lessonId } = req.query;
     const userId = req.user._id;
 
     const result = await quizAttemptForBlockService.startQuizAttempt(
       userId,
-      blockId
+      blockId,
+      lessonId
     );
     return res.status(result.code).json(result);
   }

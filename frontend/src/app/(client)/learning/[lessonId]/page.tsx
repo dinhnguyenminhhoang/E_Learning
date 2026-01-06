@@ -295,47 +295,9 @@ export default function LearningPage() {
     });
   };
 
-  const handleBlockContinue = async () => {
-    if (!activeBlock || !activeBlockId) return;
-
-    // For vocabulary blocks, mark as complete then complete the block
-    if (activeBlock.type === "vocabulary") {
-      try {
-        // First, mark vocabulary as complete (sets exerciseCompleted = true)
-        console.log("Marking vocabulary complete for blockId:", activeBlockId);
-        const markResponse: any = await blockService.markVocabularyComplete(activeBlockId);
-        console.log("Mark vocabulary complete response:", markResponse);
-
-        if (markResponse.code !== 200) {
-          toast.error("Không thể đánh dấu từ vựng hoàn thành");
-          return;
-        }
-
-        // Then, complete the block
-        console.log("Completing block:", activeBlockId);
-        const response: any = await blockService.completeBlock(activeBlockId);
-        console.log("Complete block response:", response);
-
-        if (response.code === 200) {
-          toast.success("Đã hoàn thành block từ vựng!");
-          // Refresh blocks to update completion status
-          await fetchBlocks();
-
-          // Move to next block
-          setTimeout(() => {
-            handleNext();
-          }, 1500);
-        } else {
-          toast.error(response.message || "Không thể hoàn thành block");
-        }
-      } catch (error: any) {
-        console.error("Error completing vocabulary block:", error);
-        toast.error(error?.message || "Không thể hoàn thành block");
-      }
-      return;
-    }
-
-    // For other block types, start quiz as usual
+const handleBlockContinue = () => {
+    if (!activeBlock) return;
+    console.log("ok")
     handleStartQuiz();
   };
 
@@ -343,7 +305,7 @@ export default function LearningPage() {
     if (!activeBlockId) return;
 
     try {
-      const response = await blockService.startQuiz(activeBlockId);
+      const response = await blockService.startQuiz(activeBlockId, lessonId);
 
       if (response.code === 200 && response.data) {
         // Kiểm tra nếu block không có bài tập
